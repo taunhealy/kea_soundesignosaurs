@@ -1,0 +1,109 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model SoundDesigner {
+  id           String    @id @default(cuid())
+  userId       String    @unique
+  name         String
+  email        String
+  profileImage String?
+  presets      Preset[]
+  samples      Sample[]
+  tutorials    Tutorial[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  websiteUrl   String?
+}
+
+model Preset {
+  id              String        @id @default(cuid())
+  title           String
+  description     String
+  price           Float
+  fxGuide         String
+  spotifyLink     String?
+  soundPreviewUrl String
+  downloadUrl     String
+  soundDesigner   SoundDesigner @relation(fields: [soundDesignerId], references: [id])
+  soundDesignerId String
+  genre           Genre         @relation(fields: [genreId], references: [id])
+  genreId         String
+  vst             VST           @relation(fields: [vstId], references: [id])
+  vstId           String
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+}
+
+model Sample {
+  id              String        @id @default(cuid())
+  title           String
+  description     String
+  price           Float
+  soundPreviewUrl String
+  downloadUrl     String
+  soundDesigner   SoundDesigner @relation(fields: [soundDesignerId], references: [id])
+  soundDesignerId String
+  genre           Genre         @relation(fields: [genreId], references: [id])
+  genreId         String
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+}
+
+model Genre {
+  id      String   @id @default(cuid())
+  name    String
+  presets Preset[]
+  samples Sample[]
+}
+
+model VST {
+  id      String   @id @default(cuid())
+  name    String
+  presets Preset[]
+}
+
+model Tutorial {
+  id              String        @id @default(cuid())
+  title           String
+  description     String
+  url             String
+  soundPreviewUrl String
+  soundDesigner   SoundDesigner @relation(fields: [soundDesignerId], references: [id])
+  soundDesignerId String
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+}
+
+model Order {
+  id        String   @id @default(cuid())
+  userId    String
+  amount    Float
+  status    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  items     OrderItem[]
+}
+
+model OrderItem {
+  id        String   @id @default(cuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id])
+  presetId  String?
+  sampleId  String?
+  quantity  Int
+  price     Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
