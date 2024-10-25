@@ -4,6 +4,7 @@ import prisma from "@/lib/prisma";
 import Link from "next/link";
 import { Button } from "@/app/components/ui/button";
 import { deleteSample } from "@/app/actions/sampleActions";
+import { UploadSampleButton } from "@/components/UploadSampleButton";
 
 async function getSamples(userId: string) {
   const soundDesigner = await prisma.soundDesigner.findUnique({

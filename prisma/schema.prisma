@@ -14,51 +14,54 @@ datasource db {
 }
 
 model SoundDesigner {
-  id           String    @id @default(cuid())
-  userId       String    @unique
-  name         String
-  email        String
+  id      String   @id @default(cuid())
+  userId  String   @unique
+  name    String
+  email   String
   profileImage String?
-  presets      Preset[]
-  samples      Sample[]
-  tutorials    Tutorial[]
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  websiteUrl   String?
+  presets Preset[]
+  samples Sample[]
+  tutorials Tutorial[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  websiteUrl String?
 }
 
 model Preset {
-  id              String        @id @default(cuid())
-  title           String
-  description     String
-  price           Float
-  fxGuide         String
-  spotifyLink     String?
+  id           String     @id @default(cuid())
+  title        String
+  description String
+  price        Float
+  fxGuide      String
+  spotifyLink String?
   soundPreviewUrl String
-  downloadUrl     String
-  soundDesigner   SoundDesigner @relation(fields: [soundDesignerId], references: [id])
+  downloadUrl  String
+  soundDesigner SoundDesigner @relation(fields: [soundDesignerId], references: [id])
   soundDesignerId String
-  genre           Genre         @relation(fields: [genreId], references: [id])
-  genreId         String
-  vst             VST           @relation(fields: [vstId], references: [id])
-  vstId           String
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  genre        Genre      @relation(fields: [genreId], references: [id])
+  genreId      String
+  vst          VST        @relation(fields: [vstId], references: [id])
+  vstId        String
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  downloads    Download[]
 }
 
 model Sample {
-  id              String        @id @default(cuid())
-  title           String
-  description     String
-  price           Float
+  id           String     @id @default(cuid())
+  title        String
+  description String
+  price        Float
   soundPreviewUrl String
-  downloadUrl     String
-  soundDesigner   SoundDesigner @relation(fields: [soundDesignerId], references: [id])
+  downloadUrl  String
+  soundDesigner SoundDesigner @relation(fields: [soundDesignerId], references: [id])
   soundDesignerId String
-  genre           Genre         @relation(fields: [genreId], references: [id])
-  genreId         String
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  genre        Genre      @relation(fields: [genreId], references: [id])
+  genreId      String
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  downloadCount Int        @default(0)
+  downloads    Download[]
 }
 
 model Genre {
@@ -107,3 +110,15 @@ model OrderItem {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+model Download {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  userId    String   // ID of the user who downloaded
+  sampleId  String?
+  sample    Sample?  @relation(fields: [sampleId], references: [id])
+  presetId  String?
+  preset    Preset?  @relation(fields: [presetId], references: [id])
+  @@index([userId, presetId])
+}
+

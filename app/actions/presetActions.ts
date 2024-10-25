@@ -5,14 +5,6 @@ import { redirect } from "next/navigation";
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import algoliasearch from "algoliasearch";
-
-// @ts-ignore
-const client = algoliasearch(
-  process.env.NEXT_PUBLIC_ALGOLIA_APP_ID!,
-  process.env.ALGOLIA_ADMIN_API_KEY!
-);
-const index = client.initIndex("presets_and_samples");
 
 const presetSchema = z.object({
   title: z.string().min(1),
@@ -25,17 +17,6 @@ const presetSchema = z.object({
   genreId: z.string(),
   vstId: z.string(),
 });
-
-async function indexItem(item: any) {
-  await index.saveObject({
-    objectID: item.id,
-    ...item,
-  });
-}
-
-async function removeItemFromIndex(objectID: string) {
-  await index.deleteObject(objectID);
-}
 
 export async function createPreset(formData: FormData) {
   const { userId } = auth();
@@ -76,9 +57,6 @@ export async function createPreset(formData: FormData) {
       },
     });
 
-    // Index the new preset in Algolia
-    await indexItem(createdPreset);
-
     revalidatePath("/dashboard/presets");
     return { success: true };
   } catch (error) {
@@ -116,9 +94,6 @@ export async function updatePreset(presetId: string, formData: FormData) {
       data: validatedFields.data,
     });
 
-    // Update the preset in Algolia
-    await indexItem(updatedPreset);
-
     revalidatePath("/dashboard/presets");
     return { success: true };
   } catch (error) {
@@ -138,9 +113,6 @@ export async function deletePreset(presetId: string) {
     await prisma.preset.delete({
       where: { id: presetId },
     });
-
-    // Remove the preset from Algolia
-    await removeItemFromIndex(presetId);
 
     revalidatePath("/dashboard/presets");
     return { success: true };

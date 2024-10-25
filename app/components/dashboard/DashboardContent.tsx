@@ -3,39 +3,39 @@
 import { useState } from "react";
 import { MyDownloads } from "./MyDownloads";
 import { UploadDropdown } from "./UploadDropdown";
+import { UploadPresetButton } from "@/components/UploadPresetButton";
+import { UploadSampleButton } from "@/components/UploadSampleButton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface DashboardContentProps {
   userId: string;
 }
 
 export function DashboardContent({ userId }: DashboardContentProps) {
-  const [activeTab, setActiveTab] = useState<"samples" | "presets">("samples");
-
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <div className="space-x-4">
-          <button
-            onClick={() => setActiveTab("samples")}
-            className={`px-4 py-2 rounded ${
-              activeTab === "samples" ? "bg-blue-500 text-white" : "bg-gray-200"
-            }`}
-          >
-            Samples
-          </button>
-          <button
-            onClick={() => setActiveTab("presets")}
-            className={`px-4 py-2 rounded ${
-              activeTab === "presets" ? "bg-blue-500 text-white" : "bg-gray-200"
-            }`}
-          >
-            Presets
-          </button>
-        </div>
+        <h1 className="text-2xl font-bold">Dashboard</h1>
         <UploadDropdown />
       </div>
-      <MyDownloads activeTab={activeTab} userId={userId} />
+      <Tabs defaultValue="samples">
+        <TabsList>
+          <TabsTrigger value="samples">Samples</TabsTrigger>
+          <TabsTrigger value="presets">Presets</TabsTrigger>
+        </TabsList>
+        <TabsContent value="samples">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <MyDownloads activeTab="samples" userId={userId} />
+            <UploadSampleButton />
+          </div>
+        </TabsContent>
+        <TabsContent value="presets">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <MyDownloads activeTab="presets" userId={userId} />
+            <UploadPresetButton />
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
-

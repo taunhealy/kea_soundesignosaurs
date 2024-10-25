@@ -5,9 +5,7 @@ import { redirect } from "next/navigation";
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { indexItem, removeItemFromIndex } from "@/lib/algolia";
 import { Sample } from "@/types/SamplePresetTypes";
-import { AlgoliaIndexItem } from "@/types/SamplePresetTypes";
 
 const sampleSchema = z.object({
   title: z.string().min(1),
@@ -53,18 +51,6 @@ export async function createSample(formData: FormData) {
         soundDesignerId: soundDesigner.id,
       },
     });
-    // Index the new sample in Algolia
-    await indexItem({
-      objectID: createdSample.id,
-      title: createdSample.title,
-      description: createdSample.description,
-      price: createdSample.price,
-      soundDesignerId: createdSample.soundDesignerId,
-      genreId: createdSample.genreId,
-      objectType: "sample",
-      soundPreviewUrl: createdSample.soundPreviewUrl,
-      downloadUrl: createdSample.downloadUrl,
-    } as AlgoliaIndexItem);
 
     revalidatePath("/dashboard/samples");
     return { success: true };
@@ -100,9 +86,6 @@ export async function updateSample(sampleId: string, formData: FormData) {
       data: validatedFields.data,
     });
 
-    // Update the sample in Algolia
-    await indexItem(updatedSample);
-
     revalidatePath("/dashboard/samples");
     return { success: true };
   } catch (error) {
@@ -122,9 +105,6 @@ export async function deleteSample(sampleId: string) {
     await prisma.sample.delete({
       where: { id: sampleId },
     });
-
-    // Remove the sample from Algolia
-    await removeItemFromIndex(sampleId);
 
     revalidatePath("/dashboard/samples");
     return { success: true };
