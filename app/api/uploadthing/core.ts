@@ -10,7 +10,7 @@ export const ourFileRouter = {
   imageUploader: f({ image: { maxFileSize: "4MB", maxFileCount: 10 } })
     // Set permissions and file types for this FileRoute
     .middleware(async ({ req }) => {
-      const { userId } = auth();
+      const { userId } = await auth();
 
       if (!userId) throw new UploadThingError("Unauthorized");
 
@@ -29,7 +29,7 @@ export const ourFileRouter = {
   bannerImageRoute: f({ image: { maxFileSize: "4MB", maxFileCount: 1 } })
     // Set permissions and file types for this FileRoute
     .middleware(async ({ req }) => {
-      const { userId } = auth();
+      const { userId } = await auth();
 
       if (!userId) throw new UploadThingError("Unauthorized");
 
@@ -55,9 +55,14 @@ export const ourFileRouter = {
       console.log("file url", file.url);
     }),
 
-  presetUploader: f({ audio: { maxFileSize: "4MB", maxFileCount: 1 } })
+  presetUploader: f({
+    blob: {
+      maxFileSize: "4MB",
+      maxFileCount: 1,
+    },
+  })
     .middleware(async ({ req }) => {
-      const { userId } = auth();
+      const { userId } = await auth();
       if (!userId) throw new UploadThingError("Unauthorized");
       return { userId };
     })
@@ -69,7 +74,7 @@ export const ourFileRouter = {
 
   sampleUploader: f({ audio: { maxFileSize: "4MB", maxFileCount: 1 } })
     .middleware(async ({ req }) => {
-      const { userId } = auth();
+      const { userId } = await auth();
       if (!userId) throw new UploadThingError("Unauthorized");
       return { userId };
     })

@@ -9,23 +9,23 @@ export function SearchSidebar() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [selectedVSTs, setSelectedVSTs] = useState<string[]>([]);
-  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
   const handleGenreChange = (genre: string) => {
-    setSelectedGenres(prev =>
-      prev.includes(genre) ? prev.filter(g => g !== genre) : [...prev, genre]
+    setSelectedGenres((prev) =>
+      prev.includes(genre) ? prev.filter((g) => g !== genre) : [...prev, genre]
     );
   };
 
   const handleVSTChange = (vst: string) => {
-    setSelectedVSTs(prev =>
-      prev.includes(vst) ? prev.filter(v => v !== vst) : [...prev, vst]
+    setSelectedVSTs((prev) =>
+      prev.includes(vst) ? prev.filter((v) => v !== vst) : [...prev, vst]
     );
   };
 
-  const handleTypeChange = (type: string) => {
-    setSelectedTypes(prev =>
-      prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
+  const handleTagChange = (tag: string) => {
+    setSelectedTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
     );
   };
 
@@ -60,7 +60,7 @@ export function SearchSidebar() {
 
       <div className="mb-4">
         <Label>VST</Label>
-        {["Serum", "Massive", "Omnisphere", "Kontakt"].map((vst) => (
+        {["Serum", "Vital"].map((vst) => (
           <div key={vst} className="flex items-center">
             <Checkbox
               id={`vst-${vst}`}
@@ -75,16 +75,16 @@ export function SearchSidebar() {
       </div>
 
       <div>
-        <Label>Type</Label>
-        {["Preset", "Sample"].map((type) => (
-          <div key={type} className="flex items-center">
+        <Label>Tags</Label>
+        {["Bass", "Lead", "Pad", "FX", "Pluck"].map((tag) => (
+          <div key={tag} className="flex items-center">
             <Checkbox
-              id={`type-${type}`}
-              checked={selectedTypes.includes(type)}
-              onCheckedChange={() => handleTypeChange(type)}
+              id={`tag-${tag}`}
+              checked={selectedTags.includes(tag)}
+              onCheckedChange={() => handleTagChange(tag)}
             />
-            <Label htmlFor={`type-${type}`} className="ml-2">
-              {type}
+            <Label htmlFor={`tag-${tag}`} className="ml-2">
+              {tag}
             </Label>
           </div>
         ))}

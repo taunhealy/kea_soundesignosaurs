@@ -40,4 +40,3 @@ export function MyDownloads({ activeTab, userId }: MyDownloadsProps) {
     </div>
   );
 }
-

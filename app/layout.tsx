@@ -10,8 +10,8 @@ import ErrorBoundary from "@/app/components/ErrorBoundary";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Wedding Photographer Finder",
-  description: "Find the perfect wedding photographer for your special day",
+  title: "Sounddesignosaurs",
+  description: "Find the sound",
 };
 
 export default function RootLayout({

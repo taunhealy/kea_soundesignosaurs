@@ -14,67 +14,45 @@ datasource db {
 }
 
 model SoundDesigner {
-  id      String   @id @default(cuid())
-  userId  String   @unique
-  name    String
-  email   String
+  id          String    @id @default(cuid())
+  userId      String    @unique // This should match the Clerk user ID
+  name        String
+  email       String
   profileImage String?
-  presets Preset[]
-  samples Sample[]
-  tutorials Tutorial[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  websiteUrl String?
-}
-
-model Preset {
-  id           String     @id @default(cuid())
-  title        String
-  description String
-  price        Float
-  fxGuide      String
-  spotifyLink String?
-  soundPreviewUrl String
-  downloadUrl  String
-  soundDesigner SoundDesigner @relation(fields: [soundDesignerId], references: [id])
-  soundDesignerId String
-  genre        Genre      @relation(fields: [genreId], references: [id])
-  genreId      String
-  vst          VST        @relation(fields: [vstId], references: [id])
-  vstId        String
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-  downloads    Download[]
-}
-
-model Sample {
-  id           String     @id @default(cuid())
-  title        String
-  description String
-  price        Float
-  soundPreviewUrl String
-  downloadUrl  String
-  soundDesigner SoundDesigner @relation(fields: [soundDesignerId], references: [id])
-  soundDesignerId String
-  genre        Genre      @relation(fields: [genreId], references: [id])
-  genreId      String
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-  downloadCount Int        @default(0)
-  downloads    Download[]
-}
-
-model Genre {
-  id      String   @id @default(cuid())
-  name    String
-  presets Preset[]
-  samples Sample[]
+  presets     Preset[]
+  tutorials   Tutorial[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  websiteUrl  String?
 }
 
 model VST {
-  id      String   @id @default(cuid())
-  name    String
+  id String @id @default(cuid())
+  name String @unique
   presets Preset[]
+}
+
+model Preset {
+  id             String        @id @default(cuid())
+  title          String
+  description    String
+  price          Float
+  guide          String
+  spotifyLink    String?
+  soundPreviewUrl String?
+  fullDemoUrl    String?
+  presetFileUrl  String   
+  presetType     String    
+  soundDesigner  SoundDesigner @relation(fields: [soundDesignerId], references: [id])
+  soundDesignerId String
+  genre          String?    // Changed to String
+  vstType        VSTType
+  tags           String[]
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  downloads      Download[]
+  vst            VST        @relation(fields: [vstId], references: [id])
+  vstId          String
 }
 
 model Tutorial {
@@ -115,10 +93,12 @@ model Download {
   id        String   @id @default(cuid())
   createdAt DateTime @default(now())
   userId    String   // ID of the user who downloaded
-  sampleId  String?
-  sample    Sample?  @relation(fields: [sampleId], references: [id])
   presetId  String?
   preset    Preset?  @relation(fields: [presetId], references: [id])
   @@index([userId, presetId])
 }
 
+enum VSTType {
+  SERUM
+  VITAL
+}

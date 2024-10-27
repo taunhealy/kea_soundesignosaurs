@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { PresetCard } from "./PresetCard";
-import { SampleCard } from "./SampleCard";
 import { useDebounce } from "../hooks/useDebounce";
 
 interface ExploreItem {
@@ -14,7 +13,7 @@ interface ExploreItem {
     soundPreviewUrl: string;
     downloadUrl?: string;
   };
-  type: "preset" | "sample";
+  type: "preset";
   soundDesigner: {
     name: string;
     profileImage: string;
@@ -70,7 +69,7 @@ export function ExploreGrid({ initialItems }: ExploreGridProps) {
         type="text"
         value={searchTerm}
         onChange={handleSearchChange}
-        placeholder="Search presets and samples..."
+        placeholder="Search presets..."
         className="w-full p-2 border border-gray-300 rounded"
       />
       {isLoading ? (
@@ -79,13 +78,10 @@ export function ExploreGrid({ initialItems }: ExploreGridProps) {
         <div>No items found</div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {items && items.map((item: ExploreItem) =>
-            item.type === "preset" ? (
+          {items &&
+            items.map((item: ExploreItem) => (
               <PresetCard key={item.id} preset={item} />
-            ) : (
-              <SampleCard key={item.id} sample={item} />
-            )
-          )}
+            ))}
         </div>
       )}
     </div>

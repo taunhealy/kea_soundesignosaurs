@@ -4,20 +4,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
-  BarChart3,
   Music,
   FileAudio,
-  Video,
   Settings,
   HelpCircle,
 } from "lucide-react";
 
 const navItems = [
-  {
-    name: "Dashboard",
-    href: "/dashboard",
-    icon: BarChart3,
-  },
   {
     name: "Presets",
     href: "/dashboard/presets",
@@ -27,11 +20,6 @@ const navItems = [
     name: "Samples",
     href: "/dashboard/samples",
     icon: FileAudio,
-  },
-  {
-    name: "Tutorials",
-    href: "/dashboard/tutorials",
-    icon: Video,
   },
   {
     name: "Settings",
@@ -56,7 +44,7 @@ export function SoundDesignerNavigation() {
           href={item.href}
           className={cn(
             "flex items-center px-4 py-2 text-sm font-medium rounded-md",
-            pathname === item.href
+            (pathname === item.href || (pathname === "/dashboard" && item.href === "/dashboard/presets"))
               ? "bg-gray-100 text-gray-900"
               : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
           )}

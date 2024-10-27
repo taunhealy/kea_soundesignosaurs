@@ -9,6 +9,7 @@ import {
   CommandGroup,
   CommandInput,
   CommandItem,
+  CommandList,
 } from "@/app/components/ui/command";
 import {
   Popover,
@@ -17,20 +18,24 @@ import {
 } from "@/app/components/ui/popover";
 
 interface ComboboxProps {
-  items: { value: string; label: string }[];
-  onInputChange: (value: string) => void;
-  onSelectItem: (value: string) => void;
+  value?: string;
+  onSelect: (value: string) => void;
+  options: { value: string; label: string }[];
   placeholder?: string;
 }
 
 export function Combobox({
-  items,
-  onInputChange,
-  onSelectItem,
-  placeholder = "Select an item...",
+  value,
+  onSelect,
+  options,
+  placeholder = "Select genre...",
 }: ComboboxProps) {
   const [open, setOpen] = React.useState(false);
-  const [value, setValue] = React.useState("");
+  const [searchQuery, setSearchQuery] = React.useState("");
+
+  const filteredOptions = options.filter((option) =>
+    option.label.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -42,7 +47,7 @@ export function Combobox({
           className="w-full justify-between"
         >
           {value
-            ? items.find((item) => item.value === value)?.label
+            ? options.find((option) => option.value === value)?.label
             : placeholder}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
@@ -51,31 +56,39 @@ export function Combobox({
         <Command>
           <CommandInput
             placeholder="Search..."
-            onValueChange={(search) => {
-              onInputChange(search);
-            }}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
           />
-          <CommandEmpty>No item found.</CommandEmpty>
-          <CommandGroup>
-            {items.map((item) => (
-              <CommandItem
-                key={item.value}
-                onSelect={() => {
-                  setValue(item.value);
-                  onSelectItem(item.value);
-                  setOpen(false);
-                }}
-              >
-                <Check
+          <CommandList>
+            {filteredOptions.length === 0 && (
+              <CommandEmpty>No genres found.</CommandEmpty>
+            )}
+            <CommandGroup>
+              {filteredOptions.map((option) => (
+                <li
+                  key={option.value}
+                  onClick={() => {
+                    console.log("Option clicked:", option.value);
+                    onSelect(option.value);
+                    setSearchQuery("");
+                    setOpen(false);
+                  }}
                   className={cn(
-                    "mr-2 h-4 w-4",
-                    value === item.value ? "opacity-100" : "opacity-0"
+                    "flex w-full items-center gap-2 px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground cursor-pointer",
+                    value === option.value && "bg-accent"
                   )}
-                />
-                {item.label}
-              </CommandItem>
-            ))}
-          </CommandGroup>
+                >
+                  <Check
+                    className={cn(
+                      "h-4 w-4",
+                      value === option.value ? "opacity-100" : "opacity-0"
+                    )}
+                  />
+                  {option.label}
+                </li>
+              ))}
+            </CommandGroup>
+          </CommandList>
         </Command>
       </PopoverContent>
     </Popover>

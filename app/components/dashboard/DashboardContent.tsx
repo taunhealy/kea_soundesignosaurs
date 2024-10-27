@@ -3,9 +3,13 @@
 import { useState } from "react";
 import { MyDownloads } from "./MyDownloads";
 import { UploadDropdown } from "./UploadDropdown";
-import { UploadPresetButton } from "@/components/UploadPresetButton";
-import { UploadSampleButton } from "@/components/UploadSampleButton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { UploadPresetButton } from "@/app/components/dashboard/UploadPresetButton";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/app/components/ui/tabs";
 
 interface DashboardContentProps {
   userId: string;
@@ -26,7 +30,6 @@ export function DashboardContent({ userId }: DashboardContentProps) {
         <TabsContent value="samples">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <MyDownloads activeTab="samples" userId={userId} />
-            <UploadSampleButton />
           </div>
         </TabsContent>
         <TabsContent value="presets">
