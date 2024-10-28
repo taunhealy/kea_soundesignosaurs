@@ -2,6 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useClerk } from "@clerk/nextjs";
+import { UsernameSettings } from "@/app/components/settings/UsernameSettings";
+import { Button } from "@/app/components/ui/button";
 
 export default function SettingsPage() {
   const { signOut } = useClerk();
@@ -33,15 +35,21 @@ export default function SettingsPage() {
   };
 
   return (
-    <div>
-      <h1>Settings</h1>
-      {/* Other settings options */}
-      <button
-        onClick={deleteAccount}
-        className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded"
-      >
-        Delete Account
-      </button>
+    <div className="container mx-auto p-6 max-w-2xl">
+      <h1 className="text-2xl font-bold mb-6">Account Settings</h1>
+
+      <div className="space-y-6">
+        <UsernameSettings />
+
+        <div className="bg-card rounded-lg p-6 shadow-sm">
+          <h2 className="text-xl font-semibold mb-4 text-red-600">
+            Danger Zone
+          </h2>
+          <Button onClick={deleteAccount} variant="destructive">
+            Delete Account
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

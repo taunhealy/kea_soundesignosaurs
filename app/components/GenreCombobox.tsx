@@ -1,13 +1,14 @@
 "use client";
 
 import { Combobox } from "@/app/components/ui/combobox";
-import { Genre } from "@/app/types/enums";
+import { useQuery } from "@tanstack/react-query";
 
-// Convert enum to array of options with proper typing
-const GENRES = Object.entries(Genre).map(([key, value]) => ({
-  value: key,      // The enum key (e.g., "FUTURE_BASS")
-  label: value,    // The display value (e.g., "Future Bass")
-}));
+interface Genre {
+  id: string;
+  name: string;
+  type: string;
+  isSystem: boolean;
+}
 
 interface GenreComboboxProps {
   value: string;
@@ -15,20 +16,30 @@ interface GenreComboboxProps {
 }
 
 export function GenreCombobox({ value, onChange }: GenreComboboxProps) {
-  // Find the matching genre option for the current value
-  const currentOption = GENRES.find(
-    (genre) => genre.label === value || genre.value === value
-  );
+  const { data: genres } = useQuery<Genre[]>({
+    queryKey: ["genres"],
+    queryFn: async () => {
+      const response = await fetch("/api/genres");
+      if (!response.ok) throw new Error("Failed to fetch genres");
+      return response.json();
+    },
+  });
 
-  const handleSelect = (value: string) => {
-    onChange(value);
-  };
+  const options =
+    genres?.map((genre) => ({
+      value: genre.name,
+      label: genre.name,
+    })) || [];
+
+  const currentOption = options.find(
+    (genre) => genre.value === value || genre.label === value
+  );
 
   return (
     <Combobox
-      value={currentOption?.value || value}
-      onSelect={handleSelect}
-      options={GENRES}
+      value={currentOption?.value || ""}
+      onSelect={onChange}
+      options={options}
       placeholder="Select genre..."
     />
   );

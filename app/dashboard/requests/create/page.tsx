@@ -14,32 +14,24 @@ import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { Textarea } from "@/app/components/ui/textarea";
 import { SubmitButton } from "@/app/components/SubmitButtons";
-import { Genre } from "@/app/types/enums";
-import { Combobox } from "@/app/components/ui/combobox";
+import { GenreCombobox } from "@/app/components/GenreCombobox";
+import { useRouter } from "next/navigation";
+import { useState, FormEvent } from "react";
 
-const helpPostSchema = z
-  .object({
-    title: z.string().min(1, "Title is required"),
-    youtubeLink: z.string().url("Invalid YouTube URL").optional(),
-    enquiryDetails: z.string().min(1, "Enquiry details are required"),
-    genre: z.string().min(1, "Please select a genre"),
-    customGenre: z.string().optional(),
-  })
-  .refine(
-    (data) => {
-      if (data.genre === "OTHER") {
-        return data.customGenre !== undefined && data.customGenre.length > 0;
-      }
-      return true;
-    },
-    {
-      message: "Please enter a custom genre",
-      path: ["customGenre"],
-    }
-  );
+const helpPostSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  youtubeLink: z.string().optional(),
+  genre: z.string().min(1, "Genre is required"),
+  enquiryDetails: z.string().min(1, "Enquiry details are required"),
+});
 
 export default function HelpPostCreateRoute() {
+  const router = useRouter();
+  const [selectedGenre, setSelectedGenre] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const [form, fields] = useForm({
+    shouldValidate: "onBlur",
     onValidate({ formData }) {
       return parseWithZod(formData, { schema: helpPostSchema });
     },
@@ -47,20 +39,48 @@ export default function HelpPostCreateRoute() {
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    // Here you would typically send the form data to your server
-    console.log("Form submitted", form.value);
+    
+    if (isSubmitting) return;
+    
+    try {
+      setIsSubmitting(true);
+      const formData = new FormData(event.currentTarget);
+      formData.set(fields.genre.name, selectedGenre);
+
+      const result = parseWithZod(formData, { schema: helpPostSchema });
+      if (result.status !== "success") {
+        console.error("Validation error:", result.error);
+        return;
+      }
+
+      const response = await fetch("/api/request-threads", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          ...result.value,
+          genre: selectedGenre,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to create help thread");
+      }
+
+      // Change this line to redirect to /dashboard/requests instead of /dashboard/help
+      router.push("/dashboard/requests");
+    } catch (error) {
+      console.error("Error creating request thread:", error);
+      // Here you could add toast notification or error message display
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const genreOptions = [
-    ...Object.values(Genre).map((genre) => ({
-      label: genre,
-      value: genre,
-    })),
-    { label: "Other", value: "OTHER" },
-  ];
-
   return (
-    <form onSubmit={handleSubmit}>
+    <form onSubmit={handleSubmit} id={form.id}>
       <Card>
         <CardHeader>
           <CardTitle>Create Help Post</CardTitle>
@@ -100,40 +120,33 @@ export default function HelpPostCreateRoute() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="genre">Genre</Label>
-            <Combobox
-              value={fields.genre.value || ""}
-              onSelect={(value) => {
-                form.update({
-                  [fields.genre.name]: value,
-                  [fields.customGenre.name]:
-                    value !== "OTHER" ? undefined : fields.customGenre.value,
-                });
+            <Label>Genre</Label>
+            <input
+              type="hidden"
+              name={fields.genre.name}
+              value={selectedGenre}
+            />
+            <GenreCombobox
+              value={selectedGenre}
+              onChange={(value) => {
+                console.log("Genre selected:", value);
+                setSelectedGenre(value);
+
+                // Create a new FormData instance and convert it to a plain object
+                const formData = new FormData(
+                  document.getElementById(form.id) as HTMLFormElement
+                );
+                formData.set(fields.genre.name, value);
+
+                // Convert FormData to a plain object before validation
+                const formDataObj = Object.fromEntries(formData);
+                form.validate(formDataObj);
               }}
-              options={genreOptions}
-              placeholder="Search for a genre"
             />
             {fields.genre.errors && (
               <p className="text-sm text-red-500">{fields.genre.errors}</p>
             )}
           </div>
-
-          {fields.genre.value === "OTHER" && (
-            <div className="space-y-2">
-              <Label htmlFor="customGenre">Custom Genre</Label>
-              <Input
-                id="customGenre"
-                name={fields.customGenre.name}
-                defaultValue={fields.customGenre.initialValue}
-                aria-invalid={!!fields.customGenre.errors}
-              />
-              {fields.customGenre.errors && (
-                <p className="text-sm text-red-500">
-                  {fields.customGenre.errors}
-                </p>
-              )}
-            </div>
-          )}
 
           <div className="space-y-2">
             <Label htmlFor="enquiryDetails">Enquiry Details</Label>
@@ -141,7 +154,6 @@ export default function HelpPostCreateRoute() {
               id="enquiryDetails"
               name={fields.enquiryDetails.name}
               defaultValue={fields.enquiryDetails.initialValue}
-              rows={6}
               aria-invalid={!!fields.enquiryDetails.errors}
             />
             {fields.enquiryDetails.errors && (

@@ -4,6 +4,7 @@ import prisma from "@/lib/prisma";
 
 export async function GET(request: Request) {
   const { userId } = await auth();
+  console.log("User ID:", userId); // Add this line to log the userId
   const { searchParams } = new URL(request.url);
   const type = searchParams.get("type");
 
@@ -35,10 +36,15 @@ export async function GET(request: Request) {
               soundPreviewUrl: true,
               spotifyLink: true,
               downloads: true,
-              genre: true,
+              genre: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
               soundDesigner: {
                 select: {
-                  name: true,
+                  username: true,
                   profileImage: true,
                 },
               },
@@ -53,7 +59,10 @@ export async function GET(request: Request) {
 
     return NextResponse.json(presets);
   } catch (error) {
-    console.error("Error fetching presets:", error);
+    console.error("Error fetching presets:", {
+      message: error instanceof Error ? error.message : "Unknown error",
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

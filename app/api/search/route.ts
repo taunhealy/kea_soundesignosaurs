@@ -5,8 +5,8 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const query = searchParams.get("q") || "";
   const genre = searchParams.get("genre");
-  const vst = searchParams.get("vst");
-  const type = searchParams.get("type");
+  const vsts = searchParams.get("vst")?.split(",");
+  const presetTypes = searchParams.get("presetTypes")?.split(",");
 
   try {
     const results = await prisma.preset.findMany({
@@ -15,9 +15,17 @@ export async function GET(request: Request) {
           { title: { contains: query, mode: "insensitive" } },
           { description: { contains: query, mode: "insensitive" } },
         ],
-        genre: genre ? { name: genre } : undefined,
-        vst: vst ? { name: vst } : undefined,
-        // type: type || undefined,
+        genre: genre ? { name: { equals: genre } } : undefined,
+        vst:
+          vsts && vsts.length > 0
+            ? {
+                name: { in: vsts },
+              }
+            : undefined,
+        presetType:
+          presetTypes && presetTypes.length > 0
+            ? { in: presetTypes }
+            : undefined,
       },
       include: {
         soundDesigner: {

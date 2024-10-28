@@ -24,14 +24,8 @@ export function DashboardContent({ userId }: DashboardContentProps) {
       </div>
       <Tabs defaultValue="samples">
         <TabsList>
-          <TabsTrigger value="samples">Samples</TabsTrigger>
           <TabsTrigger value="presets">Presets</TabsTrigger>
         </TabsList>
-        <TabsContent value="samples">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <MyDownloads activeTab="samples" userId={userId} />
-          </div>
-        </TabsContent>
         <TabsContent value="presets">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <MyDownloads activeTab="presets" userId={userId} />

@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { PresetCard } from "./PresetCard";
-import { useDebounce } from "../hooks/useDebounce";
 
 interface ExploreItem {
   id: string;
@@ -27,61 +27,55 @@ interface ExploreItem {
 }
 
 interface ExploreGridProps {
-  initialItems: ExploreItem[];
+  filters: {
+    searchTerm: string;
+    genres: string[];
+    vsts: string[];
+    presetTypes: string[];
+  };
 }
 
-export function ExploreGrid({ initialItems }: ExploreGridProps) {
-  const [items, setItems] = useState<ExploreItem[]>(initialItems || []);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-  const [searchTerm, setSearchTerm] = useState("");
-  const debouncedSearchTerm = useDebounce(searchTerm, 300);
+export function ExploreGrid({ filters }: ExploreGridProps) {
+  const {
+    data: items = [],
+    isLoading,
+    error,
+  } = useQuery<ExploreItem[]>({
+    queryKey: [
+      "exploreItems",
+      filters.searchTerm,
+      filters.genres,
+      filters.vsts,
+      filters.presetTypes,
+    ],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (filters.searchTerm) params.append("q", filters.searchTerm);
+      if (filters.genres.length)
+        params.append("genre", filters.genres.join(","));
+      if (filters.vsts.length) params.append("vst", filters.vsts.join(","));
+      if (filters.presetTypes.length)
+        params.append("presetTypes", filters.presetTypes.join(","));
 
-  const fetchItems = async (filters: any) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const params = new URLSearchParams(filters);
       const response = await fetch(`/api/search?${params.toString()}`);
       if (!response.ok) throw new Error("Failed to fetch items");
-      const data = await response.json();
-      setItems(data);
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error("An error occurred"));
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchItems({ q: debouncedSearchTerm });
-  }, [debouncedSearchTerm]);
-
-  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(event.target.value);
-  };
+      return response.json();
+    },
+  });
 
   if (error) return <div>An error occurred: {error.message}</div>;
 
   return (
-    <div className="space-y-4">
-      <input
-        type="text"
-        value={searchTerm}
-        onChange={handleSearchChange}
-        placeholder="Search presets..."
-        className="w-full p-2 border border-gray-300 rounded"
-      />
+    <div className="flex-1 p-4">
       {isLoading ? (
         <div>Loading...</div>
-      ) : items && items.length === 0 ? (
+      ) : items.length === 0 ? (
         <div>No items found</div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {items &&
-            items.map((item: ExploreItem) => (
-              <PresetCard key={item.id} preset={item} />
-            ))}
+          {items.map((item) => (
+            <PresetCard key={item.id} preset={item} />
+          ))}
         </div>
       )}
     </div>

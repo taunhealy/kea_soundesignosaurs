@@ -17,6 +17,7 @@ model SoundDesigner {
   id          String    @id @default(cuid())
   userId      String    @unique // This should match the Clerk user ID
   name        String
+  username    String? @unique
   email       String
   profileImage String?
   presets     Preset[]
@@ -24,6 +25,8 @@ model SoundDesigner {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   websiteUrl  String?
+  helpThreads HelpThread[]
+  helpSubmissions HelpSubmission[]
 }
 
 model VST {
@@ -33,26 +36,25 @@ model VST {
 }
 
 model Preset {
-  id             String        @id @default(cuid())
-  title          String
-  description    String
-  price          Float
-  guide          String
-  spotifyLink    String?
+  id              String   @id @default(cuid())
+  title           String
+  description     String   // Add this
+  guide           String   // Add this
+  price           Float
   soundPreviewUrl String?
-  fullDemoUrl    String?
-  presetFileUrl  String   
-  presetType     String    
-  soundDesigner  SoundDesigner @relation(fields: [soundDesignerId], references: [id])
+  spotifyLink     String?
+  genre           Genre?   @relation(fields: [genreId], references: [id])
+  genreId         String?
+  soundDesigner   SoundDesigner @relation(fields: [soundDesignerId], references: [id])
   soundDesignerId String
-  genre          String?    // Changed to String
-  vstType        VSTType
-  tags           String[]
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
-  downloads      Download[]
-  vst            VST        @relation(fields: [vstId], references: [id])
-  vstId          String
+  presetFileUrl   String   
+  presetType      String    
+  tags            String[]
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  downloads       Download[]
+  vst             VST        @relation(fields: [vstId], references: [id])
+  vstId           String
 }
 
 model Tutorial {
@@ -101,4 +103,71 @@ model Download {
 enum VSTType {
   SERUM
   VITAL
+}
+
+model HelpThread {
+  id             String           @id @default(cuid())
+  title          String
+  youtubeLink    String?
+  genre          String
+  enquiryDetails String
+  userId         String
+  status         String          @default("OPEN") // OPEN, ASSISTED, SATISFIED
+  submissions    HelpSubmission[]    // Changed from Submission[] to HelpSubmission[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  soundDesigner   SoundDesigner @relation(fields: [userId], references: [userId])
+}
+
+model HelpSubmission {
+  id              String        @id @default(cuid())
+  helpThreadId    String
+  helpThread      HelpThread    @relation(fields: [helpThreadId], references: [id])
+  userId          String
+  username        String
+  soundPreviewUrl String?
+  presetFileUrl   String?
+  guide           String?
+  createdAt       DateTime      @default(now())
+  soundDesigner   SoundDesigner @relation(fields: [userId], references: [userId])
+}
+
+model Genre {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  type      String    // Changed from GenreType enum
+  isSystem  Boolean   @default(false)
+  presets   Preset[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+enum GenreType {
+  ELECTRONIC
+  HIP_HOP
+  ROCK
+  METAL
+  HARDWAVE
+  WAVE
+  PHONK
+  FUTURE_BASS
+  COLOR_BASS
+  HOUSE
+  TECHNO
+  TRANCE
+  DUBSTEP
+  DRUM_AND_BASS
+  DRILL
+  AMAPIANO
+  TRAP
+  AMBIENT
+  SYNTHWAVE
+  EXPERIMENTAL
+  IDM
+  BREAKBEAT
+  GLITCH_HOP
+  DOWNTEMPO
+  LO_FI
+  CUSTOM
+  SYSTEM
 }

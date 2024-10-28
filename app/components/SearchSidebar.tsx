@@ -1,32 +1,56 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { Checkbox } from "@/app/components/ui/checkbox";
+import { useGenres } from "@/app/hooks/useGenres";
 
-export function SearchSidebar() {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
-  const [selectedVSTs, setSelectedVSTs] = useState<string[]>([]);
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+interface SearchSidebarProps {
+  filters: {
+    searchTerm: string;
+    genres: string[];
+    vsts: string[];
+    presetTypes: string[];
+  };
+  setFilters: React.Dispatch<
+    React.SetStateAction<{
+      searchTerm: string;
+      genres: string[];
+      vsts: string[];
+      presetTypes: string[];
+    }>
+  >;
+}
+
+export function SearchSidebar({ filters, setFilters }: SearchSidebarProps) {
+  const { data: genres, isLoading: isLoadingGenres } = useGenres();
 
   const handleGenreChange = (genre: string) => {
-    setSelectedGenres((prev) =>
-      prev.includes(genre) ? prev.filter((g) => g !== genre) : [...prev, genre]
-    );
+    setFilters((prev) => ({
+      ...prev,
+      genres: prev.genres.includes(genre)
+        ? prev.genres.filter((g) => g !== genre)
+        : [...prev.genres, genre],
+    }));
   };
 
   const handleVSTChange = (vst: string) => {
-    setSelectedVSTs((prev) =>
-      prev.includes(vst) ? prev.filter((v) => v !== vst) : [...prev, vst]
-    );
+    setFilters((prev) => ({
+      ...prev,
+      vsts: prev.vsts.includes(vst)
+        ? prev.vsts.filter((v) => v !== vst)
+        : [...prev.vsts, vst],
+    }));
   };
 
-  const handleTagChange = (tag: string) => {
-    setSelectedTags((prev) =>
-      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
-    );
+  const handlePresetTypeChange = (type: string) => {
+    setFilters((prev) => ({
+      ...prev,
+      presetTypes: prev.presetTypes.includes(type)
+        ? prev.presetTypes.filter((t) => t !== type)
+        : [...prev.presetTypes, type],
+    }));
   };
 
   return (
@@ -36,26 +60,32 @@ export function SearchSidebar() {
         <Input
           id="searchbox"
           type="text"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+          value={filters.searchTerm}
+          onChange={(e) =>
+            setFilters((prev) => ({ ...prev, searchTerm: e.target.value }))
+          }
           placeholder="Search..."
         />
       </div>
 
       <div className="mb-4">
         <Label>Genre</Label>
-        {["Electronic", "Hip Hop", "Rock", "Pop"].map((genre) => (
-          <div key={genre} className="flex items-center">
-            <Checkbox
-              id={`genre-${genre}`}
-              checked={selectedGenres.includes(genre)}
-              onCheckedChange={() => handleGenreChange(genre)}
-            />
-            <Label htmlFor={`genre-${genre}`} className="ml-2">
-              {genre}
-            </Label>
-          </div>
-        ))}
+        {isLoadingGenres ? (
+          <div>Loading genres...</div>
+        ) : (
+          genres?.map((genre) => (
+            <div key={genre.id} className="flex items-center">
+              <Checkbox
+                id={`genre-${genre.id}`}
+                checked={filters.genres.includes(genre.name)}
+                onCheckedChange={() => handleGenreChange(genre.name)}
+              />
+              <Label htmlFor={`genre-${genre.id}`} className="ml-2">
+                {genre.name}
+              </Label>
+            </div>
+          ))
+        )}
       </div>
 
       <div className="mb-4">
@@ -64,7 +94,7 @@ export function SearchSidebar() {
           <div key={vst} className="flex items-center">
             <Checkbox
               id={`vst-${vst}`}
-              checked={selectedVSTs.includes(vst)}
+              checked={filters.vsts.includes(vst)}
               onCheckedChange={() => handleVSTChange(vst)}
             />
             <Label htmlFor={`vst-${vst}`} className="ml-2">
@@ -75,16 +105,16 @@ export function SearchSidebar() {
       </div>
 
       <div>
-        <Label>Tags</Label>
-        {["Bass", "Lead", "Pad", "FX", "Pluck"].map((tag) => (
-          <div key={tag} className="flex items-center">
+        <Label>Preset Type</Label>
+        {["Pad", "Lead", "Pluck", "Bass", "FX", "Other"].map((type) => (
+          <div key={type} className="flex items-center">
             <Checkbox
-              id={`tag-${tag}`}
-              checked={selectedTags.includes(tag)}
-              onCheckedChange={() => handleTagChange(tag)}
+              id={`type-${type}`}
+              checked={filters.presetTypes.includes(type)}
+              onCheckedChange={() => handlePresetTypeChange(type)}
             />
-            <Label htmlFor={`tag-${tag}`} className="ml-2">
-              {tag}
+            <Label htmlFor={`type-${type}`} className="ml-2">
+              {type}
             </Label>
           </div>
         ))}

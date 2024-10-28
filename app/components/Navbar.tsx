@@ -55,11 +55,6 @@ export function Navbar() {
                       <Link href="/dashboard">Overview</Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link href="/dashboard/samples/create">
-                        Upload Sample
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
                       <Link href="/dashboard/presets/create">
                         Upload Preset
                       </Link>

@@ -2,8 +2,6 @@ import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { GenreType } from "@prisma/client";
-import { Genre } from "@/app/types/enums";
 
 export async function GET(
   request: Request,
@@ -14,7 +12,10 @@ export async function GET(
       return new NextResponse("Missing preset ID", { status: 400 });
     }
 
-    console.log("Fetching preset with ID:", params.id);
+    // Validate ID format if you're using specific ID patterns
+    if (typeof params.id !== 'string') {
+      return new NextResponse("Invalid preset ID format", { status: 400 });
+    }
 
     const preset = await prisma.preset.findUnique({
       where: {
@@ -23,27 +24,56 @@ export async function GET(
       include: {
         soundDesigner: {
           select: {
-            name: true,
+            username: true,
+            profileImage: true,
           },
         },
+        vst: true,
         genre: true,
       },
     });
-
-    console.log("Fetched preset:", preset);
 
     if (!preset) {
       return new NextResponse("Preset not found", { status: 404 });
     }
 
-    return NextResponse.json(preset);
+    // Format the data to match what PresetForm expects
+    const formattedPreset = {
+      ...preset,
+      vstType: preset.vst?.name ?? "",
+      genre: preset.genre?.name ?? "",
+      isFree: preset.price === 0,
+      // Use nullish coalescing operator for better null/undefined handling
+      title: preset.title ?? "",
+      description: preset.description ?? "",
+      guide: preset.guide ?? "",
+      spotifyLink: preset.spotifyLink ?? "",
+      presetFileUrl: preset.presetFileUrl ?? "",
+      soundPreviewUrl: preset.soundPreviewUrl ?? "",
+      price: preset.price ?? 0,
+      tags: preset.tags ?? [],
+      presetType: preset.presetType ?? "",
+    };
+
+    return NextResponse.json(formattedPreset);
   } catch (error) {
-    console.error("[PRESET_GET] Detailed error:", {
+    // Enhanced error logging
+    console.error("[PRESET_GET] Error details:", {
       message: error instanceof Error ? error.message : "Unknown error",
       stack: error instanceof Error ? error.stack : undefined,
       params,
+      errorType: error?.constructor?.name,
+      timestamp: new Date().toISOString(),
     });
-    return new NextResponse("Internal error", { status: 500 });
+
+    // Check for specific error types
+    if (error instanceof Error) {
+      if (error.message.includes("prisma")) {
+        return new NextResponse("Database error", { status: 500 });
+      }
+    }
+
+    return new NextResponse("Internal server error", { status: 500 });
   }
 }
 
@@ -52,83 +82,83 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
+    // Check authentication
     const { userId } = await auth();
     if (!userId) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const data = await request.json();
-    const id = params.id;
 
-    console.log("Received data for update:", data);
-
-    // Validate genre
-    const genreValue = data.genre;
-    const genreKey = Object.entries(Genre).find(([key, value]) => 
-      value === genreValue || key === genreValue
-    )?.[0];
-
-    if (!genreKey) {
-      return NextResponse.json({
-        error: "Invalid genre",
-        details: `Genre '${data.genre}' is not valid`,
-      }, { status: 400 });
-    }
-
-    // Find or create genre
-    let genre = await prisma.genre.findFirst({
+    // Validate that the preset exists and belongs to the user
+    const existingPreset = await prisma.preset.findFirst({
       where: {
-        OR: [
-          { name: genreValue },
-          { type: genreKey as GenreType }
-        ]
+        id: params.id,
+        soundDesigner: {
+          userId: userId,
+        },
       },
     });
 
-    if (!genre) {
-      genre = await prisma.genre.create({
-        data: {
-          name: genreValue,
-          type: genreKey as GenreType,
-          isCustom: false
-        },
-      });
+    if (!existingPreset) {
+      return NextResponse.json({ error: "Preset not found" }, { status: 404 });
     }
 
-    // Update preset
+    // Update the preset
     const updatedPreset = await prisma.preset.update({
-      where: { id },
+      where: { id: params.id },
       data: {
         title: data.title,
-        description: data.description,
-        guide: data.guide,
-        spotifyLink: data.spotifyLink || null,
-        soundPreviewUrl: data.soundPreviewUrl || null,
+        price: data.price,
+        soundPreviewUrl: data.soundPreviewUrl,
+        spotifyLink: data.spotifyLink,
+        genreId: data.genreId,
         presetFileUrl: data.presetFileUrl,
         presetType: data.presetType,
-        vstType: data.vstType,
-        tags: Array.isArray(data.tags) ? data.tags : 
-              typeof data.tags === "string" ? data.tags.split(",").map(tag => tag.trim()) : [],
-        price: data.isFree ? 0 : data.price || 0,
-        genreId: genre.id,
+        tags: data.tags,
+        vstId: data.vstId,
       },
       include: {
         genre: true,
-        soundDesigner: {
-          select: { name: true },
-        },
+        soundDesigner: true,
+        vst: true,
       },
     });
 
-    // Revalidate the path to ensure fresh data
-    revalidatePath(`/presets/${id}`);
-    
+    revalidatePath(`/presets/${params.id}`);
     return NextResponse.json(updatedPreset);
   } catch (error) {
-    console.error("[PRESET_UPDATE] Error:", error);
-    return NextResponse.json({
-      error: "Failed to update preset",
-      details: error instanceof Error ? error.message : String(error),
-    }, { status: 500 });
+    console.error("Error updating preset:", error);
+    return NextResponse.json(
+      { error: "Failed to update preset", details: error },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const preset = await prisma.preset.findUnique({
+      where: { id: params.id },
+    });
+
+    if (!preset) {
+      return NextResponse.json({ error: "Preset not found" }, { status: 404 });
+    }
+
+    await prisma.preset.delete({
+      where: { id: params.id },
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Error deleting preset:", error);
+    return NextResponse.json(
+      { error: "Failed to delete preset" },
+      { status: 500 }
+    );
   }
 }

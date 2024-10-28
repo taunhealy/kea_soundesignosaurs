@@ -21,7 +21,6 @@ import { useRouter } from "next/navigation";
 import { FileIcon, X, Upload } from "lucide-react";
 import { Label } from "@/app/components/ui/label";
 import { toast } from "react-hot-toast"; // Add this import if you're using react-hot-toast for notificationsimport { useUser } from "@clerk/nextjs";
-import { Genre } from "@/app/types/enums";
 import { GenreCombobox } from "@/app/components/GenreCombobox";
 
 const presetSchema = z.object({
@@ -50,6 +49,7 @@ interface PresetFormProps {
 }
 
 export function PresetForm({ initialData, presetId }: PresetFormProps) {
+  console.log("PresetForm initialData:", initialData);
   const [genres, setGenres] = useState<Array<{ id: string; name: string }>>([]);
   const [soundPreviewUrl, setSoundPreviewUrl] = useState(
     initialData?.soundPreviewUrl || ""
@@ -84,8 +84,17 @@ export function PresetForm({ initialData, presetId }: PresetFormProps) {
     trigger,
   } = useForm<PresetFormData>({
     resolver: zodResolver(presetSchema),
-    defaultValues: initialData || {},
+    defaultValues: {
+      ...initialData,
+      genre: initialData?.genre || "",
+      isFree: initialData ? initialData.price === 0 : false,
+    },
   });
+
+  // Add this useEffect to log the form values
+  useEffect(() => {
+    console.log("Form values:", watch());
+  }, [watch]);
 
   // Add this log
   console.log("Form errors:", errors);
@@ -96,12 +105,6 @@ export function PresetForm({ initialData, presetId }: PresetFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
   const { isLoaded, isSignedIn, user } = useUser();
-
-  // Convert enum to array of options
-  const genreOptions = Object.entries(Genre).map(([key, value]) => ({
-    id: key,
-    name: value,
-  }));
 
   // Add this state
   const [vsts, setVsts] = useState<Array<{ id: string; name: string }>>([]);
@@ -183,7 +186,7 @@ export function PresetForm({ initialData, presetId }: PresetFormProps) {
         tags: tags,
         price: data.isFree ? 0 : data.price || 0,
         soundDesignerId: soundDesigner.id,
-        genre: data.genre?.toUpperCase().replace(/ /g, "_"), // Convert to enum format
+        genre: data.genre, // Remove the conversion to enum format
       };
 
       const response = await fetch(
@@ -291,7 +294,6 @@ export function PresetForm({ initialData, presetId }: PresetFormProps) {
         <GenreCombobox
           value={watch("genre") || ""}
           onChange={(value) => {
-            console.log("Setting genre value:", value); // Debug log
             setValue("genre", value);
           }}
         />

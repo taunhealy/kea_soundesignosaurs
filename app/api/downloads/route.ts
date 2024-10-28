@@ -13,8 +13,8 @@ export async function GET(request: Request) {
 
   try {
     let downloads;
-    if (type === "samples") {
-      downloads = await prisma.sample.findMany({
+    if (type === "presets") {
+      downloads = await prisma.preset.findMany({
         where: {
           soundDesigner: {
             userId: userId,
@@ -35,8 +35,6 @@ export async function GET(request: Request) {
         title: d.title,
         downloadCount: d._count.downloads,
       }));
-    } else if (type === "presets") {
-      // Similar query for presets
     } else {
       return NextResponse.json({ error: "Invalid type" }, { status: 400 });
     }
