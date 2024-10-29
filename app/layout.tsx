@@ -4,8 +4,8 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Navbar } from "@/app/components/Navbar";
-import { ReactQueryProvider } from "@/app/components/ReactQueryProvider";
-import ErrorBoundary from "@/app/components/ErrorBoundary";
+import { Providers } from "@/app/components/Providers";
+import { ReduxProvider } from './providers/ReduxProvider';
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -23,14 +23,14 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <ClerkProvider afterSignOutUrl="/">
-          <ReactQueryProvider>
-            <Navbar />
-            <ErrorBoundary>
+          <ReduxProvider>
+            <Providers>
+              <Navbar />
               <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 {children}
               </main>
-            </ErrorBoundary>
-          </ReactQueryProvider>
+            </Providers>
+          </ReduxProvider>
         </ClerkProvider>
       </body>
     </html>

@@ -3,11 +3,11 @@ import prisma from "@/lib/prisma";
 
 export async function GET(
   request: Request,
-  { params }: { params: { userId: string } }
+  { params }: { params: { id: string } }
 ) {
   try {
     const soundDesigner = await prisma.soundDesigner.findUnique({
-      where: { userId: params.userId },
+      where: { userId: params.id },
       include: {
         presets: {
           include: {
@@ -40,4 +40,3 @@ export async function GET(
     );
   }
 }
-

@@ -15,6 +15,13 @@ export function SearchForm() {
   const [vst, setVst] = useState<string[]>([]);
   const router = useRouter();
 
+  // Create a handler function for type changes
+  const handleTypeChange = (typeValue: string, checked: boolean) => {
+    setType((prev) =>
+      checked ? [...prev, typeValue] : prev.filter((t) => t !== typeValue)
+    );
+  };
+
   const handleSearch = (event: React.FormEvent) => {
     event.preventDefault();
     const searchParams = new URLSearchParams();
@@ -22,7 +29,7 @@ export function SearchForm() {
     if (type.length) searchParams.append("type", type.join(","));
     if (genre.length) searchParams.append("genre", genre.join(","));
     if (vst.length) searchParams.append("vst", vst.join(","));
-    
+
     router.push(`/search?${searchParams.toString()}`);
   };
 
@@ -43,49 +50,43 @@ export function SearchForm() {
               onChange={(e) => setQuery(e.target.value)}
             />
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label>Type</Label>
               <div className="space-y-1">
-                <Checkbox 
-                  id="type-preset" 
+                <Checkbox
+                  id="type-preset"
                   checked={type.includes("preset")}
                   onCheckedChange={(checked) => {
-                    setType(checked 
-                      ? [...type, "preset"]
-                      : type.filter(t => t !== "preset")
-                    );
+                    handleTypeChange("preset", checked as boolean);
                   }}
                 />
                 <Label htmlFor="type-preset">Preset</Label>
               </div>
               <div className="space-y-1">
-                <Checkbox 
-                  id="type-sample" 
+                <Checkbox
+                  id="type-sample"
                   checked={type.includes("sample")}
                   onCheckedChange={(checked) => {
-                    setType(checked 
-                      ? [...type, "sample"]
-                      : type.filter(t => t !== "sample")
-                    );
+                    handleTypeChange("sample", checked as boolean);
                   }}
                 />
                 <Label htmlFor="type-sample">Sample</Label>
               </div>
             </div>
-            
+
             <div className="space-y-2">
               <Label>Genre</Label>
               {/* Add genre checkboxes here */}
             </div>
-            
+
             <div className="space-y-2">
               <Label>VST</Label>
               {/* Add VST checkboxes here */}
             </div>
           </div>
-          
+
           <Button type="submit">Search</Button>
         </form>
       </CardContent>

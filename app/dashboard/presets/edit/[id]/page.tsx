@@ -6,16 +6,16 @@ import { PresetForm } from "@/app/components/PresetForm";
 
 export default function EditPresetPage() {
   const params = useParams();
-  const id = params?.id as string;
+  const presetId = params?.id as string;
 
   const {
     data: presetData,
     isLoading,
     error,
   } = useQuery({
-    queryKey: ["preset", id],
+    queryKey: ["preset", presetId],
     queryFn: async () => {
-      const response = await fetch(`/api/presets/${id}`);
+      const response = await fetch(`/api/presets/${presetId}`);
       if (!response.ok) {
         console.error("Error fetching preset:", response.statusText);
         throw new Error("Error fetching preset");
@@ -33,7 +33,7 @@ export default function EditPresetPage() {
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold my-4">Edit Preset</h1>
-      <PresetForm initialData={presetData} presetId={id} />
+      <PresetForm initialData={presetData} presetId={presetId} />
     </div>
   );
 }

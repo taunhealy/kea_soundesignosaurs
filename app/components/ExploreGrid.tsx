@@ -3,50 +3,24 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { PresetCard } from "./PresetCard";
+import { Preset } from "@/types/PresetTypes";
+import { useSelector } from "react-redux";
+import { RootState } from "@/app/store/store";
 
-interface ExploreItem {
-  id: string;
-  name: string;
-  description: string;
-  settings: {
-    price: number;
-    soundPreviewUrl: string;
-    downloadUrl?: string;
-  };
-  type: "preset";
-  soundDesigner: {
-    name: string;
-    profileImage: string;
-  };
-  genre: {
-    name: string;
-  };
-  vst?: {
-    name: string;
-  };
-}
+export function ExploreGrid() {
+  const filters = useSelector((state: RootState) => state.filters);
 
-interface ExploreGridProps {
-  filters: {
-    searchTerm: string;
-    genres: string[];
-    vsts: string[];
-    presetTypes: string[];
-  };
-}
-
-export function ExploreGrid({ filters }: ExploreGridProps) {
   const {
     data: items = [],
     isLoading,
     error,
-  } = useQuery<ExploreItem[]>({
+  } = useQuery<Preset[]>({
     queryKey: [
       "exploreItems",
       filters.searchTerm,
       filters.genres,
       filters.vsts,
-      filters.presetTypes,
+      filters.types,
     ],
     queryFn: async () => {
       const params = new URLSearchParams();
@@ -54,8 +28,7 @@ export function ExploreGrid({ filters }: ExploreGridProps) {
       if (filters.genres.length)
         params.append("genre", filters.genres.join(","));
       if (filters.vsts.length) params.append("vst", filters.vsts.join(","));
-      if (filters.presetTypes.length)
-        params.append("presetTypes", filters.presetTypes.join(","));
+      if (filters.types.length) params.append("types", filters.types.join(","));
 
       const response = await fetch(`/api/search?${params.toString()}`);
       if (!response.ok) throw new Error("Failed to fetch items");
@@ -74,7 +47,20 @@ export function ExploreGrid({ filters }: ExploreGridProps) {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {items.map((item) => (
-            <PresetCard key={item.id} preset={item} />
+            <PresetCard
+              key={item.id}
+              preset={{
+                ...item,
+                soundDesigner: item.soundDesigner
+                  ? {
+                      ...item.soundDesigner,
+                      profileImage:
+                        item.soundDesigner.profileImage ||
+                        "/default-profile.png",
+                    }
+                  : undefined,
+              }}
+            />
           ))}
         </div>
       )}

@@ -29,13 +29,17 @@ export async function GET(request: Request) {
       },
       include: {
         soundDesigner: {
-          select: { name: true, profileImage: true },
+          select: {
+            username: true,
+            profileImage: true,
+          },
         },
         genre: true,
         vst: true,
       },
     });
 
+    console.log("API Results:", JSON.stringify(results, null, 2));
     return NextResponse.json(results);
   } catch (error) {
     console.error("Search error:", error);

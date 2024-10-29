@@ -1,7 +1,7 @@
 "use client";
 
 import { usePresets } from "@/app/hooks/usePresets";
-import { PresetCard } from "@/app/components/PresetCard";
+import PresetCard, { PresetSettings } from "@/app/components/PresetCard";
 import {
   Tabs,
   TabsContent,
@@ -10,26 +10,8 @@ import {
 } from "@/app/components/ui/tabs";
 import { Button } from "@/app/components/ui/button";
 import Link from "next/link";
-import { PresetSettings } from "@/app/components/PresetCard";
 import { useAuth } from "@clerk/nextjs";
-
-// Define the Preset type
-interface Preset {
-  id: string;
-  name: string;
-  settings: PresetSettings;
-  soundDesigner?: {
-    username: string;
-    profileImage: string;
-  };
-  genre?: {
-    name: string;
-  };
-  vst?: {
-    name: string;
-  };
-  presetType?: string;
-}
+import { Preset } from "@/types/PresetTypes";
 
 export default function PresetsPage() {
   const { userId } = useAuth();
@@ -58,7 +40,16 @@ export default function PresetsPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {downloadedPresets?.length > 0 ? (
               downloadedPresets.map((preset: Preset) => (
-                <PresetCard key={preset.id} preset={preset} />
+                <PresetCard 
+                  key={preset.id} 
+                  preset={{
+                    ...preset,
+                    soundDesigner: preset.soundDesigner ? {
+                      username: preset.soundDesigner.username,
+                      profileImage: preset.soundDesigner.profileImage || '/default-profile.jpg'
+                    } : undefined
+                  }} 
+                />
               ))
             ) : (
               <div>No downloaded guides available</div>
@@ -69,7 +60,16 @@ export default function PresetsPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {uploadedPresets?.length > 0 ? (
               uploadedPresets.map((preset: Preset) => (
-                <PresetCard key={preset.id} preset={preset} />
+                <PresetCard 
+                  key={preset.id} 
+                  preset={{
+                    ...preset,
+                    soundDesigner: preset.soundDesigner ? {
+                      username: preset.soundDesigner.username,
+                      profileImage: preset.soundDesigner.profileImage || '/default-profile.jpg'
+                    } : undefined
+                  }} 
+                />
               ))
             ) : (
               <div>No uploaded guides available</div>

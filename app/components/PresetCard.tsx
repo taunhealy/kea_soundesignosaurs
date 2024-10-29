@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "./ui/button";
 import {
   PlayIcon,
@@ -9,10 +9,18 @@ import {
   DownloadIcon,
   TrashIcon,
 } from "lucide-react";
-import { toast, ToastContainer } from "react-toastify";
+import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { useRouter } from "next/navigation"; // Changed from next/router
+import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardFooter,
+} from "./ui/card";
+import { type Preset } from "@/types/PresetTypes";
 
 // Ensure PresetSettings is exported
 export interface PresetSettings {
@@ -25,8 +33,10 @@ export interface PresetSettings {
 interface PresetCardProps {
   preset: {
     id: string;
-    name: string;
-    settings: PresetSettings;
+    title: string;
+    price?: number;
+    soundPreviewUrl?: string;
+    downloadUrl?: string;
     soundDesigner?: {
       username: string;
       profileImage: string;
@@ -37,101 +47,141 @@ interface PresetCardProps {
     vst?: {
       name: string;
     };
-    presetType?: string; // Added this line
+    presetType?: string;
   };
 }
 
-export function PresetCard({ preset }: PresetCardProps) {
+export const PresetCard: React.FC<PresetCardProps> = ({ preset }) => {
+  console.log("Preset in card:", preset); // Debug log
+
   const [isPlaying, setIsPlaying] = useState(false);
   const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const router = useRouter();
   const queryClient = useQueryClient();
+
+  const cleanupAudio = useCallback(() => {
+    if (audio) {
+      audio.pause();
+      audio.removeEventListener("ended", () => setIsPlaying(false));
+      setAudio(null);
+      setIsPlaying(false);
+    }
+  }, [audio]);
 
   useEffect(() => {
     if (audio) {
       audio.addEventListener("ended", () => setIsPlaying(false));
     }
-    return () => {
-      if (audio) {
-        audio.removeEventListener("ended", () => setIsPlaying(false));
-      }
-    };
-  }, [audio]);
+    return cleanupAudio;
+  }, [audio, cleanupAudio]);
 
-  const togglePlay = () => {
-    if (!preset.settings?.soundPreviewUrl) {
-      toast.error("No valid sound preview URL provided.");
+  const togglePlay = useCallback(() => {
+    if (!preset.soundPreviewUrl) {
+      toast.error("No sound preview available");
       return;
     }
 
     if (!audio) {
-      const newAudio = new Audio(preset.settings.soundPreviewUrl);
+      const newAudio = new Audio(preset.soundPreviewUrl);
+      newAudio.addEventListener("error", () => {
+        toast.error("Failed to load audio");
+        cleanupAudio();
+      });
       setAudio(newAudio);
-      newAudio.play();
+      newAudio.play().catch(() => {
+        toast.error("Failed to play audio");
+        cleanupAudio();
+      });
       setIsPlaying(true);
     } else {
       if (isPlaying) {
         audio.pause();
       } else {
-        audio.play();
+        audio.play().catch(() => {
+          toast.error("Failed to play audio");
+          cleanupAudio();
+        });
       }
       setIsPlaying(!isPlaying);
     }
-  };
+  }, [preset.soundPreviewUrl, audio, isPlaying, cleanupAudio]);
 
-  console.log("Preset soundDesigner:", preset.soundDesigner);
+  const handleDownload = useCallback(() => {
+    if (!preset.downloadUrl) {
+      toast.error("No download URL available");
+      return;
+    }
+    window.open(preset.downloadUrl, "_blank");
+  }, [preset.downloadUrl]);
 
   const handleDelete = async () => {
-    if (confirm("Are you sure you want to delete this preset?")) {
-      try {
-        const response = await fetch(`/api/presets/${preset.id}`, {
-          method: "DELETE",
-        });
-        if (!response.ok) {
-          throw new Error("Failed to delete preset");
-        }
-        alert("Preset deleted successfully");
-        queryClient.invalidateQueries({ queryKey: ["presets"] }); // Correct usage of invalidateQueries
-      } catch (error) {
-        console.error("Error deleting preset:", error);
-        alert("Failed to delete preset");
-      }
+    if (!confirm("Are you sure you want to delete this preset?")) return;
+
+    setIsDeleting(true);
+    try {
+      const response = await fetch(`/api/presets/${preset.id}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) throw new Error("Failed to delete preset");
+
+      toast.success("Preset deleted successfully");
+      queryClient.invalidateQueries({ queryKey: ["presets"] });
+    } catch (error) {
+      console.error("Error deleting preset:", error);
+      toast.error("Failed to delete preset");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Prevent navigation if clicking on buttons
+    if (
+      (e.target as HTMLElement).closest("button") ||
+      (e.target as HTMLElement).closest(".button-container")
+    ) {
+      return;
+    }
+    router.push(`/presets/${preset.id}`); // Changed from /dashboard/presets/ to /presets/
+  };
+
   return (
-    <div className="border rounded-lg p-4 shadow-md relative">
-      <ToastContainer />
-      <h3 className="text-lg font-semibold mb-2">{preset.name}</h3>
-      <div className="flex justify-between items-center">
-        <Button onClick={togglePlay}>
-          {isPlaying ? <PauseIcon /> : <PlayIcon />}
-        </Button>
-        <Button
-          onClick={() => window.open(preset.settings.downloadUrl, "_blank")}
-        >
-          <DownloadIcon className="w-4 h-4" />
-          <span>Download</span>
-        </Button>
-      </div>
-      <button
-        onClick={() => router.push(`/dashboard/presets/edit/${preset.id}`)}
-        className="absolute top-2 right-2 p-2 bg-white rounded-full shadow-md"
-      >
-        <EditIcon className="w-4 h-4" />
-      </button>
-      <button
-        onClick={handleDelete}
-        className="absolute top-2 right-10 p-2 bg-white rounded-full shadow-md"
-      >
-        <TrashIcon className="w-4 h-4" />
-      </button>
-      <div className="text-sm text-gray-500 mb-2">
-        {preset.soundDesigner && <p>By: {preset.soundDesigner.username}</p>}
-        {preset.genre && <p>Genre: {preset.genre.name}</p>}
-        {preset.vst && <p>VST: {preset.vst.name}</p>}
-        {preset.presetType && <p>Preset Type: {preset.presetType}</p>}
-      </div>
-    </div>
+    <Card className="relative" onClick={handleCardClick}>
+      <CardHeader>
+        <CardTitle>{preset.title}</CardTitle>
+        <CardContent>
+          <div className="flex justify-between items-center gap-4">
+            <Button onClick={togglePlay} variant="outline">
+              {isPlaying ? <PauseIcon /> : <PlayIcon />}
+            </Button>
+            <Button onClick={handleDownload}>
+              <DownloadIcon className="w-4 h-4" />
+              <span>Download</span>
+            </Button>
+          </div>
+          <button
+            onClick={() => router.push(`/dashboard/presets/edit/${preset.id}`)}
+            className="absolute top-2 right-2 p-2 bg-white rounded-full shadow-md"
+          >
+            <EditIcon className="w-4 h-4" />
+          </button>
+          <button
+            onClick={handleDelete}
+            className="absolute top-2 right-10 p-2 bg-white rounded-full shadow-md"
+          >
+            <TrashIcon className="w-4 h-4" />
+          </button>
+          <div className="text-sm text-gray-500 mb-2">
+            {preset.soundDesigner && <p>By: {preset.soundDesigner.username}</p>}
+            {preset.genre && <p>Genre: {preset.genre.name}</p>}
+            {preset.vst && <p>VST: {preset.vst.name}</p>}
+            {preset.presetType && <p>Preset Type: {preset.presetType}</p>}
+          </div>
+        </CardContent>
+      </CardHeader>
+    </Card>
   );
-}
+};
+
+export default PresetCard; // Add this line at the end

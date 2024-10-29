@@ -12,7 +12,7 @@ export async function POST(request: Request) {
   try {
     const data = await request.json();
 
-    const requestThread = await prisma.helpThread.create({
+    const requestThread = await prisma.requestThread.create({
       data: {
         title: data.title,
         youtubeLink: data.youtubeLink || null,
@@ -43,7 +43,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const threads = await prisma.helpThread.findMany({
+    const threads = await prisma.requestThread.findMany({
       where: {
         userId: type === "requested" ? userId : undefined,
         submissions: type === "assisted" ? { some: { userId } } : undefined,

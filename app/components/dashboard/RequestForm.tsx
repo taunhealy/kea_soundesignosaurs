@@ -10,6 +10,8 @@ import { Textarea } from "@/app/components/ui/textarea";
 import { GenreCombobox } from "@/app/components/GenreCombobox";
 import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
+import { useUser } from "@clerk/nextjs";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 const requestSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -26,9 +28,10 @@ interface RequestFormProps {
 }
 
 export function RequestForm({ initialData, requestId }: RequestFormProps) {
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const router = useRouter();
   const [selectedGenre, setSelectedGenre] = useState(initialData?.genre || "");
+  const router = useRouter();
+  const { user } = useUser();
+  const queryClient = useQueryClient();
 
   const {
     register,
@@ -39,9 +42,8 @@ export function RequestForm({ initialData, requestId }: RequestFormProps) {
     defaultValues: initialData,
   });
 
-  const onSubmit = async (data: RequestFormData) => {
-    setIsSubmitting(true);
-    try {
+  const mutation = useMutation({
+    mutationFn: async (data: RequestFormData) => {
       const response = await fetch(
         `/api/request-threads${requestId ? `/${requestId}` : ""}`,
         {
@@ -52,6 +54,7 @@ export function RequestForm({ initialData, requestId }: RequestFormProps) {
           body: JSON.stringify({
             ...data,
             genre: selectedGenre,
+            username: user?.username || user?.firstName || "Anonymous",
           }),
         }
       );
@@ -60,14 +63,23 @@ export function RequestForm({ initialData, requestId }: RequestFormProps) {
         throw new Error("Failed to save request");
       }
 
+      return response.json();
+    },
+    onSuccess: () => {
+      // Invalidate relevant queries
+      queryClient.invalidateQueries({ queryKey: ["requests"] });
+      queryClient.invalidateQueries({ queryKey: ["request", requestId] });
       toast.success("Request saved successfully");
       router.push("/dashboard/requests");
-    } catch (error) {
+    },
+    onError: (error) => {
       console.error("Error saving request:", error);
       toast.error("Failed to save request");
-    } finally {
-      setIsSubmitting(false);
-    }
+    },
+  });
+
+  const onSubmit = (data: RequestFormData) => {
+    mutation.mutate(data);
   };
 
   return (
@@ -110,9 +122,7 @@ export function RequestForm({ initialData, requestId }: RequestFormProps) {
         )}
       </div>
 
-      <Button type="submit" disabled={isSubmitting}>
-        {isSubmitting ? "Saving..." : "Save Request"}
-      </Button>
+      <Button type="submit">Save Request</Button>
     </form>
   );
 }

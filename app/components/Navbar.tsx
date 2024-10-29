@@ -25,21 +25,7 @@ export function Navbar() {
         </Link>
         <ul className="flex space-x-4 items-center">
           <li>
-            <Link href="/">Home</Link>
-          </li>
-          <li>
-            <Link href="/search">Search</Link>
-          </li>
-          <li>
             <Link href="/explore">Explore</Link>
-          </li>
-          <li>
-            <Link href="/tutorials">Tutorials</Link>
-          </li>
-          <li>
-            <Link href="/cart">
-              Cart ({cart.reduce((sum, item) => sum + item.quantity, 0)})
-            </Link>
           </li>
           {isSignedIn ? (
             <>

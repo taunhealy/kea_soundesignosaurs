@@ -1,21 +1,14 @@
-import { useQuery } from "@tanstack/react-query";
-
-interface Genre {
-  id: string;
-  name: string;
-  type: string;
-  isSystem: boolean;
-}
+import { useQuery } from '@tanstack/react-query';
 
 export function useGenres() {
-  return useQuery<Genre[]>({
-    queryKey: ["genres"],
+  return useQuery({
+    queryKey: ['genres'],
     queryFn: async () => {
-      const response = await fetch("/api/admin/genres");
+      const response = await fetch('/api/genres');
       if (!response.ok) {
-        throw new Error("Failed to fetch genres");
+        throw new Error('Failed to fetch genres');
       }
       return response.json();
-    },
+    }
   });
 }

@@ -25,8 +25,8 @@ model SoundDesigner {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   websiteUrl  String?
-  helpThreads HelpThread[]
-  helpSubmissions HelpSubmission[]
+  requestThreads RequestThread[]
+  submissions    RequestSubmission[]
 }
 
 model VST {
@@ -105,32 +105,6 @@ enum VSTType {
   VITAL
 }
 
-model HelpThread {
-  id             String           @id @default(cuid())
-  title          String
-  youtubeLink    String?
-  genre          String
-  enquiryDetails String
-  userId         String
-  status         String          @default("OPEN") // OPEN, ASSISTED, SATISFIED
-  submissions    HelpSubmission[]    // Changed from Submission[] to HelpSubmission[]
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-  soundDesigner   SoundDesigner @relation(fields: [userId], references: [userId])
-}
-
-model HelpSubmission {
-  id              String        @id @default(cuid())
-  helpThreadId    String
-  helpThread      HelpThread    @relation(fields: [helpThreadId], references: [id])
-  userId          String
-  username        String
-  soundPreviewUrl String?
-  presetFileUrl   String?
-  guide           String?
-  createdAt       DateTime      @default(now())
-  soundDesigner   SoundDesigner @relation(fields: [userId], references: [userId])
-}
 
 model Genre {
   id        String    @id @default(cuid())
@@ -170,4 +144,41 @@ enum GenreType {
   LO_FI
   CUSTOM
   SYSTEM
+}
+
+model RequestThread {
+  id             String           @id @default(cuid())
+  title          String
+  youtubeLink    String?
+  genre          String
+  enquiryDetails String
+  userId         String
+  status         RequestStatus    @default(OPEN)  // Add enum for better type safety
+  submissions    RequestSubmission[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  soundDesigner  SoundDesigner   @relation(fields: [userId], references: [userId])
+}
+
+enum RequestStatus {
+  OPEN
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+model RequestSubmission {
+  id              String        @id @default(cuid())
+  requestThreadId String
+  requestThread   RequestThread @relation(fields: [requestThreadId], references: [id])
+  userId          String
+  username        String
+  soundPreviewUrl String?
+  presetFileUrl   String?
+  guide           String?
+  createdAt       DateTime      @default(now())
+  soundDesigner   SoundDesigner @relation(fields: [userId], references: [userId])
+
+  @@index([requestThreadId])
+  @@index([userId])
 }

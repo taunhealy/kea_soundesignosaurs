@@ -7,17 +7,14 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const requestThread = await prisma.helpThread.findUnique({
-      where: {
-        id: params.id,
-      },
+    const requestThread = await prisma.requestThread.findUnique({
+      where: { id: params.id },
       include: {
-        submissions: true,
+        soundDesigner: {
+          select: {
+            username: true,
+          },
+        },
       },
     });
 
@@ -25,16 +22,11 @@ export async function GET(
       return NextResponse.json({ error: "Request not found" }, { status: 404 });
     }
 
-    // Verify ownership
-    if (requestThread.userId !== userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
-    }
-
     return NextResponse.json(requestThread);
   } catch (error) {
-    console.error("Error fetching request thread:", error);
+    console.error("Error fetching request:", error);
     return NextResponse.json(
-      { error: "Failed to fetch request thread" },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }
@@ -53,7 +45,7 @@ export async function PUT(
     const data = await request.json();
 
     // Verify ownership
-    const existingThread = await prisma.helpThread.findUnique({
+    const existingThread = await prisma.requestThread.findUnique({
       where: { id: params.id },
     });
 
@@ -61,7 +53,7 @@ export async function PUT(
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
-    const updatedThread = await prisma.helpThread.update({
+    const updatedThread = await prisma.requestThread.update({
       where: { id: params.id },
       data: {
         title: data.title,
@@ -95,7 +87,7 @@ export async function DELETE(
     }
 
     // Verify ownership
-    const thread = await prisma.helpThread.findUnique({
+    const thread = await prisma.requestThread.findUnique({
       where: { id: params.id },
     });
 
@@ -103,7 +95,7 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
-    await prisma.helpThread.delete({
+    await prisma.requestThread.delete({
       where: { id: params.id },
     });
 
