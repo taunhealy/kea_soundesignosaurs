@@ -12,18 +12,18 @@ import { Label } from "@/app/components/ui/label";
 import { Checkbox } from "@/app/components/ui/checkbox";
 import { useGenres } from "@/app/hooks/useGenres";
 import { cn } from "@/lib/utils";
+import { PresetType, VSTType } from '@/types/PresetTypes';
 
 const VST_OPTIONS = ["Serum", "Vital"] as const;
 const PRESET_TYPES = ["Pad", "Lead", "Pluck", "Bass", "FX", "Other"] as const;
 export interface SearchFilters {
-  // ... existing properties ...
   searchTerm: string;
   genres: string[];
   vsts: string[];
-  presetTypes: string[]; // Add this line
   category: string;
   showAll: boolean;
-  types: string[];
+  presetTypes: string[];
+  tags: string[];
 }
 
 export interface SearchSidebarProps {
@@ -48,9 +48,9 @@ export function SearchSidebar({ filters, setFilters }: SearchSidebarProps) {
   const handlePresetTypeChange = (type: string, checked: boolean) => {
     setFilters((prevFilters) => ({
       ...prevFilters,
-      types: checked
-        ? [...prevFilters.types, type]
-        : prevFilters.types.filter((t) => t !== type),
+      presetTypes: checked
+        ? [...prevFilters.presetTypes, type]
+        : prevFilters.presetTypes.filter((t) => t !== type),
     }));
     dispatch(toggleType(type));
   };
@@ -148,12 +148,14 @@ export function SearchSidebar({ filters, setFilters }: SearchSidebarProps) {
 
       <div>
         <Label>Preset Type</Label>
-        {PRESET_TYPES.map((type) => (
+        {Object.values(PresetType).map((type) => (
           <div key={type} className="flex items-center">
             <Checkbox
               id={`type-${type}`}
-              checked={filters.types.includes(type)}
-              onCheckedChange={(checked) => handlePresetTypeChange(type, checked as boolean)}
+              checked={filters.presetTypes.includes(type)}
+              onCheckedChange={(checked) =>
+                handlePresetTypeChange(type, checked as boolean)
+              }
               disabled={filters.showAll}
             />
             <Label htmlFor={`type-${type}`} className="ml-2">

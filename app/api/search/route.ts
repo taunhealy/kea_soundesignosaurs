@@ -1,45 +1,47 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const query = searchParams.get("q") || "";
   const genre = searchParams.get("genre");
-  const vsts = searchParams.get("vst")?.split(",");
-  const presetTypes = searchParams.get("presetTypes")?.split(",");
+  const vst = searchParams.get("vst");
+  const presetType = searchParams.get("presetType");
+  const page = parseInt(searchParams.get("page") || "1");
+  const limit = parseInt(searchParams.get("limit") || "20");
 
   try {
-    const results = await prisma.preset.findMany({
-      where: {
-        OR: [
-          { title: { contains: query, mode: "insensitive" } },
-          { description: { contains: query, mode: "insensitive" } },
-        ],
-        genre: genre ? { name: { equals: genre } } : undefined,
-        vst:
-          vsts && vsts.length > 0
-            ? {
-                name: { in: vsts },
-              }
-            : undefined,
-        presetType:
-          presetTypes && presetTypes.length > 0
-            ? { in: presetTypes }
-            : undefined,
-      },
-      include: {
-        soundDesigner: {
-          select: {
-            username: true,
-            profileImage: true,
-          },
-        },
-        genre: true,
-        vst: true,
-      },
-    });
+    const results = await prisma.$queryRaw`
+      SELECT 
+        p.*,
+        ts_rank(to_tsvector('english', 
+          p.title || ' ' || 
+          p.description || ' ' || 
+          COALESCE(g.name, '') || ' ' ||
+          COALESCE(p."presetType", '')
+        ), plainto_tsquery('english', ${query})) as rank
+      FROM "Preset" p
+      LEFT JOIN "Genre" g ON p."genreId" = g.id
+      WHERE 
+        to_tsvector('english', 
+          p.title || ' ' || 
+          p.description || ' ' || 
+          COALESCE(g.name, '') || ' ' ||
+          COALESCE(p."presetType", '')
+        ) @@ plainto_tsquery('english', ${query})
+        ${genre ? Prisma.sql`AND "genreId" = ${genre}` : Prisma.sql``}
+        ${vst ? Prisma.sql`AND "vstType" = ${vst}` : Prisma.sql``}
+        ${
+          presetType
+            ? Prisma.sql`AND "presetType" = ${presetType}`
+            : Prisma.sql``
+        }
+      ORDER BY rank DESC
+      LIMIT ${limit}
+      OFFSET ${(page - 1) * limit}
+    `;
 
-    console.log("API Results:", JSON.stringify(results, null, 2));
     return NextResponse.json(results);
   } catch (error) {
     console.error("Search error:", error);

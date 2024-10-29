@@ -32,7 +32,7 @@ export function Navbar() {
               <li>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="outline">Dashboard</Button>
+                    <Button>Dashboard</Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent>
                     <DropdownMenuLabel>Dashboard</DropdownMenuLabel>

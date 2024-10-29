@@ -1,36 +1,71 @@
 "use client";
 
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { PresetCard } from "./PresetCard";
-import { Preset } from "@/types/PresetTypes";
-import { useSelector } from "react-redux";
-import { RootState } from "@/app/store/store";
+import { RequestCard } from "./RequestCard";
 
-export function ExploreGrid() {
-  const filters = useSelector((state: RootState) => state.filters);
+import { SearchFilters } from "./SearchSidebar";
+import { useSearchParams } from "next/navigation";
+import { useEffect } from "react";
+
+interface ExploreGridProps {
+  filters: SearchFilters;
+}
+
+export const ExploreGrid = ({ filters }: ExploreGridProps) => {
+  const queryClient = useQueryClient();
+  const searchParams = useSearchParams();
+  const category = searchParams?.get("category") || "presets";
+
+  // Prefetch the other category's data
+  useEffect(() => {
+    const otherCategory = category === "presets" ? "requests" : "presets";
+    queryClient.prefetchQuery({
+      queryKey: ["exploreItems", otherCategory],
+      queryFn: () =>
+        fetch(
+          `/api/${otherCategory === "requests" ? "request-threads" : "search"}`
+        ).then((res) => res.json()),
+    });
+  }, [category, queryClient]);
 
   const {
     data: items = [],
     isLoading,
     error,
-  } = useQuery<Preset[]>({
+  } = useQuery({
     queryKey: [
       "exploreItems",
+      category,
       filters.searchTerm,
       filters.genres,
       filters.vsts,
-      filters.types,
+      filters.presetTypes,
     ],
     queryFn: async () => {
       const params = new URLSearchParams();
-      if (filters.searchTerm) params.append("q", filters.searchTerm);
+
+      // Common filters for both categories
       if (filters.genres.length)
         params.append("genre", filters.genres.join(","));
       if (filters.vsts.length) params.append("vst", filters.vsts.join(","));
-      if (filters.types.length) params.append("types", filters.types.join(","));
+      if (filters.presetTypes.length)
+        params.append("presetType", filters.presetTypes[0]);
 
-      const response = await fetch(`/api/search?${params.toString()}`);
+      // Add search term if present
+      if (filters.searchTerm) {
+        params.append("q", filters.searchTerm);
+      }
+
+      // Choose endpoint based on category
+      const endpoint =
+        category === "requests"
+          ? "request-threads"
+          : filters.searchTerm
+          ? "search"
+          : "presets";
+
+      const response = await fetch(`/api/${endpoint}?${params.toString()}`);
       if (!response.ok) throw new Error("Failed to fetch items");
       return response.json();
     },
@@ -46,24 +81,28 @@ export function ExploreGrid() {
         <div>No items found</div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {items.map((item) => (
-            <PresetCard
-              key={item.id}
-              preset={{
-                ...item,
-                soundDesigner: item.soundDesigner
-                  ? {
-                      ...item.soundDesigner,
-                      profileImage:
-                        item.soundDesigner.profileImage ||
-                        "/default-profile.png",
-                    }
-                  : undefined,
-              }}
-            />
-          ))}
+          {items.map((item: any) =>
+            category === "requests" ? (
+              <RequestCard key={item.id} request={item} type="requested" />
+            ) : (
+              <PresetCard
+                key={item.id}
+                preset={{
+                  ...item,
+                  soundDesigner: item.soundDesigner
+                    ? {
+                        ...item.soundDesigner,
+                        profileImage:
+                          item.soundDesigner.profileImage ||
+                          "/default-profile.png",
+                      }
+                    : undefined,
+                }}
+              />
+            )
+          )}
         </div>
       )}
     </div>
   );
-}
+};

@@ -13,6 +13,7 @@ export async function GET(request: Request) {
   const searchInput = searchParams.get("searchInput") ?? "";
 
   try {
+    console.log("Filtering with presetType:", presetType);
     const presets = await prisma.preset.findMany({
       where: {
         genre: genre ? { name: genre } : undefined,

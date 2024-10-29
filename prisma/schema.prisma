@@ -35,6 +35,15 @@ model VST {
   presets Preset[]
 }
 
+enum PresetType {
+  PAD
+  LEAD
+  PLUCK
+  BASS
+  FX
+  OTHER
+}
+
 model Preset {
   id              String   @id @default(cuid())
   title           String
@@ -48,7 +57,7 @@ model Preset {
   soundDesigner   SoundDesigner @relation(fields: [soundDesignerId], references: [id])
   soundDesignerId String
   presetFileUrl   String   
-  presetType      String    
+  presetType      PresetType
   tags            String[]
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt

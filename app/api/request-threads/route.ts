@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 
 export async function POST(request: Request) {
   const { userId } = await auth();
@@ -34,49 +35,37 @@ export async function POST(request: Request) {
 }
 
 export async function GET(request: Request) {
-  const { userId } = await auth();
   const { searchParams } = new URL(request.url);
-  const type = searchParams.get("type");
-
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const query = searchParams.get("q") || "";
+  const genre = searchParams.get("genre");
+  const page = parseInt(searchParams.get("page") || "1");
+  const limit = parseInt(searchParams.get("limit") || "20");
 
   try {
-    const threads = await prisma.requestThread.findMany({
-      where: {
-        userId: type === "requested" ? userId : undefined,
-        submissions: type === "assisted" ? { some: { userId } } : undefined,
-      },
-      include: {
-        soundDesigner: true, // Include full soundDesigner object
-        submissions: {
-          include: {
-            soundDesigner: true, // Include full soundDesigner object for submissions
-          },
-        },
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
+    const results = await prisma.$queryRaw`
+      SELECT 
+        r.*,
+        ts_rank(to_tsvector('english', r.title || ' ' || r."enquiryDetails" || ' ' || COALESCE(g.name, '')), plainto_tsquery('english', ${query})) as rank
+      FROM "RequestThread" r
+      LEFT JOIN "Genre" g ON r."genre" = g.name
+      WHERE 
+        ${
+          query
+            ? Prisma.sql`
+          to_tsvector('english', r.title || ' ' || r."enquiryDetails" || ' ' || COALESCE(g.name, '')) @@ plainto_tsquery('english', ${query})
+        `
+            : Prisma.sql`1=1`
+        }
+        ${genre ? Prisma.sql`AND r.genre = ${genre}` : Prisma.sql``}
+      ORDER BY 
+        ${query ? Prisma.sql`rank DESC` : Prisma.sql`r."createdAt" DESC`}
+      LIMIT ${limit}
+      OFFSET ${(page - 1) * limit}
+    `;
 
-    // Transform the data to include username
-    const transformedThreads = threads.map((thread) => ({
-      ...thread,
-      username: thread.soundDesigner?.username || "Anonymous",
-      submissions: thread.submissions.map((submission) => ({
-        ...submission,
-        username: submission.soundDesigner?.username || "Anonymous",
-      })),
-    }));
-
-    return NextResponse.json(transformedThreads);
+    return NextResponse.json(results);
   } catch (error) {
-    console.error("Error fetching help threads:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch help threads" },
-      { status: 500 }
-    );
+    console.error("Search error:", error);
+    return NextResponse.json({ error: "Search failed" }, { status: 500 });
   }
 }

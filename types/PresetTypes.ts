@@ -1,3 +1,19 @@
+// Preset Type Enum
+export enum PresetType {
+  PAD = 'Pad',
+  LEAD = 'Lead',
+  PLUCK = 'Pluck',
+  BASS = 'Bass',
+  FX = 'FX',
+  OTHER = 'Other'
+}
+
+// VST Type Enum
+export enum VSTType {
+  SERUM = 'SERUM',
+  VITAL = 'VITAL'
+}
+
 // Base interface for common fields
 interface BaseItem {
   id: string;
@@ -24,7 +40,7 @@ export interface Preset extends BaseItem {
     id: string;
     name: string;
   };
-  presetType?: 'Pad' | 'Lead' | 'Pluck' | 'Bass' | 'FX' | 'Other';
+  presetType?: PresetType;
   tags?: string[];
   isFree?: boolean;
 }
@@ -36,8 +52,8 @@ export interface PresetFormData {
   guide: string;
   spotifyLink?: string;
   genre?: string;
-  vstType: 'SERUM' | 'VITAL';
-  presetType: 'Pad' | 'Lead' | 'Pluck' | 'Bass' | 'FX' | 'Other';
+  vstType: VSTType;
+  presetType: PresetType;
   tags?: string[];
   isFree: boolean;
   soundPreviewUrl?: string;
