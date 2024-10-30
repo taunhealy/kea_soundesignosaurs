@@ -31,15 +31,12 @@ export function GenreCombobox({ value, onChange }: GenreComboboxProps) {
       label: genre.name,
     })) || [];
 
-  const currentOption = options.find(
-    (option) => option.value === value
-  );
+  const currentOption = options.find((option) => option.value === value);
 
   return (
     <Combobox
       value={currentOption?.value || ""}
       onSelect={(value) => {
-        console.log("Selected genre ID:", value);
         onChange(value);
       }}
       options={options}

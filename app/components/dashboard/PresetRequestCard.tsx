@@ -17,15 +17,22 @@ import {
   TagIcon,
   YoutubeIcon,
   MusicIcon,
+  TrashIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { Badge } from "../ui/badge";
 import { RequestSubmission, PresetRequest } from "@/types/PresetRequestTypes";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface PresetRequestCardProps {
-  request: PresetRequest;
+  request: PresetRequest & {
+    genre?: {
+      id: string;
+      name: string;
+    };
+  };
   showSubmissions?: boolean;
   type: "requested" | "assisted";
 }
@@ -40,6 +47,8 @@ export function PresetRequestCard({
   const [activeSubmission, setActiveSubmission] =
     useState<RequestSubmission | null>(null);
   const router = useRouter();
+  const [isDeleting, setIsDeleting] = useState(false);
+  const queryClient = useQueryClient();
 
   const cleanupAudio = useCallback(() => {
     if (audio) {
@@ -98,9 +107,70 @@ export function PresetRequestCard({
     [audio, isPlaying, cleanupAudio, activeSubmission]
   );
 
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!confirm("Are you sure you want to delete this preset request?"))
+      return;
+
+    setIsDeleting(true);
+    try {
+      const response = await fetch(`/api/presetRequest/${request.id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete preset request");
+      }
+
+      toast.success("Preset request deleted successfully");
+
+      await queryClient.invalidateQueries({
+        queryKey: ["presetRequests"],
+        exact: false,
+      });
+
+      router.push("/dashboard/presetRequests");
+    } catch (error) {
+      console.error("Error deleting preset request:", error);
+      toast.error("Failed to delete preset request");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  console.log("PresetRequest Data:", {
+    request,
+    genre: request.genre,
+    genreId: request.genreId,
+  });
+
   return (
-    <Card>
-      <CardHeader>
+    <Card onClick={(e) => e.preventDefault()}>
+      <CardHeader className="relative">
+        <div className="absolute top-4 right-4 flex gap-2">
+          <Button
+            onClick={(e) => {
+              e.stopPropagation();
+              router.push(`/dashboard/presetRequest/edit/${request.id}`);
+            }}
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+          >
+            <EditIcon className="h-4 w-4" />
+          </Button>
+          <Button
+            onClick={handleDelete}
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 hover:bg-destructive hover:text-destructive-foreground"
+            disabled={isDeleting}
+          >
+            <TrashIcon className="h-4 w-4" />
+          </Button>
+        </div>
         <CardTitle className="text-2xl">{request.title}</CardTitle>
         <CardDescription>
           Posted by {request.soundDesigner?.username || "Anonymous"}
@@ -122,7 +192,7 @@ export function PresetRequestCard({
             </Badge>
             <Badge variant="outline">
               <MusicIcon className="h-3 w-3 mr-1" />
-              {request.genre}
+              {request.genre?.name || "No Genre"}
             </Badge>
           </div>
 

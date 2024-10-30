@@ -15,7 +15,11 @@ export interface PresetRequest {
   title: string;
   youtubeLink: string;
   timestamp: string;
-  genre: string;
+  genre: {
+    id: string;
+    name: string;
+  };
+  genreId: string;
   status: "OPEN" | "ASSISTED" | "SATISFIED";
   soundDesigner: {
     username: string;

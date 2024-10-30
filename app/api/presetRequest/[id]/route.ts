@@ -15,6 +15,7 @@ export async function GET(
             username: true,
           },
         },
+        genre: true,
         submissions: true,
       },
     });
@@ -44,30 +45,40 @@ export async function PATCH(
     }
 
     const data = await request.json();
+    console.log("Received update data:", data);
 
     // Verify ownership
     const existingThread = await prisma.presetRequest.findUnique({
       where: { id: params.id },
+      include: { genre: true },
     });
 
     if (!existingThread || existingThread.userId !== userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
-    const updatedThread = await prisma.presetRequest.update({
-      where: { id: params.id },
+    const updatedRequest = await prisma.presetRequest.update({
+      where: {
+        id: params.id,
+      },
       data: {
         title: data.title,
-        youtubeLink: data.youtubeLink || null,
-        genre: data.genre,
+        youtubeLink: data.youtubeLink,
+        genreId: data.genreId,
         enquiryDetails: data.enquiryDetails,
       },
       include: {
-        submissions: true,
+        genre: true,
+        soundDesigner: {
+          select: {
+            username: true,
+          },
+        },
       },
     });
 
-    return NextResponse.json(updatedThread);
+    console.log("Updated request:", updatedRequest);
+    return NextResponse.json(updatedRequest);
   } catch (error) {
     console.error("Error updating request thread:", error);
     return NextResponse.json(
@@ -87,12 +98,13 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Verify ownership before deletion
-    const existingRequest = await prisma.presetRequest.findUnique({
+    // Verify ownership
+    const presetRequest = await prisma.presetRequest.findUnique({
       where: { id: params.id },
+      select: { userId: true },
     });
 
-    if (!existingRequest || existingRequest.userId !== userId) {
+    if (!presetRequest || presetRequest.userId !== userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
@@ -100,11 +112,11 @@ export async function DELETE(
       where: { id: params.id },
     });
 
-    return NextResponse.json({ message: "Request deleted successfully" });
+    return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Error deleting request:", error);
+    console.error("Error deleting preset request:", error);
     return NextResponse.json(
-      { error: "Failed to delete request" },
+      { error: "Failed to delete preset request" },
       { status: 500 }
     );
   }

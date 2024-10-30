@@ -16,16 +16,6 @@ export default function PresetsPage() {
   const { userId, isLoaded } = useAuth();
   const router = useRouter();
 
-  useEffect(() => {
-    if (isLoaded && !userId) {
-      router.push("/sign-in");
-    }
-  }, [isLoaded, userId, router]);
-
-  if (!isLoaded || !userId) {
-    return null;
-  }
-
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-6">

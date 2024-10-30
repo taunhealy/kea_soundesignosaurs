@@ -1,5 +1,6 @@
 "use client";
 
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "@conform-to/react";
 import { parseWithZod } from "@conform-to/zod";
 import { z } from "zod";
@@ -20,7 +21,7 @@ import Image from "next/image";
 const presetRequestSchema = z.object({
   title: z.string().min(1, "Title is required"),
   youtubeLink: z.string().optional(),
-  genre: z.string().min(1, "Genre is required"),
+  genreId: z.string().min(1, "Genre is required"),
   enquiryDetails: z.string().min(1, "Enquiry details are required"),
 });
 
@@ -29,7 +30,11 @@ interface PresetRequestFormData {
   userId: string;
   title: string;
   youtubeLink: string;
-  genre: string;
+  genre: {
+    id: string;
+    name: string;
+  };
+  genreId: string;
   enquiryDetails: string;
   status: "OPEN" | "ASSISTED" | "SATISFIED";
   timestamp: string;
@@ -47,107 +52,100 @@ interface PageProps {
 
 export default function EditPresetRequestPage({ params }: PageProps) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [selectedGenre, setSelectedGenre] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [initialData, setInitialData] = useState<PresetRequestFormData | null>(
-    null
-  );
   const [isPlaying, setIsPlaying] = useState(false);
   const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
   const [youtubeThumb, setYoutubeThumb] = useState<string | null>(null);
 
-  // Audio cleanup function (similar to PresetCard.tsx)
-  const cleanupAudio = useCallback(() => {
-    if (audio) {
-      audio.pause();
-      audio.removeEventListener("ended", () => setIsPlaying(false));
-      setAudio(null);
-      setIsPlaying(false);
-    }
-  }, [audio]);
+  const { data: initialData, isLoading } = useQuery<PresetRequestFormData>({
+    queryKey: ["presetRequest", params.id],
+    queryFn: async () => {
+      const response = await fetch(`/api/presetRequest/${params.id}`);
+      if (!response.ok) throw new Error("Failed to fetch preset request");
+      const data = await response.json();
 
-  useEffect(() => {
-    return cleanupAudio;
-  }, [cleanupAudio]);
-
-  // Fetch initial data
-  useEffect(() => {
-    const fetchPresetRequest = async () => {
-      try {
-        const response = await fetch(`/api/presetRequest/${params.id}`);
-        if (!response.ok) throw new Error("Failed to fetch preset request");
-        const data = await response.json();
-
-        // Extract YouTube thumbnail if link exists
-        if (data.youtubeLink) {
-          const videoId = extractYoutubeId(data.youtubeLink);
-          if (videoId) {
-            setYoutubeThumb(
-              `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
-            );
-          }
+      if (data.youtubeLink) {
+        const videoId = extractYoutubeId(data.youtubeLink);
+        if (videoId) {
+          setYoutubeThumb(
+            `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
+          );
         }
-
-        setInitialData(data);
-        setSelectedGenre(data.genre);
-      } catch (error) {
-        console.error("Error fetching preset request:", error);
-        toast.error("Failed to load preset request");
-        router.push("/dashboard/presetRequests");
       }
-    };
 
-    fetchPresetRequest();
-  }, [params.id, router]);
+      setSelectedGenre(data.genre?.id || data.genreId);
 
-  const [form, fields] = useForm({
-    shouldValidate: "onBlur",
-    onValidate({ formData }) {
-      return parseWithZod(formData, { schema: presetRequestSchema });
+      return data;
     },
-    defaultValue: initialData,
   });
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (isSubmitting) return;
+  const mutation = useMutation({
+    mutationFn: async (formData: FormData) => {
+      const requestBody = {
+        title: formData.get("title"),
+        youtubeLink: formData.get("youtubeLink") || null,
+        genreId: selectedGenre,
+        enquiryDetails: formData.get("enquiryDetails"),
+      };
 
-    try {
-      setIsSubmitting(true);
-      const formData = new FormData(event.currentTarget);
-      formData.set(fields.genre.name, selectedGenre);
-
-      const result = parseWithZod(formData, { schema: presetRequestSchema });
-      if (result.status !== "success") {
-        console.error("Validation error:", result.error);
-        return;
-      }
+      console.log("Sending update request with:", requestBody);
 
       const response = await fetch(`/api/presetRequest/${params.id}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          ...result.value,
-          genre: selectedGenre,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Failed to update preset request");
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to update preset request");
       }
-
+      return response.json();
+    },
+    onSuccess: (data) => {
+      console.log("Update successful:", data);
+      queryClient.invalidateQueries({
+        queryKey: ["presetRequests"],
+        exact: false,
+      });
       router.push("/dashboard/presetRequests");
       toast.success("Preset request updated successfully");
-    } catch (error) {
-      console.error("Error updating preset request:", error);
-      toast.error(error instanceof Error ? error.message : "An error occurred");
-    } finally {
-      setIsSubmitting(false);
+    },
+    onError: (error) => {
+      console.error("Update failed:", error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to update preset request"
+      );
+    },
+  });
+
+  const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const formData = new FormData(event.currentTarget);
+    formData.set("genreId", selectedGenre);
+
+    if (!selectedGenre) {
+      toast.error("Please select a genre");
+      return;
     }
+
+    mutation.mutate(formData);
   };
+
+  const cleanupAudio = useCallback(() => {
+    if (audio) {
+      audio.pause();
+      audio.currentTime = 0;
+      setAudio(null);
+    }
+    setIsPlaying(false);
+  }, [audio]);
 
   const togglePlay = useCallback(() => {
     if (isPlaying) {
@@ -162,7 +160,7 @@ export default function EditPresetRequestPage({ params }: PageProps) {
     }
   }, [isPlaying, initialData?.soundPreviewUrl, cleanupAudio]);
 
-  if (!initialData) {
+  if (isLoading || !initialData) {
     return <div>Loading...</div>;
   }
 
@@ -170,59 +168,42 @@ export default function EditPresetRequestPage({ params }: PageProps) {
     <div className="container mx-auto p-6">
       <PresetRequestCard request={initialData} type="requested" />
 
-      <form id={form.id} onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={onSubmit} className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="title">Title</Label>
           <Input
             id="title"
-            name={fields.title.name}
+            name="title"
             defaultValue={initialData.title}
-            aria-invalid={!!fields.title.errors}
+            required
           />
-          {fields.title.errors && (
-            <p className="text-sm text-red-500">{fields.title.errors}</p>
-          )}
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="youtubeLink">YouTube Reference (Optional)</Label>
           <Input
             id="youtubeLink"
-            name={fields.youtubeLink.name}
+            name="youtubeLink"
             defaultValue={initialData.youtubeLink}
           />
         </div>
 
         <div className="space-y-2">
           <Label>Genre</Label>
-          <input type="hidden" name={fields.genre.name} value={selectedGenre} />
-          <GenreCombobox
-            value={selectedGenre}
-            onChange={(value) => {
-              setSelectedGenre(value);
-            }}
-          />
-          {fields.genre.errors && (
-            <p className="text-sm text-red-500">{fields.genre.errors}</p>
-          )}
+          <GenreCombobox value={selectedGenre} onChange={setSelectedGenre} />
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="enquiryDetails">Enquiry Details</Label>
           <Textarea
             id="enquiryDetails"
-            name={fields.enquiryDetails.name}
+            name="enquiryDetails"
             defaultValue={initialData.enquiryDetails}
-            aria-invalid={!!fields.enquiryDetails.errors}
+            required
           />
-          {fields.enquiryDetails.errors && (
-            <p className="text-sm text-red-500">
-              {fields.enquiryDetails.errors}
-            </p>
-          )}
         </div>
 
-        <SubmitButton isSubmitting={isSubmitting} />
+        <SubmitButton isSubmitting={mutation.isPending} />
       </form>
 
       {initialData.soundPreviewUrl && (

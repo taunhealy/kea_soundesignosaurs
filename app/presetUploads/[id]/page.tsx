@@ -1,10 +1,10 @@
 "use client";
 
+import { useState, useCallback, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/app/components/ui/button";
 import { PlayIcon, PauseIcon } from "lucide-react";
-import { useState, useCallback, useEffect } from "react";
-import { toast, ToastContainer } from "react-toastify";
+import { toast } from "react-hot-toast";
 
 export default function PresetPage({ params }: { params: { id: string } }) {
   const [isPlaying, setIsPlaying] = useState(false);
@@ -97,9 +97,9 @@ export default function PresetPage({ params }: { params: { id: string } }) {
             <h2 className="text-xl font-semibold mb-2">Details</h2>
             <dl className="grid grid-cols-2 gap-2">
               <dt className="text-gray-600">Genre:</dt>
-              <dd>{preset.genre}</dd>
+              <dd>{preset.genre?.name}</dd>
               <dt className="text-gray-600">VST:</dt>
-              <dd>{preset.vstType}</dd>
+              <dd>{preset.vst?.name}</dd>
               <dt className="text-gray-600">Type:</dt>
               <dd>{preset.presetType}</dd>
               {preset.spotifyLink && (
@@ -121,12 +121,6 @@ export default function PresetPage({ params }: { params: { id: string } }) {
           </div>
         </div>
       </div>
-      <ToastContainer 
-        position="bottom-right"
-        hideProgressBar={false}
-        closeOnClick
-        pauseOnHover
-      />
     </div>
   );
 }

@@ -18,17 +18,18 @@ import { GenreCombobox } from "@/app/components/GenreCombobox";
 import { useRouter } from "next/navigation";
 import { useState, FormEvent } from "react";
 import { toast } from "react-toastify";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 const helpPostSchema = z.object({
   title: z.string().min(1, "Title is required"),
   youtubeLink: z.string().optional(),
-  genre: z.string().min(1, "Genre is required"),
+  genreId: z.string().min(1, "Genre is required"),
   enquiryDetails: z.string().min(1, "Enquiry details are required"),
 });
 
 export default function HelpPostCreateRoute() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [selectedGenre, setSelectedGenre] = useState("");
 
   const [form, fields] = useForm({
@@ -56,6 +57,7 @@ export default function HelpPostCreateRoute() {
       return response.json();
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["presetRequests"] });
       router.push("/dashboard/presetRequests");
     },
     onError: (error) => {
@@ -69,7 +71,7 @@ export default function HelpPostCreateRoute() {
     if (mutation.isPending) return;
 
     const formData = new FormData(event.currentTarget);
-    formData.set(fields.genre.name, selectedGenre);
+    formData.set(fields.genreId.name, selectedGenre);
 
     const result = parseWithZod(formData, { schema: helpPostSchema });
     if (result.status !== "success") {
@@ -79,7 +81,7 @@ export default function HelpPostCreateRoute() {
 
     mutation.mutate({
       ...result.value,
-      genre: selectedGenre,
+      genreId: selectedGenre,
     });
   };
 
@@ -127,7 +129,7 @@ export default function HelpPostCreateRoute() {
             <Label>Genre</Label>
             <input
               type="hidden"
-              name={fields.genre.name}
+              name={fields.genreId.name}
               value={selectedGenre}
             />
             <GenreCombobox
@@ -135,11 +137,11 @@ export default function HelpPostCreateRoute() {
               onChange={(value) => {
                 setSelectedGenre(value);
                 const formData = new FormData();
-                formData.set(fields.genre.name, value);
+                formData.set(fields.genreId.name, value);
               }}
             />
-            {fields.genre.errors && (
-              <p className="text-sm text-red-500">{fields.genre.errors}</p>
+            {fields.genreId.errors && (
+              <p className="text-sm text-red-500">{fields.genreId.errors}</p>
             )}
             s
           </div>

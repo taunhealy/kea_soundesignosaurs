@@ -19,7 +19,7 @@ export default function AdminGenresPage() {
   // Move mutations before any conditional returns
   const addGenreMutation = useMutation({
     mutationFn: async (name: string) => {
-      const response = await fetch("/api/admin/genres", {
+      const response = await fetch("/api/genres/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name }),
@@ -35,7 +35,7 @@ export default function AdminGenresPage() {
 
   const deleteGenreMutation = useMutation({
     mutationFn: async (id: string) => {
-      const response = await fetch(`/api/admin/genres/${id}`, {
+      const response = await fetch(`/api/genres/${id}`, {
         method: "DELETE",
       });
       if (!response.ok) throw new Error("Failed to delete genre");
@@ -54,7 +54,7 @@ export default function AdminGenresPage() {
   } = useQuery<Genre[]>({
     queryKey: ["genres"],
     queryFn: async () => {
-      const response = await fetch("/api/admin/genres");
+      const response = await fetch("/api/genres");
       if (!response.ok) {
         const errorData = await response.json();
         console.error("Genre fetch error:", errorData);

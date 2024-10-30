@@ -46,6 +46,7 @@ export async function POST(request: NextRequest) {
           spotifyLink: data.spotifyLink || null,
           soundPreviewUrl: data.soundPreviewUrl || null,
           presetFileUrl: data.presetFileUrl || "",
+          originalFileName: data.originalFileName || null,
           presetType: data.presetType,
           tags: data.tags || [],
           soundDesignerId: soundDesigner.id,

@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useCart } from "../hooks/useCart";
 import { UserButton } from "@clerk/nextjs";
 import { Button } from "./ui/button";
 
@@ -10,7 +9,6 @@ interface NavbarProps {
 }
 
 export function Navbar({ isAuthenticated }: NavbarProps) {
-  const { cart } = useCart();
 
   return (
     <nav className="bg-gray-800 text-white p-4">
@@ -30,7 +28,7 @@ export function Navbar({ isAuthenticated }: NavbarProps) {
                 </Link>
               </li>
               <li>
-                <UserButton afterSignOutUrl="/" />
+                <UserButton />
               </li>
             </>
           ) : (

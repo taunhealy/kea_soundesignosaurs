@@ -53,7 +53,7 @@ export function RequestForm({ initialData, requestId }: RequestFormProps) {
           },
           body: JSON.stringify({
             ...data,
-            genre: selectedGenre,
+            genreId: selectedGenre,
             username: user?.username || user?.firstName || "Anonymous",
           }),
         }

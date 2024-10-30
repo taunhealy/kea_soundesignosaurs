@@ -72,11 +72,11 @@ export const ourFileRouter = {
       return { uploadedBy: metadata.userId };
     }),
 
-  audioUploader: f({ 
-    audio: { 
-      maxFileSize: "8MB",
-      maxFileCount: 1
-    } 
+  audioUploader: f({
+    audio: {
+      maxFileSize: "4MB",
+      maxFileCount: 1,
+    },
   })
     .middleware(async ({ req }) => {
       const { userId } = await auth();
@@ -97,7 +97,7 @@ export const ourFileRouter = {
     })
     .onUploadComplete(async ({ metadata, file }) => {
       console.log("Sample upload complete for userId:", metadata.userId);
-      console.log("file url", file.url);
+       console.log("file url", file.url);
       return { uploadedBy: metadata.userId };
     }),
 } satisfies FileRouter;

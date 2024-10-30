@@ -33,7 +33,7 @@ const presetSchema = z.object({
   description: z.string().optional(),
   guide: z.string().optional(),
   spotifyLink: z.string().url().nullish(),
-  genre: z.string().min(1, "Genre is required"),
+  genreId: z.string().min(1, "Genre is required"),
   vstId: z.string().optional(),
   presetType: z
     .enum(["PAD", "LEAD", "PLUCK", "BASS", "FX", "OTHER"])
@@ -49,9 +49,14 @@ export function PresetForm({ initialData, presetId }: PresetFormProps) {
   const [uploadedFile, setUploadedFile] = useState<{
     url: string;
     name: string;
+    originalName: string;
   } | null>(
     initialData?.presetFileUrl
-      ? { url: initialData.presetFileUrl, name: "Existing File" }
+      ? {
+          url: initialData.presetFileUrl,
+          name: initialData.presetFileUrl.split("/").pop() || "Existing File",
+          originalName: initialData.originalFileName || "Existing File",
+        }
       : null
   );
   const router = useRouter();
@@ -99,7 +104,7 @@ export function PresetForm({ initialData, presetId }: PresetFormProps) {
       description: initialData?.description || "",
       guide: initialData?.guide || "",
       spotifyLink: initialData?.spotifyLink || "",
-      genre: initialData?.genre?.id || "",
+      genreId: initialData?.genre?.id || initialData?.genreId || "",
       vstId: initialData?.vst?.id || "",
       presetType: initialData?.presetType || undefined,
     },
@@ -114,11 +119,10 @@ export function PresetForm({ initialData, presetId }: PresetFormProps) {
       setValue("description", initialData.description);
       setValue("guide", initialData.guide);
       setValue("spotifyLink", initialData.spotifyLink);
-      setValue("genre", initialData.genre?.id || initialData.genre);
+      setValue("genreId", initialData.genre?.id || initialData.genreId);
       setValue("vstId", initialData.vst?.id);
       setValue("presetType", initialData.presetType);
-      
-      // Set audio preview if it exists
+
       if (initialData.soundPreviewUrl) {
         setSoundPreviewUrl(initialData.soundPreviewUrl);
       }
@@ -138,9 +142,10 @@ export function PresetForm({ initialData, presetId }: PresetFormProps) {
       const formData = {
         ...data,
         presetFileUrl: uploadedFile?.url,
+        originalFileName: uploadedFile?.originalName,
         soundPreviewUrl,
         soundDesignerId: user?.id,
-        genre: data.genre,
+        genreId: data.genreId,
         vstId: data.vstId,
       };
 
@@ -186,7 +191,11 @@ export function PresetForm({ initialData, presetId }: PresetFormProps) {
 
   const handleUpload = (res: any) => {
     if (res && res[0]) {
-      setUploadedFile({ url: res[0].url, name: res[0].name });
+      setUploadedFile({
+        url: res[0].url,
+        name: res[0].originalName || res[0].name,
+        originalName: res[0].originalName || res[0].name,
+      });
     }
   };
 
@@ -286,10 +295,11 @@ export function PresetForm({ initialData, presetId }: PresetFormProps) {
             onClientUploadComplete={(res) => {
               if (res && res[0]) {
                 setSoundPreviewUrl(res[0].url);
+                toast.success("Audio preview uploaded successfully");
               }
             }}
             onUploadError={(error: Error) => {
-              alert(`ERROR! ${error.message}`);
+              toast.error(`Upload failed: ${error.message}`);
             }}
           />
         )}
@@ -298,25 +308,21 @@ export function PresetForm({ initialData, presetId }: PresetFormProps) {
       <div className="space-y-2">
         <Label>Genre</Label>
         <Controller
-          name="genre"
+          name="genreId"
           control={control}
           render={({ field }) => (
-            <Select onValueChange={field.onChange} defaultValue={field.value}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select genre..." />
-              </SelectTrigger>
-              <SelectContent>
-                {genresList.map((genre: { value: string; label: string }) => (
-                  <SelectItem key={genre.value} value={genre.value}>
-                    {genre.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <GenreCombobox
+              value={field.value}
+              onChange={(value) => {
+                field.onChange(value);
+              }}
+            />
           )}
         />
+        {errors.genreId && (
+          <p className="text-red-500">{errors.genreId.message}</p>
+        )}
       </div>
-      {errors.genre && <p className="text-red-500">{errors.genre.message}</p>}
 
       <div className="space-y-2">
         <Label>VST</Label>

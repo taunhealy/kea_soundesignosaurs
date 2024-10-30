@@ -8,11 +8,13 @@ import {
   EditIcon,
   DownloadIcon,
   TrashIcon,
+  FileIcon,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { WaveformVisualizer } from "./WaveformVisualizer";
 
 // Ensure PresetSettings is exported
 export interface PresetSettings {
@@ -28,7 +30,8 @@ interface PresetCardProps {
     title: string;
     price?: number;
     soundPreviewUrl?: string;
-    downloadUrl?: string;
+    presetFileUrl?: string;
+    originalFileName?: string;
     soundDesigner?: {
       username: string;
       profileImage?: string;
@@ -54,6 +57,7 @@ export function PresetCard({ preset }: PresetCardProps) {
 
   const cleanupAudio = useCallback(() => {
     if (audio) {
+      console.log("Cleaning up audio");
       audio.pause();
       audio.removeEventListener("ended", () => setIsPlaying(false));
       setAudio(null);
@@ -63,7 +67,14 @@ export function PresetCard({ preset }: PresetCardProps) {
 
   useEffect(() => {
     if (audio) {
-      audio.addEventListener("ended", () => setIsPlaying(false));
+      console.log("Setting up audio element");
+      audio.addEventListener("ended", () => {
+        console.log("Audio ended");
+        setIsPlaying(false);
+      });
+
+      // Ensure audio is ready to play
+      audio.load();
     }
     return cleanupAudio;
   }, [audio, cleanupAudio]);
@@ -73,28 +84,43 @@ export function PresetCard({ preset }: PresetCardProps) {
       e.stopPropagation();
 
       if (!preset.soundPreviewUrl) {
-        toast.info("No preview available for this preset", {
-          position: "bottom-right",
-          autoClose: 3000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-        });
+        toast.info("No preview available for this preset");
         return;
       }
 
+      console.log("Toggle play called, current state:", { isPlaying, audio });
+
       if (!audio) {
-        const newAudio = new Audio(preset.soundPreviewUrl);
-        newAudio.addEventListener("error", () => {
+        console.log("Creating new audio element");
+        const newAudio = new Audio();
+        newAudio.crossOrigin = "anonymous";
+        newAudio.src = preset.soundPreviewUrl;
+        
+        // Set initial volume
+        newAudio.volume = 1.0;
+        
+        newAudio.addEventListener("error", (e) => {
+          console.error("Audio error:", e);
           toast.error("Failed to load audio");
           cleanupAudio();
         });
-        setAudio(newAudio);
-        newAudio.play().catch(() => {
-          toast.error("Failed to play audio");
-          cleanupAudio();
+
+        // Add loading listener
+        newAudio.addEventListener("loadeddata", () => {
+          console.log("Audio loaded and ready to play");
         });
+
+        setAudio(newAudio);
+        
+        // Wait for audio to be ready before playing
+        newAudio.addEventListener("canplaythrough", () => {
+          newAudio.play().catch((error) => {
+            console.error("Play error:", error);
+            toast.error("Failed to play audio");
+            cleanupAudio();
+          });
+        });
+        
         setIsPlaying(true);
       } else {
         if (isPlaying) {
@@ -111,13 +137,43 @@ export function PresetCard({ preset }: PresetCardProps) {
     [preset.soundPreviewUrl, audio, isPlaying, cleanupAudio]
   );
 
-  const handleDownload = useCallback(() => {
-    if (!preset.downloadUrl) {
-      toast.error("No download URL available");
-      return;
-    }
-    window.open(preset.downloadUrl, "_blank");
-  }, [preset.downloadUrl]);
+  const handleDownload = useCallback(
+    async (e: React.MouseEvent) => {
+      e.stopPropagation();
+
+      if (!preset.presetFileUrl) {
+        toast.error("No preset file available for download");
+        return;
+      }
+
+      try {
+        const response = await fetch(preset.presetFileUrl);
+        if (!response.ok) throw new Error("Failed to fetch file");
+
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+
+        // Extract original filename from URL
+        const originalFilename =
+          preset.presetFileUrl.split("/").pop() || `${preset.title}.preset`;
+
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = originalFilename;
+        document.body.appendChild(link);
+        link.click();
+
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+
+        toast.success("Download started successfully");
+      } catch (error) {
+        console.error("Download error:", error);
+        toast.error("Failed to download preset");
+      }
+    },
+    [preset]
+  );
 
   const handleDelete = async (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent card click event
@@ -216,12 +272,12 @@ export function PresetCard({ preset }: PresetCardProps) {
               </span>
             </p>
           )}
-          {preset.genre && (
+          {preset.genre?.name && (
             <p className="flex items-center gap-1">
               Genre: <span className="font-medium">{preset.genre.name}</span>
             </p>
           )}
-          {preset.vst && (
+          {preset.vst?.name && (
             <p className="flex items-center gap-1">
               VST: <span className="font-medium">{preset.vst.name}</span>
             </p>
@@ -233,18 +289,40 @@ export function PresetCard({ preset }: PresetCardProps) {
           )}
         </div>
 
+        {preset.presetFileUrl && (
+          <div className="flex items-center gap-2 p-2 bg-gray-100 rounded-md mb-4">
+            <FileIcon className="h-4 w-4 text-blue-500" />
+            <span className="text-sm truncate">
+              {preset.originalFileName ||
+                preset.presetFileUrl.split("/").pop() ||
+                "Preset File"}
+            </span>
+          </div>
+        )}
+
         {/* Play button */}
         <Button
           onClick={togglePlay}
-          className="w-full interactive-element"
+          className="w-full interactive-element relative flex justify-center items-center"
           variant="outline"
         >
           {isPlaying ? (
-            <PauseIcon className="mr-2 h-4 w-4" />
+            <>
+              <PauseIcon className="absolute left-4 h-4 w-4" />
+              <div className="w-[200px]">
+                <WaveformVisualizer 
+                  audioElement={audio} 
+                  isPlaying={isPlaying}
+                  amplitudeMultiplier={1.5}
+                />
+              </div>
+            </>
           ) : (
-            <PlayIcon className="mr-2 h-4 w-4" />
+            <>
+              <PlayIcon className="mr-2 h-4 w-4" />
+              Play Preview
+            </>
           )}
-          {isPlaying ? "Pause" : "Play Preview"}
         </Button>
       </CardContent>
     </Card>

@@ -66,6 +66,7 @@ model PresetUpload {
   vstId           String?         // Changed from Int to String to match VST.id type
   guide           String?
   tags            String[]
+  originalFileName String?
 
   @@index([genreId])
   @@index([soundDesignerId])
@@ -73,23 +74,24 @@ model PresetUpload {
   @@index([createdAt])
 }
 
-model PresetRequest {  // Already correctly named
+model PresetRequest {
   id              String            @id @default(cuid())
   title           String
   youtubeLink     String?
-  genre           String
+  genre           Genre?            @relation(fields: [genreId], references: [id], onDelete: SetNull)
+  genreId         String?
   enquiryDetails  String
   status          RequestStatus     @default(OPEN)
   userId          String
   soundDesigner   SoundDesigner     @relation(fields: [userId], references: [userId])
   submissions     PresetSubmission[]
-  presetUploads   PresetUpload[]    // Add this line to complete the relation
+  presetUploads   PresetUpload[]
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
   tags            String[]
 
-
   @@index([userId])
+  @@index([genreId])
 }
 
 model PresetSubmission {  // Already correctly named
@@ -168,6 +170,7 @@ model Genre {
   presets   PresetUpload[]
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+  presetRequests PresetRequest[]
 }
 
 enum GenreType {

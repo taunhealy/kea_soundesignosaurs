@@ -90,12 +90,12 @@ export async function PATCH(
         description: body.description,
         guide: body.guide,
         spotifyLink: body.spotifyLink,
-        genreId: body.genre,
+        genreId: body.genreId,
         vstId: body.vstId,
         presetType: body.presetType,
         soundPreviewUrl: body.soundPreviewUrl,
         presetFileUrl: body.presetFileUrl,
-        // Add any other fields that should be updatable
+        originalFileName: body.originalFileName,
       },
       include: {
         soundDesigner: {

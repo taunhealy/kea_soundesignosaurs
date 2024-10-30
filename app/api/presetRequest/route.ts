@@ -22,12 +22,13 @@ export async function GET(request: Request) {
           userId: userId,
         },
         include: {
+          genre: true,
           soundDesigner: {
             select: {
               username: true,
-              userId: true,
             },
           },
+          submissions: true,
         },
       });
     } else if (type === "assisted") {
@@ -79,7 +80,7 @@ export async function POST(request: Request) {
     const data = await request.json();
 
     // Validate required fields
-    if (!data.title || !data.genre || !data.enquiryDetails) {
+    if (!data.title || !data.genreId || !data.enquiryDetails) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
@@ -91,13 +92,23 @@ export async function POST(request: Request) {
         userId,
         title: data.title,
         youtubeLink: data.youtubeLink || null,
-        genre: data.genre,
+        genreId: data.genreId,
         enquiryDetails: data.enquiryDetails,
         status: "OPEN",
       },
+      include: {
+        genre: true,
+        soundDesigner: true,
+      },
     });
 
-    return NextResponse.json(presetRequest);
+    const headers = new Headers();
+    headers.append("Cache-Control", "no-cache, no-store, must-revalidate");
+
+    return NextResponse.json(presetRequest, {
+      headers,
+      status: 200,
+    });
   } catch (error) {
     console.error("Error creating request:", error);
     return NextResponse.json(

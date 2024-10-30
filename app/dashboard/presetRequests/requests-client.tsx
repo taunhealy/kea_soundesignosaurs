@@ -11,12 +11,11 @@ import {
 import { useQuery, useQueries } from "@tanstack/react-query";
 import { PresetRequestCard } from "@/app/components/dashboard/PresetRequestCard";
 import { useEffect, useState } from "react";
+import { useAuth } from "@clerk/nextjs";
 
-interface RequestsClientProps {
-  userId: string;
-}
+export default function RequestsClient() {
+  const { userId } = useAuth();
 
-export default function RequestsClient({ userId }: RequestsClientProps) {
   const [presetRequests, assistedRequests] = useQueries({
     queries: [
       {
@@ -114,13 +113,11 @@ export default function RequestsClient({ userId }: RequestsClientProps) {
             ) : (
               presetRequests.data?.map((request: any) => (
                 <div key={request.id} className="space-y-4">
-                  <Link href={`/dashboard/presetRequest/${request.id}`}>
-                    <PresetRequestCard
-                      request={request}
-                      type="requested"
-                      showSubmissions={true}
-                    />
-                  </Link>
+                  <PresetRequestCard
+                    request={request}
+                    type="requested"
+                    showSubmissions={true}
+                  />
                 </div>
               ))
             )}
@@ -140,13 +137,11 @@ export default function RequestsClient({ userId }: RequestsClientProps) {
             ) : (
               assistedRequests.data?.map((request: any) => (
                 <div key={request.id} className="space-y-4">
-                  <Link href={`/dashboard/presetRequests/${request.id}`}>
-                    <PresetRequestCard
-                      request={request}
-                      type="assisted"
-                      showSubmissions={true}
-                    />
-                  </Link>
+                  <PresetRequestCard
+                    request={request}
+                    type="assisted"
+                    showSubmissions={true}
+                  />
                 </div>
               ))
             )}
