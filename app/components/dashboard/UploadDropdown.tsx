@@ -16,10 +16,10 @@ export function UploadDropdown() {
       </button>
       {isOpen && (
         <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10">
-          <Link href="/dashboard/samples/create" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-            Upload Sample
-          </Link>
-          <Link href="/dashboard/presets/create" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+          <Link
+            href="/dashboard/presets/p"
+            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+          >
             Upload Preset
           </Link>
         </div>
@@ -27,4 +27,3 @@ export function UploadDropdown() {
     </div>
   );
 }
-

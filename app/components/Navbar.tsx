@@ -2,20 +2,15 @@
 
 import Link from "next/link";
 import { useCart } from "../hooks/useCart";
-import { UserButton, useUser } from "@clerk/nextjs";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/app/components/ui/dropdown-menu";
-import { Button } from "@/app/components/ui/button";
+import { UserButton } from "@clerk/nextjs";
+import { Button } from "./ui/button";
 
-export function Navbar() {
+interface NavbarProps {
+  isAuthenticated: boolean;
+}
+
+export function Navbar({ isAuthenticated }: NavbarProps) {
   const { cart } = useCart();
-  const { isSignedIn, user } = useUser();
 
   return (
     <nav className="bg-gray-800 text-white p-4">
@@ -27,26 +22,12 @@ export function Navbar() {
           <li>
             <Link href="/explore">Explore</Link>
           </li>
-          {isSignedIn ? (
+          {isAuthenticated ? (
             <>
               <li>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button>Dashboard</Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent>
-                    <DropdownMenuLabel>Dashboard</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem asChild>
-                      <Link href="/dashboard">Overview</Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link href="/dashboard/presets/create">
-                        Upload Preset
-                      </Link>
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <Link href="/dashboard">
+                  <Button>Dashboard</Button>
+                </Link>
               </li>
               <li>
                 <UserButton afterSignOutUrl="/" />

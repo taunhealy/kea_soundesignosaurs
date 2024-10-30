@@ -12,14 +12,14 @@ const navItems = [
     icon: Music,
   },
   {
+    name: "Preset Requests",
+    href: "/dashboard/presetRequests",
+    icon: HelpCircle,
+  },
+  {
     name: "Settings",
     href: "/dashboard/settings",
     icon: Settings,
-  },
-  {
-    name: "Requests",
-    href: "/dashboard/requests",
-    icon: HelpCircle,
   },
 ];
 

@@ -24,7 +24,9 @@ export const ExploreGrid = ({ filters }: ExploreGridProps) => {
       queryKey: ["exploreItems", otherCategory],
       queryFn: () =>
         fetch(
-          `/api/${otherCategory === "requests" ? "request-threads" : "search"}`
+          `/api/${
+            otherCategory === "requests" ? "presetRequest" : "presetUpload"
+          }`
         ).then((res) => res.json()),
     });
   }, [category, queryClient]);
@@ -60,13 +62,17 @@ export const ExploreGrid = ({ filters }: ExploreGridProps) => {
       // Choose endpoint based on category
       const endpoint =
         category === "requests"
-          ? "request-threads"
+          ? "presetRequest"
           : filters.searchTerm
           ? "search"
-          : "presets";
+          : "presetUpload";
 
       const response = await fetch(`/api/${endpoint}?${params.toString()}`);
-      if (!response.ok) throw new Error("Failed to fetch items");
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("Failed to fetch items:", errorData);
+        throw new Error("Failed to fetch items");
+      }
       return response.json();
     },
   });

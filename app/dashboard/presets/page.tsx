@@ -1,80 +1,48 @@
 "use client";
 
-import { usePresets } from "@/app/hooks/usePresets";
-import PresetCard, { PresetSettings } from "@/app/components/PresetCard";
+import { useAuth } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
+import PresetsContent from "@/app/components/PresetsContent";
 import {
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
 } from "@/app/components/ui/tabs";
-import { Button } from "@/app/components/ui/button";
-import Link from "next/link";
-import { useAuth } from "@clerk/nextjs";
-import { Preset } from "@/types/PresetTypes";
+import { UploadPresetButton } from "@/app/components/dashboard/UploadPresetButton";
+import { useEffect } from "react";
 
 export default function PresetsPage() {
-  const { userId } = useAuth();
-  const { data: downloadedPresets, isLoading: isDownloadedLoading } =
-    usePresets("downloaded");
-  const { data: uploadedPresets, isLoading: isUploadedLoading } =
-    usePresets("uploaded");
+  const { userId, isLoaded } = useAuth();
+  const router = useRouter();
 
-  if (isDownloadedLoading || isUploadedLoading) return <div>Loading...</div>;
+  useEffect(() => {
+    if (isLoaded && !userId) {
+      router.push("/sign-in");
+    }
+  }, [isLoaded, userId, router]);
+
+  if (!isLoaded || !userId) {
+    return null;
+  }
 
   return (
-    <div>
+    <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">My Guides</h1>
-        <Button asChild>
-          <Link href="/dashboard/presets/create">Upload New Preset</Link>
-        </Button>
+        <h1 className="text-2xl font-bold">My Presets</h1>
+        <UploadPresetButton />
       </div>
 
-      <Tabs defaultValue="downloaded">
+      <Tabs defaultValue="uploaded">
         <TabsList>
-          <TabsTrigger value="downloaded">Downloaded Guides</TabsTrigger>
-          <TabsTrigger value="uploaded">Uploaded Guides</TabsTrigger>
+          <TabsTrigger value="uploaded">Uploaded</TabsTrigger>
+          <TabsTrigger value="downloaded">Downloaded</TabsTrigger>
         </TabsList>
-        <TabsContent value="downloaded">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {downloadedPresets?.length > 0 ? (
-              downloadedPresets.map((preset: Preset) => (
-                <PresetCard 
-                  key={preset.id} 
-                  preset={{
-                    ...preset,
-                    soundDesigner: preset.soundDesigner ? {
-                      username: preset.soundDesigner.username,
-                      profileImage: preset.soundDesigner.profileImage || '/default-profile.jpg'
-                    } : undefined
-                  }} 
-                />
-              ))
-            ) : (
-              <div>No downloaded guides available</div>
-            )}
-          </div>
-        </TabsContent>
         <TabsContent value="uploaded">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {uploadedPresets?.length > 0 ? (
-              uploadedPresets.map((preset: Preset) => (
-                <PresetCard 
-                  key={preset.id} 
-                  preset={{
-                    ...preset,
-                    soundDesigner: preset.soundDesigner ? {
-                      username: preset.soundDesigner.username,
-                      profileImage: preset.soundDesigner.profileImage || '/default-profile.jpg'
-                    } : undefined
-                  }} 
-                />
-              ))
-            ) : (
-              <div>No uploaded guides available</div>
-            )}
-          </div>
+          <PresetsContent type="uploaded" />
+        </TabsContent>
+        <TabsContent value="downloaded">
+          <PresetsContent type="downloaded" />
         </TabsContent>
       </Tabs>
     </div>

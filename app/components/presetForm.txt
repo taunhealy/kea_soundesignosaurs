@@ -114,14 +114,9 @@ export function PresetForm({ initialData, presetId }: PresetFormProps) {
       setValue("description", initialData.description);
       setValue("guide", initialData.guide);
       setValue("spotifyLink", initialData.spotifyLink);
-      setValue("genre", initialData.genre?.id || initialData.genre);
+      setValue("genre", initialData.genre?.id);
       setValue("vstId", initialData.vst?.id);
       setValue("presetType", initialData.presetType);
-      
-      // Set audio preview if it exists
-      if (initialData.soundPreviewUrl) {
-        setSoundPreviewUrl(initialData.soundPreviewUrl);
-      }
     }
   }, [initialData, setValue]);
 
@@ -162,10 +157,8 @@ export function PresetForm({ initialData, presetId }: PresetFormProps) {
       }
 
       // Invalidate and refetch queries
-      await queryClient.invalidateQueries({
-        queryKey: ["presets", "uploaded"],
-      });
       await queryClient.invalidateQueries({ queryKey: ["preset", presetId] });
+      await queryClient.invalidateQueries({ queryKey: ["presets"] });
 
       toast.success(`Preset ${presetId ? "updated" : "created"} successfully`);
       router.push("/dashboard/presets");
@@ -259,35 +252,6 @@ export function PresetForm({ initialData, presetId }: PresetFormProps) {
           <UploadDropzone
             endpoint="presetUploader"
             onClientUploadComplete={handleUpload}
-            onUploadError={(error: Error) => {
-              alert(`ERROR! ${error.message}`);
-            }}
-          />
-        )}
-      </div>
-
-      <div className="space-y-4">
-        <h2 className="text-lg font-semibold">Upload Audio Preview</h2>
-        {soundPreviewUrl ? (
-          <div className="flex items-center space-x-2 p-2 bg-gray-100 rounded">
-            <FileIcon className="w-6 h-6 text-blue-500" />
-            <span className="flex-1 truncate">Audio Preview</span>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setSoundPreviewUrl("")}
-            >
-              <X className="w-4 h-4" />
-            </Button>
-          </div>
-        ) : (
-          <UploadDropzone
-            endpoint="audioUploader"
-            onClientUploadComplete={(res) => {
-              if (res && res[0]) {
-                setSoundPreviewUrl(res[0].url);
-              }
-            }}
             onUploadError={(error: Error) => {
               alert(`ERROR! ${error.message}`);
             }}

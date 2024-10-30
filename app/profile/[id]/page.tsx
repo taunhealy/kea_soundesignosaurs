@@ -18,7 +18,7 @@ export default function UserProfilePage() {
   const { data: userData, isLoading: isLoadingUser } = useQuery({
     queryKey: ["user", userId],
     queryFn: async () => {
-      const response = await fetch(`/api/sound-designers/user/${userId}`);
+      const response = await fetch(`/api/sound-designers/user/${userId}/profile`);
       if (!response.ok) {
         if (response.status === 404) return null;
         throw new Error("Failed to fetch user data");
@@ -27,13 +27,13 @@ export default function UserProfilePage() {
     },
   });
 
-  const { data: submissions = [], isLoading: isLoadingSubmissions } = useQuery({
-    queryKey: ["userSubmissions", userId],
+  const { data: presets = [], isLoading: isLoadingPresets } = useQuery({
+    queryKey: ["userPresets", userId],
     queryFn: async () => {
-      const response = await fetch(`/api/submissions/user/${userId}`);
+      const response = await fetch(`/api/presetUploads?soundDesignerId=${userId}`);
       if (!response.ok) {
         if (response.status === 404) return [];
-        throw new Error("Failed to fetch submissions");
+        throw new Error("Failed to fetch presets");
       }
       return response.json();
     },
@@ -42,7 +42,7 @@ export default function UserProfilePage() {
   const { data: requests = [], isLoading: isLoadingRequests } = useQuery({
     queryKey: ["userRequests", userId],
     queryFn: async () => {
-      const response = await fetch(`/api/request-threads?userId=${userId}`);
+      const response = await fetch(`/api/presetRequest?type=requested&userId=${userId}`);
       if (!response.ok) {
         if (response.status === 404) return [];
         throw new Error("Failed to fetch requests");
@@ -65,21 +65,21 @@ export default function UserProfilePage() {
         <h1 className="text-3xl font-bold">{userData.username}'s Profile</h1>
       </div>
 
-      <Tabs defaultValue="submissions">
+      <Tabs defaultValue="presets">
         <TabsList>
-          <TabsTrigger value="submissions">Submissions</TabsTrigger>
+          <TabsTrigger value="presets">Presets</TabsTrigger>
           <TabsTrigger value="requests">Requests</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="submissions">
-          {isLoadingSubmissions ? (
-            <div>Loading submissions...</div>
-          ) : submissions.length === 0 ? (
-            <div>No submissions found</div>
+        <TabsContent value="presets">
+          {isLoadingPresets ? (
+            <div>Loading presets...</div>
+          ) : presets.length === 0 ? (
+            <div>No presets found</div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {submissions.map((submission: any) => (
-                <PresetCard key={submission.id} preset={submission} />
+              {presets.map((preset: any) => (
+                <PresetCard key={preset.id} preset={preset} />
               ))}
             </div>
           )}

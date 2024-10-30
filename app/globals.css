@@ -1,3 +1,4 @@
+@import "react-toastify/dist/ReactToastify.css";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -48,11 +49,11 @@
     --ring: 224.3 76.3% 48%;
   }
 
-  [data-state=active][data-orientation=horizontal] {
+  [data-state="active"][data-orientation="horizontal"] {
     @apply transition-colors;
   }
-  
-  [data-state=inactive][data-orientation=horizontal] {
+
+  [data-state="inactive"][data-orientation="horizontal"] {
     @apply transition-colors;
   }
 }

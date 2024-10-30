@@ -8,7 +8,7 @@ import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Textarea } from "@/app/components/ui/textarea";
 import { GenreCombobox } from "@/app/components/GenreCombobox";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { toast } from "react-hot-toast";
 import { useUser } from "@clerk/nextjs";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -45,9 +45,9 @@ export function RequestForm({ initialData, requestId }: RequestFormProps) {
   const mutation = useMutation({
     mutationFn: async (data: RequestFormData) => {
       const response = await fetch(
-        `/api/request-threads${requestId ? `/${requestId}` : ""}`,
+        `/api/presetRequest${requestId ? `/${requestId}` : ""}`,
         {
-          method: requestId ? "PUT" : "POST",
+          method: requestId ? "PATCH" : "POST",
           headers: {
             "Content-Type": "application/json",
           },
@@ -66,11 +66,10 @@ export function RequestForm({ initialData, requestId }: RequestFormProps) {
       return response.json();
     },
     onSuccess: () => {
-      // Invalidate relevant queries
       queryClient.invalidateQueries({ queryKey: ["requests"] });
       queryClient.invalidateQueries({ queryKey: ["request", requestId] });
       toast.success("Request saved successfully");
-      router.push("/dashboard/requests");
+      router.push("/dashboard/presetRequests");
     },
     onError: (error) => {
       console.error("Error saving request:", error);

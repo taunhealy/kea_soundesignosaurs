@@ -1,16 +1,10 @@
-import { auth } from "@clerk/nextjs/server";
-import { redirect } from "next/navigation";
+"use client";
+
 import { PresetForm } from "@/app/components/PresetForm";
 import Link from "next/link";
 import { Button } from "@/app/components/ui/button";
 
-export default async function CreatePresetPage() {
-  const { userId } = await auth();
-
-  if (!userId) {
-    redirect("/sign-in");
-  }
-
+export default function CreatePresetPage() {
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
       <Link href="/dashboard/presets">

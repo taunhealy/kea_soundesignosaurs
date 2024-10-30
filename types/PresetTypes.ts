@@ -1,25 +1,25 @@
 // Preset Type Enum
 export enum PresetType {
-  PAD = 'Pad',
-  LEAD = 'Lead',
-  PLUCK = 'Pluck',
-  BASS = 'Bass',
-  FX = 'FX',
-  OTHER = 'Other'
+  PAD = "PAD",
+  LEAD = "LEAD",
+  PLUCK = "PLUCK",
+  BASS = "BASS",
+  FX = "FX",
+  OTHER = "OTHER",
 }
 
 // VST Type Enum
 export enum VSTType {
-  SERUM = 'SERUM',
-  VITAL = 'VITAL'
+  SERUM = "SERUM",
+  VITAL = "VITAL",
 }
 
 // Base interface for common fields
 interface BaseItem {
   id: string;
   title: string;
-  description: string;
-  price: number;
+  description?: string;
+  price?: number;
   soundPreviewUrl?: string;
   downloadUrl?: string;
   soundDesigner?: {
@@ -40,7 +40,7 @@ export interface Preset extends BaseItem {
     id: string;
     name: string;
   };
-  presetType?: PresetType;
+  presetType?: string;
   tags?: string[];
   isFree?: boolean;
 }
@@ -48,17 +48,15 @@ export interface Preset extends BaseItem {
 // Form data interface for creating/editing presets
 export interface PresetFormData {
   title: string;
-  description: string;
-  guide: string;
-  spotifyLink?: string;
+  description?: string;
+  guide?: string;
+  spotifyLink?: string | null;
   genre?: string;
-  vstType: VSTType;
-  presetType: PresetType;
+  vstId?: string;
+  presetType?: "PAD" | "LEAD" | "PLUCK" | "BASS" | "FX" | "OTHER";
   tags?: string[];
-  isFree: boolean;
   soundPreviewUrl?: string;
-  presetFileUrl: string;
-  price?: number;
+  presetFileUrl?: string;
 }
 
 // API response interface
@@ -74,4 +72,28 @@ export interface PresetListResponse {
   presets?: Preset[];
   totalCount?: number;
   error?: string;
+}
+
+// Add this interface for PresetCard props
+export interface PresetCardProps {
+  preset: {
+    id: string;
+    title: string;
+    price?: number;
+    soundPreviewUrl?: string;
+    downloadUrl?: string;
+    soundDesigner?: {
+      username: string;
+      profileImage?: string;
+    };
+    genre?: {
+      id: string;
+      name: string;
+    };
+    vst?: {
+      id: string;
+      name: string;
+    };
+    presetType?: string;
+  };
 }

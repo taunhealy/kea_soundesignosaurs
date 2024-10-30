@@ -14,25 +14,25 @@ datasource db {
 }
 
 model SoundDesigner {
-  id          String    @id @default(cuid())
-  userId      String    @unique // This should match the Clerk user ID
-  name        String
-  username    String? @unique
-  email       String
-  profileImage String?
-  presets     Preset[]
-  tutorials   Tutorial[]
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  websiteUrl  String?
-  requestThreads RequestThread[]
-  submissions    RequestSubmission[]
+  id              String            @id @default(cuid())
+  userId          String            @unique // This should match the Clerk user ID
+  name            String
+  username        String?           @unique
+  email           String
+  profileImage    String?
+  presets         PresetUpload[]    // Renamed from presets
+  tutorials       Tutorial[]
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  websiteUrl      String?
+  presetRequests  PresetRequest[]   // Renamed from requestThreads
+  presetSubmissions     PresetSubmission[]
 }
 
 model VST {
-  id String @id @default(cuid())
-  name String @unique
-  presets Preset[]
+  id      String         @id @default(cuid())
+  name    String         @unique
+  presets PresetUpload[]
 }
 
 enum PresetType {
@@ -44,26 +44,71 @@ enum PresetType {
   OTHER
 }
 
-model Preset {
-  id              String   @id @default(cuid())
-  title           String
-  description     String   // Add this
-  guide           String   // Add this
-  price           Float
-  soundPreviewUrl String?
-  spotifyLink     String?
-  genre           Genre?   @relation(fields: [genreId], references: [id])
-  genreId         String?
-  soundDesigner   SoundDesigner @relation(fields: [soundDesignerId], references: [id])
-  soundDesignerId String
-  presetFileUrl   String   
+model PresetUpload {
+  id              String         @id @default(cuid())
+  title           String         @db.VarChar(255)
+  description     String?        @db.Text
   presetType      PresetType
-  tags            String[]
-  createdAt       DateTime   @default(now())
-  updatedAt       DateTime   @updatedAt
+  soundPreviewUrl String?
+  presetFileUrl   String?
+  price           Float?
+  spotifyLink     String?
   downloads       Download[]
-  vst             VST        @relation(fields: [vstId], references: [id])
-  vstId           String
+  genre           Genre?          @relation(fields: [genreId], references: [id], onDelete: SetNull)
+  genreId         String?
+  soundDesigner   SoundDesigner?  @relation(fields: [soundDesignerId], references: [id], onDelete: SetNull)
+  soundDesignerId String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  presetRequestId String?
+  presetRequest   PresetRequest? @relation(fields: [presetRequestId], references: [id], onDelete: SetNull)
+  vst             VST?            @relation(fields: [vstId], references: [id], onDelete: SetNull)
+  vstId           String?         // Changed from Int to String to match VST.id type
+  guide           String?
+  tags            String[]
+
+  @@index([genreId])
+  @@index([soundDesignerId])
+  @@index([vstId])
+  @@index([createdAt])
+}
+
+model PresetRequest {  // Already correctly named
+  id              String            @id @default(cuid())
+  title           String
+  youtubeLink     String?
+  genre           String
+  enquiryDetails  String
+  status          RequestStatus     @default(OPEN)
+  userId          String
+  soundDesigner   SoundDesigner     @relation(fields: [userId], references: [userId])
+  submissions     PresetSubmission[]
+  presetUploads   PresetUpload[]    // Add this line to complete the relation
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  tags            String[]
+
+
+  @@index([userId])
+}
+
+model PresetSubmission {  // Already correctly named
+  id              String        @id @default(cuid())
+  presetRequestId String
+  presetRequest   PresetRequest @relation(fields: [presetRequestId], references: [id])
+  userId          String
+  soundDesigner   SoundDesigner @relation(fields: [userId], references: [userId])
+  title           String
+  soundPreviewUrl String?
+  presetFileUrl   String?
+  guide           String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  tags            String[]
+
+
+  @@index([presetRequestId])
+  @@index([userId])
 }
 
 model Tutorial {
@@ -101,11 +146,11 @@ model OrderItem {
 }
 
 model Download {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  userId    String   // ID of the user who downloaded
-  presetId  String?
-  preset    Preset?  @relation(fields: [presetId], references: [id])
+  id            String       @id @default(cuid())
+  createdAt     DateTime     @default(now())
+  userId        String      // ID of the user who downloaded
+  presetId      String?
+  preset        PresetUpload? @relation(fields: [presetId], references: [id]) // Updated relation
   @@index([userId, presetId])
 }
 
@@ -120,7 +165,7 @@ model Genre {
   name      String    @unique
   type      String    // Changed from GenreType enum
   isSystem  Boolean   @default(false)
-  presets   Preset[]
+  presets   PresetUpload[]
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 }
@@ -155,39 +200,11 @@ enum GenreType {
   SYSTEM
 }
 
-model RequestThread {
-  id             String           @id @default(cuid())
-  title          String
-  youtubeLink    String?
-  genre          String
-  enquiryDetails String
-  userId         String
-  status         RequestStatus    @default(OPEN)  // Add enum for better type safety
-  submissions    RequestSubmission[]
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-  soundDesigner  SoundDesigner   @relation(fields: [userId], references: [userId])
-}
+
 
 enum RequestStatus {
   OPEN
   IN_PROGRESS
   COMPLETED
   CANCELLED
-}
-
-model RequestSubmission {
-  id              String        @id @default(cuid())
-  requestThreadId String
-  requestThread   RequestThread @relation(fields: [requestThreadId], references: [id])
-  userId          String
-  username        String
-  soundPreviewUrl String?
-  presetFileUrl   String?
-  guide           String?
-  createdAt       DateTime      @default(now())
-  soundDesigner   SoundDesigner @relation(fields: [userId], references: [userId])
-
-  @@index([requestThreadId])
-  @@index([userId])
 }

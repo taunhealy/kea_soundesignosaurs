@@ -9,16 +9,9 @@ export default async function DashboardLayout({
   children: React.ReactNode;
 }) {
   const { userId } = await auth();
-  if (!userId) {
-    return redirect("/sign-in");
-  }
 
-  // Redirect to presets page if the current path is exactly /dashboard
-  if (
-    typeof window !== "undefined" &&
-    window.location.pathname === "/dashboard"
-  ) {
-    redirect("/dashboard/presets");
+  if (!userId) {
+    redirect("/sign-in");
   }
 
   return (

@@ -12,7 +12,7 @@ import { Label } from "@/app/components/ui/label";
 import { Checkbox } from "@/app/components/ui/checkbox";
 import { useGenres } from "@/app/hooks/useGenres";
 import { cn } from "@/lib/utils";
-import { PresetType, VSTType } from '@/types/PresetTypes';
+import { PresetType, VSTType } from "@/types/PresetTypes";
 
 const VST_OPTIONS = ["Serum", "Vital"] as const;
 const PRESET_TYPES = ["Pad", "Lead", "Pluck", "Bass", "FX", "Other"] as const;
@@ -24,6 +24,7 @@ export interface SearchFilters {
   showAll: boolean;
   presetTypes: string[];
   tags: string[];
+  types: string[];
 }
 
 export interface SearchSidebarProps {

@@ -14,7 +14,7 @@ export async function GET(request: Request) {
   try {
     let downloads;
     if (type === "presets") {
-      downloads = await prisma.preset.findMany({
+      downloads = await prisma.presetUpload.findMany({
         where: {
           soundDesigner: {
             userId: userId,

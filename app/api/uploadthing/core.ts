@@ -72,6 +72,23 @@ export const ourFileRouter = {
       return { uploadedBy: metadata.userId };
     }),
 
+  audioUploader: f({ 
+    audio: { 
+      maxFileSize: "8MB",
+      maxFileCount: 1
+    } 
+  })
+    .middleware(async ({ req }) => {
+      const { userId } = await auth();
+      if (!userId) throw new UploadThingError("Unauthorized");
+      return { userId };
+    })
+    .onUploadComplete(async ({ metadata, file }) => {
+      console.log("Audio upload complete for userId:", metadata.userId);
+      console.log("file url", file.url);
+      return { uploadedBy: metadata.userId };
+    }),
+
   sampleUploader: f({ audio: { maxFileSize: "4MB", maxFileCount: 1 } })
     .middleware(async ({ req }) => {
       const { userId } = await auth();

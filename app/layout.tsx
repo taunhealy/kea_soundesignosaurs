@@ -2,10 +2,12 @@ import React from "react";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { ClerkProvider } from "@clerk/nextjs";
-import { Navbar } from "@/app/components/Navbar";
+import { Navbar as NavbarWrapper } from "@/app/components/Navbar";
 import { Providers } from "@/app/components/Providers";
-import { ReduxProvider } from './providers/ReduxProvider';
+import { ReduxProvider } from "./providers/ReduxProvider";
+import "react-toastify/dist/ReactToastify.css";
+import { ToastContainer } from "react-toastify";
+import { ClerkProvider } from "@clerk/nextjs";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -22,15 +24,16 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <ClerkProvider afterSignOutUrl="/">
+        <ClerkProvider>
           <ReduxProvider>
             <Providers>
-              <Navbar />
+              <NavbarWrapper isAuthenticated={false} />
               <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 {children}
               </main>
             </Providers>
           </ReduxProvider>
+          <ToastContainer />
         </ClerkProvider>
       </body>
     </html>

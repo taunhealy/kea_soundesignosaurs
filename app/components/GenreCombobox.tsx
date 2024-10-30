@@ -27,18 +27,21 @@ export function GenreCombobox({ value, onChange }: GenreComboboxProps) {
 
   const options =
     genres?.map((genre) => ({
-      value: genre.name,
+      value: genre.id,
       label: genre.name,
     })) || [];
 
   const currentOption = options.find(
-    (genre) => genre.value === value || genre.label === value
+    (option) => option.value === value
   );
 
   return (
     <Combobox
       value={currentOption?.value || ""}
-      onSelect={onChange}
+      onSelect={(value) => {
+        console.log("Selected genre ID:", value);
+        onChange(value);
+      }}
       options={options}
       placeholder="Select genre..."
     />
