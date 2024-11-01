@@ -1,28 +1,11 @@
-import { auth } from "@clerk/nextjs/server";
-import { redirect } from "next/navigation";
-import { SoundDesignerNavigation } from "@/app/components/dashboard/SoundDesignerNavigation";
-import { UserButton } from "@clerk/nextjs";
+"use client";
 
-export default async function DashboardLayout({
+import { ClerkProvider } from "@clerk/nextjs";
+
+export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { userId } = await auth();
-
-  if (!userId) {
-    redirect("/sign-in");
-  }
-
-  return (
-    <div className="flex w-full flex-col max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <header className="sticky top-0 flex h-16 items-center justify-between border-b bg-white">
-        <SoundDesignerNavigation />
-        <div className="flex items-center">
-          <UserButton afterSignOutUrl="/" />
-        </div>
-      </header>
-      <main className="flex-grow py-6">{children}</main>
-    </div>
-  );
+  return <ClerkProvider>{children}</ClerkProvider>;
 }

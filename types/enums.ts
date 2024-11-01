@@ -1,42 +1,33 @@
-export enum VSTType {
-  SERUM,
-  VITAL,
-  // Add any other VST types you need
+export enum SystemGenres {
+  ELECTRONIC = 'ELECTRONIC',
+  HIP_HOP = 'HIP_HOP',
+  ROCK = 'ROCK',
+  METAL = 'METAL',
+  HARDWAVE = 'HARDWAVE',
+  WAVE = 'WAVE',
+  PHONK = 'PHONK',
+  FUTURE_BASS = 'FUTURE_BASS',
+  COLOR_BASS = 'COLOR_BASS',
+  HOUSE = 'HOUSE',
+  TECHNO = 'TECHNO',
+  TRANCE = 'TRANCE',
+  DUBSTEP = 'DUBSTEP',
+  DRUM_AND_BASS = 'DRUM_AND_BASS',
+  DRILL = 'DRILL',
+  AMAPIANO = 'AMAPIANO',
+  TRAP = 'TRAP',
+  AMBIENT = 'AMBIENT',
+  SYNTHWAVE = 'SYNTHWAVE',
+  EXPERIMENTAL = 'EXPERIMENTAL',
+  IDM = 'IDM',
+  BREAKBEAT = 'BREAKBEAT',
+  GLITCH_HOP = 'GLITCH_HOP',
+  DOWNTEMPO = 'DOWNTEMPO',
+  LO_FI = 'LO_FI',
+  CUSTOM = 'CUSTOM',
+  SYSTEM = 'SYSTEM'
 }
 
-// Define system genres as a const object
-export const SystemGenres = {
-  ELECTRONIC: "Electronic",
-  HIP_HOP: "Hip Hop",
-  ROCK: "Rock",
-  METAL: "Metal",
-  HARDWAVE: "HardWave",
-  WAVE: "Wave",
-  PHONK: "Phonk",
-  FUTURE_BASS: "Future Bass",
-  COLOR_BASS: "Color Bass",
-  HOUSE: "House",
-  TECHNO: "Techno",
-  TRANCE: "Trance",
-  DUBSTEP: "Dubstep",
-  DRUM_AND_BASS: "Drum and Bass",
-  DRILL: "Drill",
-  AMAPIANO: "Amapiano",
-  TRAP: "Trap",
-  AMBIENT: "Ambient",
-  SYNTHWAVE: "Synthwave",
-  EXPERIMENTAL: "Experimental",
-  IDM: "IDM",
-  BREAKBEAT: "Breakbeat",
-  GLITCH_HOP: "Glitch Hop",
-  DOWNTEMPO: "Downtempo",
-  LO_FI: "Lo-Fi",
-} as const;
-
-// Type for system genres
-export type SystemGenreType = (typeof SystemGenres)[keyof typeof SystemGenres];
-
-// Type guard for system genres (fixed the incomplete function)
-export const isSystemGenre = (genre: string): genre is SystemGenreType => {
-  return Object.values(SystemGenres).includes(genre as SystemGenreType);
+export const isSystemGenre = (name: string): boolean => {
+  return Object.values(SystemGenres).includes(name as SystemGenres);
 };

@@ -41,9 +41,7 @@ export function useCart() {
 
   const updateQuantity = (id: string, quantity: number) => {
     setCart((prevCart) =>
-      prevCart.map((item) =>
-        item.id === id ? { ...item, quantity } : item
-      )
+      prevCart.map((item) => (item.id === id ? { ...item, quantity } : item))
     );
   };
 
@@ -55,4 +53,3 @@ export function useCart() {
 
   return { cart, addToCart, removeFromCart, updateQuantity, clearCart, total };
 }
-

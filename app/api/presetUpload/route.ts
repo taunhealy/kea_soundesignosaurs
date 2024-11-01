@@ -1,10 +1,44 @@
 import { NextResponse, NextRequest } from "next/server";
-import { getAuth } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
+
+export async function GET(request: Request) {
+  try {
+    const { userId } = await auth();
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: "Authentication required" },
+        { status: 401 }
+      );
+    }
+
+    const presets = await prisma.presetUpload.findMany({
+      include: {
+        soundDesigner: {
+          select: {
+            username: true,
+            profileImage: true,
+          },
+        },
+        genre: true,
+        vst: true,
+      },
+    });
+
+    return NextResponse.json(presets);
+  } catch (error) {
+    console.error("[DEBUG] Preset upload GET error:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await getAuth(request);
+    const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -63,78 +97,6 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
-  } catch (error) {
-    console.error("Server error:", error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Unknown error" },
-      { status: 500 }
-    );
-  }
-}
-
-export async function GET(request: NextRequest) {
-  try {
-    const { userId } = await getAuth(request);
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const { searchParams } = new URL(request.url);
-    const type = searchParams.get("type");
-
-    let presets;
-    if (type === "downloaded") {
-      // Get presets downloaded by the user
-      presets = await prisma.presetUpload.findMany({
-        where: {
-          downloads: {
-            some: {
-              userId: userId,
-            },
-          },
-        },
-        include: {
-          soundDesigner: {
-            select: {
-              username: true,
-              profileImage: true,
-            },
-          },
-          genre: true,
-          vst: true,
-        },
-      });
-    } else if (type === "uploaded") {
-      // Get presets uploaded by the user
-      const soundDesigner = await prisma.soundDesigner.findUnique({
-        where: { userId: userId },
-      });
-
-      if (!soundDesigner) {
-        return NextResponse.json(
-          { error: "Sound Designer not found" },
-          { status: 404 }
-        );
-      }
-
-      presets = await prisma.presetUpload.findMany({
-        where: {
-          soundDesignerId: soundDesigner.id,
-        },
-        include: {
-          soundDesigner: {
-            select: {
-              username: true,
-              profileImage: true,
-            },
-          },
-          genre: true,
-          vst: true,
-        },
-      });
-    }
-
-    return NextResponse.json(presets || []);
   } catch (error) {
     console.error("Server error:", error);
     return NextResponse.json(

@@ -2,12 +2,11 @@ import React from "react";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { NavbarWrapper } from "@/app/components/NavBarWrapper";
+import Navbar from "@/app/components/Navbar";
 import { Providers } from "@/app/components/Providers";
 import { ReduxProvider } from "./providers/ReduxProvider";
 import "react-toastify/dist/ReactToastify.css";
 import { ToastContainer } from "react-toastify";
-import { auth } from "@clerk/nextjs/server";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Toaster } from "react-hot-toast";
 
@@ -18,27 +17,29 @@ export const metadata: Metadata = {
   description: "Find the sound",
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <ClerkProvider dynamic>
-      <html lang="en">
-        <body className={inter.className}>
+    <html lang="en">
+      <body className={inter.className}>
+        <ClerkProvider dynamic={true}>
           <ReduxProvider>
-            <NavbarWrapper />
             <Providers>
-              <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                {children}
-              </main>
+              <div className="flex flex-col min-h-screen">
+                <Navbar />
+                <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                  {children}
+                </main>
+                <ToastContainer />
+                <Toaster />
+              </div>
             </Providers>
-            <ToastContainer />
-            <Toaster />
           </ReduxProvider>
-        </body>
-      </html>
-    </ClerkProvider>
+        </ClerkProvider>
+      </body>
+    </html>
   );
 }

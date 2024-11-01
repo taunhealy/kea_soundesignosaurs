@@ -9,12 +9,15 @@ import {
   DownloadIcon,
   TrashIcon,
   FileIcon,
+  ShoppingCartIcon,
+  HeartIcon,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { WaveformVisualizer } from "./WaveformVisualizer";
+import { PriceChangeDisplay } from "./ui/PriceChangeDisplay";
 
 // Ensure PresetSettings is exported
 export interface PresetSettings {
@@ -32,6 +35,7 @@ interface PresetCardProps {
     soundPreviewUrl?: string;
     presetFileUrl?: string;
     originalFileName?: string;
+    priceHistory?: { price: number }[];
     soundDesigner?: {
       username: string;
       profileImage?: string;
@@ -54,6 +58,23 @@ export function PresetCard({ preset }: PresetCardProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const router = useRouter();
   const queryClient = useQueryClient();
+
+  const { data: priceHistory } = useQuery({
+    queryKey: ["priceHistory", preset.id],
+    queryFn: async () => {
+      const response = await fetch(`/api/presets/${preset.id}/price-history`);
+      if (!response.ok) {
+        if (response.status === 404) {
+          return []; // Return empty array if preset not found
+        }
+        throw new Error("Failed to fetch price history");
+      }
+      return response.json();
+    },
+    enabled: !!preset.id,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    retry: false
+  });
 
   const cleanupAudio = useCallback(() => {
     if (audio) {
@@ -95,10 +116,10 @@ export function PresetCard({ preset }: PresetCardProps) {
         const newAudio = new Audio();
         newAudio.crossOrigin = "anonymous";
         newAudio.src = preset.soundPreviewUrl;
-        
+
         // Set initial volume
         newAudio.volume = 1.0;
-        
+
         newAudio.addEventListener("error", (e) => {
           console.error("Audio error:", e);
           toast.error("Failed to load audio");
@@ -111,7 +132,7 @@ export function PresetCard({ preset }: PresetCardProps) {
         });
 
         setAudio(newAudio);
-        
+
         // Wait for audio to be ready before playing
         newAudio.addEventListener("canplaythrough", () => {
           newAudio.play().catch((error) => {
@@ -120,7 +141,7 @@ export function PresetCard({ preset }: PresetCardProps) {
             cleanupAudio();
           });
         });
-        
+
         setIsPlaying(true);
       } else {
         if (isPlaying) {
@@ -216,6 +237,52 @@ export function PresetCard({ preset }: PresetCardProps) {
     [preset.id, router]
   );
 
+  const addToCartMutation = useMutation({
+    mutationFn: async (presetId: string) => {
+      const response = await fetch("/api/cart/CART", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ presetId }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: "Failed to add to cart" }));
+        throw new Error(errorData.error || "Failed to add to cart");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["cart"] });
+      toast.success("Added to cart");
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Failed to add to cart");
+    },
+  });
+
+  const addToWishlistMutation = useMutation({
+    mutationFn: async (presetId: string) => {
+      const response = await fetch("/api/cart/WISHLIST", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ presetId }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error);
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["wishlist"] });
+      toast.success("Added to wishlist");
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Failed to add to wishlist");
+    },
+  });
+
   if (!preset) {
     return null; // Or a fallback UI
   }
@@ -227,6 +294,39 @@ export function PresetCard({ preset }: PresetCardProps) {
     >
       {/* Action buttons container */}
       <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+        {preset.price && preset.price > 0 ? (
+          <Button
+            onClick={async (e) => {
+              e.stopPropagation();
+              addToCartMutation.mutate(preset.id);
+            }}
+            variant="secondary"
+            size="icon"
+            className="h-8 w-8 bg-white/90 hover:bg-white shadow-sm interactive-element"
+          >
+            <ShoppingCartIcon className="h-4 w-4" />
+          </Button>
+        ) : (
+          <Button
+            onClick={handleDownload}
+            variant="secondary"
+            size="icon"
+            className="h-8 w-8 bg-white/90 hover:bg-white shadow-sm interactive-element"
+          >
+            <DownloadIcon className="h-4 w-4" />
+          </Button>
+        )}
+        <Button
+          onClick={(e) => {
+            e.stopPropagation();
+            addToWishlistMutation.mutate(preset.id);
+          }}
+          variant="secondary"
+          size="icon"
+          className="h-8 w-8 bg-white/90 hover:bg-white shadow-sm interactive-element"
+        >
+          <HeartIcon className="h-4 w-4" />
+        </Button>
         <Button
           onClick={(e) => {
             e.stopPropagation();
@@ -237,14 +337,6 @@ export function PresetCard({ preset }: PresetCardProps) {
           className="h-8 w-8 bg-white/90 hover:bg-white shadow-sm interactive-element"
         >
           <EditIcon className="h-4 w-4" />
-        </Button>
-        <Button
-          onClick={handleDownload}
-          variant="secondary"
-          size="icon"
-          className="h-8 w-8 bg-white/90 hover:bg-white shadow-sm interactive-element"
-        >
-          <DownloadIcon className="h-4 w-4" />
         </Button>
         <Button
           onClick={handleDelete}
@@ -262,6 +354,13 @@ export function PresetCard({ preset }: PresetCardProps) {
       </CardHeader>
 
       <CardContent>
+        <PriceChangeDisplay
+          currentPrice={preset.price ?? 0}
+          previousPrice={priceHistory?.[1]?.price}
+          size="lg"
+          className="mb-4"
+          itemType="preset"
+        />
         {/* Metadata section */}
         <div className="space-y-1 mb-4 text-sm text-muted-foreground">
           {preset.soundDesigner && (
@@ -310,8 +409,8 @@ export function PresetCard({ preset }: PresetCardProps) {
             <>
               <PauseIcon className="absolute left-4 h-4 w-4" />
               <div className="w-[200px]">
-                <WaveformVisualizer 
-                  audioElement={audio} 
+                <WaveformVisualizer
+                  audioElement={audio}
                   isPlaying={isPlaying}
                   amplitudeMultiplier={1.5}
                 />

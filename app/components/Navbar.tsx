@@ -1,52 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { UserButton } from "@clerk/nextjs";
+import { UserButton, useAuth } from "@clerk/nextjs";
 import { Button } from "./ui/button";
+import { ShoppingCart } from "lucide-react";
+import { memo } from "react";
+import dynamic from 'next/dynamic'
 
-interface NavbarProps {
-  isAuthenticated: boolean;
-}
+const DynamicNavbar = dynamic(() => import('./NavbarContent'), {
+  ssr: false
+})
 
-export function Navbar({ isAuthenticated }: NavbarProps) {
-
-  return (
-    <nav className="bg-gray-800 text-white p-4">
-      <div className="container mx-auto flex justify-between items-center">
-        <Link href="/" className="text-xl font-bold">
-          SoundDesignosaurs
-        </Link>
-        <ul className="flex space-x-4 items-center">
-          <li>
-            <Link href="/explore">Explore</Link>
-          </li>
-          {isAuthenticated ? (
-            <>
-              <li>
-                <Link href="/dashboard">
-                  <Button>Dashboard</Button>
-                </Link>
-              </li>
-              <li>
-                <UserButton />
-              </li>
-            </>
-          ) : (
-            <>
-              <li>
-                <Link href="/sign-in">
-                  <Button variant="default">Sign In</Button>
-                </Link>
-              </li>
-              <li>
-                <Link href="/register">
-                  <Button>Register</Button>
-                </Link>
-              </li>
-            </>
-          )}
-        </ul>
-      </div>
-    </nav>
-  );
+export default function Navbar() {
+  return <DynamicNavbar />
 }

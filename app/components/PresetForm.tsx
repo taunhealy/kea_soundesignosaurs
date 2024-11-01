@@ -38,6 +38,7 @@ const presetSchema = z.object({
   presetType: z
     .enum(["PAD", "LEAD", "PLUCK", "BASS", "FX", "OTHER"])
     .optional(),
+  price: z.number().min(0, "Price must be 0 or greater").optional(),
 });
 
 type PresetFormData = z.infer<typeof presetSchema>;
@@ -97,6 +98,7 @@ export function PresetForm({ initialData, presetId }: PresetFormProps) {
     handleSubmit,
     formState: { errors, isSubmitting: formIsSubmitting },
     setValue,
+    watch,
   } = useForm<PresetFormData>({
     resolver: zodResolver(presetSchema),
     defaultValues: {
@@ -107,6 +109,7 @@ export function PresetForm({ initialData, presetId }: PresetFormProps) {
       genreId: initialData?.genre?.id || initialData?.genreId || "",
       vstId: initialData?.vst?.id || "",
       presetType: initialData?.presetType || undefined,
+      price: initialData?.price || 0,
     },
   });
 
@@ -122,6 +125,7 @@ export function PresetForm({ initialData, presetId }: PresetFormProps) {
       setValue("genreId", initialData.genre?.id || initialData.genreId);
       setValue("vstId", initialData.vst?.id);
       setValue("presetType", initialData.presetType);
+      setValue("price", initialData.price || 0);
 
       if (initialData.soundPreviewUrl) {
         setSoundPreviewUrl(initialData.soundPreviewUrl);
@@ -303,6 +307,28 @@ export function PresetForm({ initialData, presetId }: PresetFormProps) {
             }}
           />
         )}
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="price">Price (USD)</Label>
+        <div className="flex items-center gap-2">
+          <Input
+            type="number"
+            step="0.01"
+            min="0"
+            id="price"
+            placeholder="Enter price (0 for free)"
+            {...register("price", {
+              valueAsNumber: true,
+            })}
+          />
+          {watch("price") !== initialData?.price && (
+            <span className="text-sm text-amber-500">
+              Price change will notify users
+            </span>
+          )}
+        </div>
+        {errors.price && <p className="text-red-500">{errors.price.message}</p>}
       </div>
 
       <div className="space-y-2">

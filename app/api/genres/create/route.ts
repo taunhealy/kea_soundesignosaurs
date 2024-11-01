@@ -22,7 +22,7 @@ export async function POST(request: Request) {
     const genre = await prisma.genre.create({
       data: {
         name,
-        type: isSystem ? name : 'CUSTOM',
+        type: isSystem ? name : "CUSTOM",
         isSystem,
       },
     });

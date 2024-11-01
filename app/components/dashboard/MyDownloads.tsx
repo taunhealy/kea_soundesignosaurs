@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Sample, Preset } from "@/types/SamplePresetTypes";
+import { Preset } from "@/types/PresetTypes";
 
 interface MyDownloadsProps {
   activeTab: "samples" | "presets";
@@ -9,12 +9,14 @@ interface MyDownloadsProps {
 }
 
 export function MyDownloads({ activeTab, userId }: MyDownloadsProps) {
-  const [downloads, setDownloads] = useState<(Sample | Preset)[]>([]);
+  const [downloads, setDownloads] = useState<Preset[]>([]);
 
   useEffect(() => {
     // Fetch downloads based on activeTab and userId
     const fetchDownloads = async () => {
-      const response = await fetch(`/api/downloads?type=${activeTab}&userId=${userId}`);
+      const response = await fetch(
+        `/api/downloads?type=${activeTab}&userId=${userId}`
+      );
       if (response.ok) {
         const data = await response.json();
         setDownloads(data);
@@ -26,7 +28,9 @@ export function MyDownloads({ activeTab, userId }: MyDownloadsProps) {
 
   return (
     <div>
-      <h2 className="text-xl font-semibold mb-4">My {activeTab === "samples" ? "Samples" : "Presets"}</h2>
+      <h2 className="text-xl font-semibold mb-4">
+        My {activeTab === "samples" ? "Samples" : "Presets"}
+      </h2>
       <ul className="space-y-4">
         {downloads.map((item) => (
           <li key={item.id} className="border p-4 rounded">

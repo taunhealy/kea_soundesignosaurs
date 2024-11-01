@@ -27,6 +27,7 @@ model SoundDesigner {
   websiteUrl      String?
   presetRequests  PresetRequest[]   // Renamed from requestThreads
   presetSubmissions     PresetSubmission[]
+  presetPacks         PresetPack[]
 }
 
 model VST {
@@ -67,7 +68,9 @@ model PresetUpload {
   guide           String?
   tags            String[]
   originalFileName String?
-
+  priceHistory    PriceHistory[]
+  packs           PackPresets[]
+  cartItems       CartItem[]
   @@index([genreId])
   @@index([soundDesignerId])
   @@index([vstId])
@@ -159,6 +162,7 @@ model Download {
 enum VSTType {
   SERUM
   VITAL
+  POLYGRID
 }
 
 
@@ -210,4 +214,104 @@ enum RequestStatus {
   IN_PROGRESS
   COMPLETED
   CANCELLED
+}
+
+model PriceHistory {
+  id          String       @id @default(cuid())
+  price       Decimal
+  timestamp   DateTime     @default(now())
+  
+  presetId    String?
+  preset      PresetUpload? @relation(fields: [presetId], references: [id])
+  
+  packId      String?
+  pack        PresetPack?   @relation(fields: [packId], references: [id])
+
+  cartItemId  String?      // Add this field
+  cartItem    CartItem?    @relation(fields: [cartItemId], references: [id]) // Add this relation
+
+  @@index([presetId])
+  @@index([packId])
+  @@index([cartItemId])    // Add this index
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  message   String
+  metadata  Json?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model PresetPack {
+  id              String         @id @default(cuid())
+  title           String         @db.VarChar(255)
+  description     String?        @db.Text
+  price           Float?
+  soundPreviewUrl String?
+  soundDesigner   SoundDesigner? @relation(fields: [soundDesignerId], references: [id], onDelete: SetNull)
+  soundDesignerId String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  tags            String[]
+  priceHistory    PriceHistory[]
+  presets         PackPresets[]
+  cartItems       CartItem[]
+
+  @@index([soundDesignerId])
+  @@index([createdAt])
+}
+
+// Renamed from PresetsOnPacks to PackPresets
+model PackPresets {
+  preset      PresetUpload @relation(fields: [presetId], references: [id])
+  presetId    String
+  pack        PresetPack   @relation(fields: [packId], references: [id])
+  packId      String
+  addedAt     DateTime     @default(now())
+
+  @@id([presetId, packId])
+  @@index([presetId])
+  @@index([packId])
+}
+
+model Cart {
+  id        String     @id @default(cuid())
+  userId    String
+  type      CartType   // Change to enum
+  items     CartItem[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@unique([userId, type])
+}
+
+enum CartType {
+  CART
+  SAVED_FOR_LATER
+  WISHLIST
+}
+
+model CartItem {
+  id              String      @id @default(cuid())
+  cartId          String
+  cart            Cart        @relation(fields: [cartId], references: [id])
+  presetId        String?     
+  preset          PresetUpload? @relation(fields: [presetId], references: [id])
+  packId          String?     
+  pack            PresetPack? @relation(fields: [packId], references: [id])
+  quantity        Int         @default(1)
+  priceAlert      Boolean     @default(false)
+  lastPriceSync   DateTime?
+  priceHistory    PriceHistory[] // Add this relation
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@index([cartId])
+  @@index([presetId])
+  @@index([packId])
 }

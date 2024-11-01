@@ -10,7 +10,11 @@ export default function EditPresetPage() {
   const params = useParams();
   const presetId = params?.id as string;
 
-  const { data: presetData, isLoading, error } = useQuery({
+  const {
+    data: presetData,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ["preset", presetId],
     queryFn: async () => {
       const response = await fetch(`/api/presetUpload/${presetId}`);
@@ -37,4 +41,4 @@ export default function EditPresetPage() {
       <PresetForm initialData={presetData} presetId={presetId} />
     </div>
   );
-} 
+}

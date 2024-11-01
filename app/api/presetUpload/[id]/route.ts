@@ -96,6 +96,7 @@ export async function PATCH(
         soundPreviewUrl: body.soundPreviewUrl,
         presetFileUrl: body.presetFileUrl,
         originalFileName: body.originalFileName,
+        price: body.price || 0,
       },
       include: {
         soundDesigner: {

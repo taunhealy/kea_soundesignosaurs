@@ -12,6 +12,7 @@ export enum PresetType {
 export enum VSTType {
   SERUM = "SERUM",
   VITAL = "VITAL",
+  POLYGRID = "POLYGRID",
 }
 
 // Base interface for common fields
@@ -57,6 +58,7 @@ export interface PresetFormData {
   tags?: string[];
   soundPreviewUrl?: string;
   presetFileUrl?: string;
+  price?: number;
 }
 
 // API response interface

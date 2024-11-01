@@ -1,6 +1,9 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "react-toastify";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Card,
   CardContent,
@@ -14,17 +17,12 @@ import {
   DownloadIcon,
   PlayIcon,
   PauseIcon,
-  TagIcon,
   YoutubeIcon,
   MusicIcon,
   TrashIcon,
 } from "lucide-react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { toast } from "react-toastify";
 import { Badge } from "../ui/badge";
 import { RequestSubmission, PresetRequest } from "@/types/PresetRequestTypes";
-import { useQueryClient } from "@tanstack/react-query";
 
 interface PresetRequestCardProps {
   request: PresetRequest & {
@@ -37,11 +35,18 @@ interface PresetRequestCardProps {
   type: "requested" | "assisted";
 }
 
+function getYouTubeVideoId(url: string) {
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+  const match = url.match(regExp);
+  return match && match[2].length === 11 ? match[2] : null;
+}
+
 export function PresetRequestCard({
   request,
   showSubmissions = false,
   type,
 }: PresetRequestCardProps) {
+  const [mounted, setMounted] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
   const [activeSubmission, setActiveSubmission] =
@@ -49,6 +54,10 @@ export function PresetRequestCard({
   const router = useRouter();
   const [isDeleting, setIsDeleting] = useState(false);
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const cleanupAudio = useCallback(() => {
     if (audio) {
@@ -146,50 +155,59 @@ export function PresetRequestCard({
     genreId: request.genreId,
   });
 
+  if (!mounted) {
+    return null;
+  }
+
   return (
     <Card onClick={(e) => e.preventDefault()}>
-      <CardHeader className="relative">
-        <div className="absolute top-4 right-4 flex gap-2">
-          <Button
-            onClick={(e) => {
-              e.stopPropagation();
-              router.push(`/dashboard/presetRequest/edit/${request.id}`);
-            }}
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
+      <CardHeader className="space-y-4">
+        <div className="flex items-start justify-between">
+          <Badge
+            variant={
+              request.status === "OPEN"
+                ? "default"
+                : request.status === "ASSISTED"
+                ? "secondary"
+                : "outline"
+            }
+            className="mb-2"
           >
-            <EditIcon className="h-4 w-4" />
-          </Button>
-          <Button
-            onClick={handleDelete}
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 hover:bg-destructive hover:text-destructive-foreground"
-            disabled={isDeleting}
-          >
-            <TrashIcon className="h-4 w-4" />
-          </Button>
+            {request.status}
+          </Badge>
+          <div className="flex gap-2">
+            <Button
+              onClick={(e) => {
+                e.stopPropagation();
+                router.push(`/dashboard/presetRequest/edit/${request.id}`);
+              }}
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+            >
+              <EditIcon className="h-4 w-4" />
+            </Button>
+            <Button
+              onClick={handleDelete}
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 hover:bg-destructive hover:text-destructive-foreground"
+              disabled={isDeleting}
+            >
+              <TrashIcon className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
-        <CardTitle className="text-2xl">{request.title}</CardTitle>
-        <CardDescription>
-          Posted by {request.soundDesigner?.username || "Anonymous"}
-        </CardDescription>
+        <div>
+          <CardTitle className="text-2xl">{request.title}</CardTitle>
+          <CardDescription>
+            Posted by {request.soundDesigner?.username || "Anonymous"}
+          </CardDescription>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="space-y-6">
           <div className="flex justify-between text-sm text-muted-foreground">
-            <Badge
-              variant={
-                request.status === "OPEN"
-                  ? "default"
-                  : request.status === "ASSISTED"
-                  ? "secondary"
-                  : "outline"
-              }
-            >
-              {request.status}
-            </Badge>
             <Badge variant="outline">
               <MusicIcon className="h-3 w-3 mr-1" />
               {request.genre?.name || "No Genre"}
@@ -207,14 +225,34 @@ export function PresetRequestCard({
                 <YoutubeIcon className="h-4 w-4" />
                 Reference Track:
               </h3>
-              <a
-                href={request.youtubeLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-500 hover:underline"
-              >
-                YouTube Link
-              </a>
+              <div className="space-y-2">
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    window.open(request.youtubeLink, "_blank");
+                  }}
+                  className="relative aspect-video w-full overflow-hidden rounded-lg hover:opacity-90 transition-opacity"
+                >
+                  <img
+                    src={`https://img.youtube.com/vi/${getYouTubeVideoId(
+                      request.youtubeLink
+                    )}/maxresdefault.jpg`}
+                    alt="YouTube thumbnail"
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (
+                        e.target as HTMLImageElement
+                      ).src = `https://img.youtube.com/vi/${getYouTubeVideoId(
+                        request.youtubeLink
+                      )}/mqdefault.jpg`;
+                    }}
+                  />
+                  <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+                    <YoutubeIcon className="h-12 w-12 text-white/90" />
+                  </div>
+                </button>
+              </div>
             </div>
           )}
 
@@ -223,7 +261,7 @@ export function PresetRequestCard({
               <h3 className="font-medium">Submissions:</h3>
               <div className="grid gap-4">
                 {!request.submissions || request.submissions.length === 0 ? (
-                  <div className="text-center p-4 text-muted-foreground">
+                  <div className="text-muted-foreground">
                     No submissions to display.
                   </div>
                 ) : (
