@@ -22,6 +22,8 @@ import { Label } from "@/app/components/ui/label";
 import { toast } from "react-hot-toast";
 import { GenreCombobox } from "@/app/components/GenreCombobox";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { formatPresetFileName } from "@/utils/presetNaming";
+import { PresetType } from "@/types/PresetTypes";
 
 interface PresetFormProps {
   initialData?: any;
@@ -29,7 +31,7 @@ interface PresetFormProps {
 }
 
 const presetSchema = z.object({
-  title: z.string().min(1, "Title is required"),
+  title: z.string().optional(),
   description: z.string().optional(),
   guide: z.string().optional(),
   spotifyLink: z.string().url().nullish(),
@@ -38,7 +40,7 @@ const presetSchema = z.object({
   presetType: z
     .enum(["PAD", "LEAD", "PLUCK", "BASS", "FX", "OTHER"])
     .optional(),
-  price: z.number().min(0, "Price must be 0 or greater").optional(),
+  price: z.number().min(5, "Price must be at least $5").optional(),
 });
 
 type PresetFormData = z.infer<typeof presetSchema>;
@@ -195,11 +197,27 @@ export function PresetForm({ initialData, presetId }: PresetFormProps) {
 
   const handleUpload = (res: any) => {
     if (res && res[0]) {
+      const originalFileName = res[0].name;
+      const fileNameWithoutExt = originalFileName.replace(/\.[^/.]+$/, "");
+
+      // Get current preset type from form
+      const currentPresetType = watch("presetType") as PresetType;
+
+      // Format the filename
+      const formattedFileName = formatPresetFileName(
+        fileNameWithoutExt,
+        currentPresetType
+      );
+
       setUploadedFile({
         url: res[0].url,
-        name: res[0].originalName || res[0].name,
-        originalName: res[0].originalName || res[0].name,
+        name: formattedFileName,
+        originalName: originalFileName,
       });
+
+      if (!watch("title")) {
+        setValue("title", formattedFileName);
+      }
     }
   };
 
@@ -218,9 +236,6 @@ export function PresetForm({ initialData, presetId }: PresetFormProps) {
       }}
       className="space-y-4"
     >
-      <Input {...register("title")} placeholder="Title" />
-      {errors.title && <p className="text-red-500">{errors.title.message}</p>}
-
       <Textarea {...register("description")} placeholder="Description" />
       {errors.description && (
         <p className="text-red-500">{errors.description.message}</p>
@@ -310,16 +325,20 @@ export function PresetForm({ initialData, presetId }: PresetFormProps) {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="price">Price (USD)</Label>
+        <Label htmlFor="price">Price (USD) - Minimum $5</Label>
         <div className="flex items-center gap-2">
           <Input
             type="number"
             step="0.01"
-            min="0"
+            min="5"
             id="price"
-            placeholder="Enter price (0 for free)"
+            placeholder="Enter price (minimum $5)"
             {...register("price", {
               valueAsNumber: true,
+              min: {
+                value: 5,
+                message: "Price must be at least $5",
+              },
             })}
           />
           {watch("price") !== initialData?.price && (
@@ -328,7 +347,9 @@ export function PresetForm({ initialData, presetId }: PresetFormProps) {
             </span>
           )}
         </div>
-        {errors.price && <p className="text-red-500">{errors.price.message}</p>}
+        {errors.price && (
+          <p className="text-red-500 text-sm">{errors.price.message}</p>
+        )}
       </div>
 
       <div className="space-y-2">

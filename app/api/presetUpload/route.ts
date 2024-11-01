@@ -1,6 +1,11 @@
 import { NextResponse, NextRequest } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
+import { z } from "zod";
+
+const priceSchema = z.object({
+  price: z.number().min(5, "Price must be at least $5"),
+});
 
 export async function GET(request: Request) {
   try {
@@ -44,12 +49,22 @@ export async function POST(request: NextRequest) {
     }
 
     const data = await request.json();
-    console.log("Received data:", data); // Debug log
+    console.log("Received data:", data);
 
-    // Validate required fields
+    // Validate required fields and price
     if (!data.title || !data.presetType) {
       return NextResponse.json(
         { error: "Missing required fields" },
+        { status: 400 }
+      );
+    }
+
+    // Validate price
+    try {
+      priceSchema.parse({ price: data.price || 5 });
+    } catch (error) {
+      return NextResponse.json(
+        { error: "Price must be at least $5" },
         { status: 400 }
       );
     }

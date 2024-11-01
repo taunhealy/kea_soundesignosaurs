@@ -13,61 +13,72 @@ export async function trackPriceChange(
   type: "PRESET" | "PRESET_PACK",
   newPrice: number
 ) {
-  console.log(`[PriceTracking] Starting price change for ${type} ${id} to ${newPrice}`);
-  
+  console.log(
+    `[PriceTracking] Starting price change for ${type} ${id} to ${newPrice}`
+  );
+
   return await prisma.$transaction(async (tx) => {
     // Get current price history
     const currentHistory = await tx.priceHistory.findFirst({
-      where: type === "PRESET" ? { presetId: id } : { packId: id },
-      orderBy: { timestamp: 'desc' }
+      where: type === "PRESET" ? { preset: { id } } : { pack: { id } },
+      orderBy: { timestamp: "desc" },
     });
 
-    console.log('[PriceTracking] Current history:', currentHistory);
+    console.log("[PriceTracking] Current history:", currentHistory);
 
     // Only create new entry if price changed or no history exists
     if (!currentHistory || Number(currentHistory.price) !== newPrice) {
       const priceHistoryEntry = await tx.priceHistory.create({
-        data: type === "PRESET" 
-          ? { presetId: id, price: newPrice }
-          : { packId: id, price: newPrice }
+        data:
+          type === "PRESET"
+            ? { preset: { connect: { id } }, price: newPrice }
+            : { pack: { connect: { id } }, price: newPrice },
       });
-      
-      console.log('[PriceTracking] Created new price history:', priceHistoryEntry);
+
+      console.log(
+        "[PriceTracking] Created new price history:",
+        priceHistoryEntry
+      );
 
       // Find all cart items containing this preset/pack
       const cartItems = await tx.cartItem.findMany({
         where: type === "PRESET" 
-          ? { presetId: id }
-          : { packId: id },
+          ? { itemType: "PRESET", itemId: id }
+          : { itemType: "PACK", itemId: id },
         include: {
           cart: true,
           priceHistory: {
-            orderBy: { timestamp: 'desc' },
-            take: 1
-          }
-        }
+            orderBy: { timestamp: "desc" },
+            take: 1,
+          },
+        },
       });
 
-      console.log(`[PriceTracking] Found ${cartItems.length} cart items to update`);
+      console.log(
+        `[PriceTracking] Found ${cartItems.length} cart items to update`
+      );
 
       // Update cart item price histories
       for (const item of cartItems) {
         const lastPrice = item.priceHistory[0]?.price;
-        
+
         if (!lastPrice || Number(lastPrice) !== newPrice) {
           const cartItemHistory = await tx.priceHistory.create({
             data: {
               cartItemId: item.id,
-              price: newPrice
-            }
+              price: newPrice,
+            },
           });
-          console.log(`[PriceTracking] Created cart item price history:`, cartItemHistory);
+          console.log(
+            `[PriceTracking] Created cart item price history:`,
+            cartItemHistory
+          );
         }
       }
 
       return cartItems;
     } else {
-      console.log('[PriceTracking] No price change detected, skipping update');
+      console.log("[PriceTracking] No price change detected, skipping update");
       return [];
     }
   });

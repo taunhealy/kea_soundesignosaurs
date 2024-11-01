@@ -16,7 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { CartItem } from "@/lib/interfaces";
 import { Trash, MoveRight } from "lucide-react";
 import { toast } from "react-hot-toast";
-import { PriceChangeDisplay } from "./ui/PriceChangeDisplay";
+import { PriceChangeDisplay } from "./PriceChangeDisplay";
 
 interface CartItemComponentProps {
   item: CartItem;

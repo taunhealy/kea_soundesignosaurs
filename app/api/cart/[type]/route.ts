@@ -73,31 +73,38 @@ export async function GET(
           ...(item.preset?.priceHistory ?? []),
           ...(item.pack?.priceHistory ?? []),
         ]
-          .sort((a, b) => 
-            new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+          .sort(
+            (a, b) =>
+              new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
           )
-          .map(history => ({
+          .map((history) => ({
             price: Number(history.price),
-            timestamp: history.timestamp.toISOString()
+            timestamp: history.timestamp.toISOString(),
           }));
 
         // Get the last two entries from the combined history
         const [current, previous] = allPriceHistory;
 
-        const priceChange = previous && current
-          ? {
-              oldPrice: previous.price,
-              percentageChange: ((current.price - previous.price) / previous.price) * 100,
-            }
-          : null;
+        const priceChange =
+          previous && current
+            ? {
+                oldPrice: previous.price,
+                percentageChange:
+                  ((current.price - previous.price) / previous.price) * 100,
+              }
+            : null;
 
         return {
           id: item.id,
           name: item.preset?.title ?? item.pack?.title ?? "",
           price: Number(item.preset?.price ?? item.pack?.price ?? 0),
-          imageString: item.preset?.soundPreviewUrl ?? item.pack?.soundPreviewUrl ?? "",
+          imageString:
+            item.preset?.soundPreviewUrl ?? item.pack?.soundPreviewUrl ?? "",
           quantity: item.quantity,
-          creator: item.preset?.soundDesigner?.username ?? item.pack?.soundDesigner?.username ?? "",
+          creator:
+            item.preset?.soundDesigner?.username ??
+            item.pack?.soundDesigner?.username ??
+            "",
           priceHistory: allPriceHistory,
           priceChange,
         };
@@ -177,6 +184,26 @@ export async function POST(
       );
     }
 
+    // Check for existing item first
+    const existingCart = await prisma.cart.findFirst({
+      where: {
+        userId,
+        type: cartType as CartType,
+        items: {
+          some: {
+            presetId,
+          },
+        },
+      },
+    });
+
+    if (existingCart) {
+      return NextResponse.json(
+        { error: `Item already exists in ${cartType.toLowerCase()}` },
+        { status: 409 }
+      );
+    }
+
     const result = await prisma.$transaction(async (tx) => {
       // Get or create cart
       const cart = await tx.cart.upsert({
@@ -224,9 +251,12 @@ export async function POST(
 
     return NextResponse.json(result);
   } catch (error) {
-    console.error("Cart POST error:", error);
+    console.error(`Error adding item to ${params.type}:`, error);
+    if (error instanceof Error) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
     return NextResponse.json(
-      { error: "Failed to add item to cart" },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }

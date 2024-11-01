@@ -82,6 +82,8 @@ export interface PresetCardProps {
     id: string;
     title: string;
     price?: number;
+    presetFileUrl?: string;
+    originalFileName?: string;
     soundPreviewUrl?: string;
     downloadUrl?: string;
     soundDesigner?: {

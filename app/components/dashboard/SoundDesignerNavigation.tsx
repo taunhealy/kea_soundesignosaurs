@@ -3,13 +3,18 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { Music, Settings, HelpCircle } from "lucide-react";
+import { Music, Settings, HelpCircle, Package } from "lucide-react";
 
 const navItems = [
   {
     name: "Presets",
     href: "/dashboard/presets",
     icon: Music,
+  },
+  {
+    name: "Packs",
+    href: "/dashboard/packs",
+    icon: Package,
   },
   {
     name: "Preset Requests",

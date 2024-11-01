@@ -30,7 +30,7 @@ export default function PresetsContent({ type }: PresetsContentProps) {
         return data.map((download: any) => ({
           ...download.preset,
           soundDesigner: {
-            username: download.preset.soundDesigner?.username || "",
+            username: download.preset.soundDesigner?.username || "Unknown",
             profileImage: download.preset.soundDesigner?.profileImage || "",
           },
         }));
@@ -39,7 +39,7 @@ export default function PresetsContent({ type }: PresetsContentProps) {
       return data.map((preset: any) => ({
         ...preset,
         soundDesigner: {
-          username: preset.soundDesigner?.username || "",
+          username: preset.soundDesigner?.username || "Unknown",
           profileImage: preset.soundDesigner?.profileImage || "",
         },
       }));

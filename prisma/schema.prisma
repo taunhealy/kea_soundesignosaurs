@@ -296,22 +296,24 @@ enum CartType {
   WISHLIST
 }
 
-model CartItem {
-  id              String      @id @default(cuid())
-  cartId          String
-  cart            Cart        @relation(fields: [cartId], references: [id])
-  presetId        String?     
-  preset          PresetUpload? @relation(fields: [presetId], references: [id])
-  packId          String?     
-  pack            PresetPack? @relation(fields: [packId], references: [id])
-  quantity        Int         @default(1)
-  priceAlert      Boolean     @default(false)
-  lastPriceSync   DateTime?
-  priceHistory    PriceHistory[] // Add this relation
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+enum CartItemType {
+  PRESET
+  PACK
+}
 
+model CartItem {
+  id        String      @id @default(cuid())
+  cart      Cart        @relation(fields: [cartId], references: [id])
+  cartId    String
+  itemId    String
+  itemType  CartItemType
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  priceHistory    PriceHistory[]
+  preset     PresetUpload? @relation(fields: [itemId], references: [id], map: "CartItem_presetId_fkey")
+  pack       PresetPack?   @relation(fields: [itemId], references: [id], map: "CartItem_packId_fkey")
+
+  @@unique([cartId, itemId, itemType])
   @@index([cartId])
-  @@index([presetId])
-  @@index([packId])
+  @@index([itemId])
 }

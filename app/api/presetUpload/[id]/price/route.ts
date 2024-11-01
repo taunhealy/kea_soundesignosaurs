@@ -5,7 +5,7 @@ import { trackPriceChange } from "@/utils/ecommerce/priceTracking";
 import { z } from "zod";
 
 const priceSchema = z.object({
-  price: z.number().min(0).max(1000),
+  price: z.number().min(5, "Price must be at least $5").max(1000),
 });
 
 export async function PATCH(

@@ -17,7 +17,9 @@ import { useRouter } from "next/navigation";
 import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { WaveformVisualizer } from "./WaveformVisualizer";
-import { PriceChangeDisplay } from "./ui/PriceChangeDisplay";
+import { PriceChangeDisplay } from "./PriceChangeDisplay";
+import { type PresetCardProps } from "@/types/PresetTypes";
+import { ItemActionButtons } from "./ItemActionButtons";
 
 // Ensure PresetSettings is exported
 export interface PresetSettings {
@@ -27,36 +29,12 @@ export interface PresetSettings {
   spotifyLink?: string;
 }
 
-interface PresetCardProps {
-  preset: {
-    id: string;
-    title: string;
-    price?: number;
-    soundPreviewUrl?: string;
-    presetFileUrl?: string;
-    originalFileName?: string;
-    priceHistory?: { price: number }[];
-    soundDesigner?: {
-      username: string;
-      profileImage?: string;
-    };
-    genre?: {
-      name: string;
-    };
-    vst?: {
-      name: string;
-    };
-    presetType?: string;
-  };
-}
-
 export function PresetCard({ preset }: PresetCardProps) {
+  const router = useRouter();
   console.log("Preset in card:", preset); // Debug log
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const router = useRouter();
   const queryClient = useQueryClient();
 
   const { data: priceHistory } = useQuery({
@@ -73,7 +51,7 @@ export function PresetCard({ preset }: PresetCardProps) {
     },
     enabled: !!preset.id,
     staleTime: 1000 * 60 * 5, // 5 minutes
-    retry: false
+    retry: false,
   });
 
   const cleanupAudio = useCallback(() => {
@@ -158,74 +136,6 @@ export function PresetCard({ preset }: PresetCardProps) {
     [preset.soundPreviewUrl, audio, isPlaying, cleanupAudio]
   );
 
-  const handleDownload = useCallback(
-    async (e: React.MouseEvent) => {
-      e.stopPropagation();
-
-      if (!preset.presetFileUrl) {
-        toast.error("No preset file available for download");
-        return;
-      }
-
-      try {
-        const response = await fetch(preset.presetFileUrl);
-        if (!response.ok) throw new Error("Failed to fetch file");
-
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-
-        // Extract original filename from URL
-        const originalFilename =
-          preset.presetFileUrl.split("/").pop() || `${preset.title}.preset`;
-
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = originalFilename;
-        document.body.appendChild(link);
-        link.click();
-
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
-
-        toast.success("Download started successfully");
-      } catch (error) {
-        console.error("Download error:", error);
-        toast.error("Failed to download preset");
-      }
-    },
-    [preset]
-  );
-
-  const handleDelete = async (e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent card click event
-
-    if (!confirm("Are you sure you want to delete this preset?")) return;
-
-    setIsDeleting(true);
-    try {
-      const response = await fetch(`/api/presetUpload/${preset.id}`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) {
-        if (response.status === 404) {
-          toast.error("Preset not found");
-          queryClient.invalidateQueries({ queryKey: ["userPresets"] });
-          return;
-        }
-        throw new Error("Failed to delete preset");
-      }
-
-      toast.success("Preset deleted successfully");
-      queryClient.invalidateQueries({ queryKey: ["userPresets"] });
-    } catch (error) {
-      console.error("Error deleting preset:", error);
-      toast.error("Failed to delete preset");
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
   const handleCardClick = useCallback(
     (e: React.MouseEvent) => {
       // Prevent navigation if clicking interactive elements
@@ -237,54 +147,23 @@ export function PresetCard({ preset }: PresetCardProps) {
     [preset.id, router]
   );
 
-  const addToCartMutation = useMutation({
-    mutationFn: async (presetId: string) => {
-      const response = await fetch("/api/cart/CART", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ presetId }),
-      });
+  const handleDelete = async () => {
+    const response = await fetch(`/api/presetUpload/${preset.id}`, {
+      method: "DELETE",
+    });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: "Failed to add to cart" }));
-        throw new Error(errorData.error || "Failed to add to cart");
-      }
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["cart"] });
-      toast.success("Added to cart");
-    },
-    onError: (error) => {
-      toast.error(error instanceof Error ? error.message : "Failed to add to cart");
-    },
-  });
+    if (!response.ok) {
+      throw new Error("Failed to delete preset");
+    }
 
-  const addToWishlistMutation = useMutation({
-    mutationFn: async (presetId: string) => {
-      const response = await fetch("/api/cart/WISHLIST", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ presetId }),
-      });
+    await queryClient.invalidateQueries({ queryKey: ["userPresets"] });
+  };
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error);
-      }
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["wishlist"] });
-      toast.success("Added to wishlist");
-    },
-    onError: (error) => {
-      toast.error(error instanceof Error ? error.message : "Failed to add to wishlist");
-    },
-  });
-
-  if (!preset) {
-    return null; // Or a fallback UI
+  if (!preset || !preset.id) {
+    console.error("Invalid preset data:", preset);
+    queryClient.invalidateQueries({ queryKey: ["userPresets"] });
+    router.push("/dashboard/presets");
+    return null;
   }
 
   return (
@@ -292,65 +171,27 @@ export function PresetCard({ preset }: PresetCardProps) {
       className="relative group overflow-hidden hover:shadow-lg transition-all duration-300"
       onClick={handleCardClick}
     >
-      {/* Action buttons container */}
-      <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-        {preset.price && preset.price > 0 ? (
-          <Button
-            onClick={async (e) => {
-              e.stopPropagation();
-              addToCartMutation.mutate(preset.id);
-            }}
-            variant="secondary"
-            size="icon"
-            className="h-8 w-8 bg-white/90 hover:bg-white shadow-sm interactive-element"
-          >
-            <ShoppingCartIcon className="h-4 w-4" />
-          </Button>
-        ) : (
-          <Button
-            onClick={handleDownload}
-            variant="secondary"
-            size="icon"
-            className="h-8 w-8 bg-white/90 hover:bg-white shadow-sm interactive-element"
-          >
-            <DownloadIcon className="h-4 w-4" />
-          </Button>
-        )}
-        <Button
-          onClick={(e) => {
-            e.stopPropagation();
-            addToWishlistMutation.mutate(preset.id);
-          }}
-          variant="secondary"
-          size="icon"
-          className="h-8 w-8 bg-white/90 hover:bg-white shadow-sm interactive-element"
-        >
-          <HeartIcon className="h-4 w-4" />
-        </Button>
-        <Button
-          onClick={(e) => {
-            e.stopPropagation();
-            router.push(`/dashboard/presets/edit/${preset.id}`);
-          }}
-          variant="secondary"
-          size="icon"
-          className="h-8 w-8 bg-white/90 hover:bg-white shadow-sm interactive-element"
-        >
-          <EditIcon className="h-4 w-4" />
-        </Button>
-        <Button
-          onClick={handleDelete}
-          variant="secondary"
-          size="icon"
-          className="h-8 w-8 bg-white/90 hover:bg-white shadow-sm interactive-element"
-          disabled={isDeleting}
-        >
-          <TrashIcon className="h-4 w-4" />
-        </Button>
-      </div>
+      <ItemActionButtons
+        id={preset.id}
+        price={preset.price}
+        type="preset"
+        onDelete={handleDelete}
+        downloadUrl={preset.presetFileUrl}
+      />
 
-      <CardHeader className="pb-2">
-        <CardTitle className="text-xl font-semibold">{preset.title}</CardTitle>
+      <CardHeader className="pb-2 flex justify-between items-start">
+        <CardTitle className="text-[16px] font-regular">
+          {preset.title}
+        </CardTitle>
+        {preset.price !== undefined && preset.price > 0 ? (
+          <span className="text-sm font-semibold text-muted-foreground">
+            ${preset.price.toFixed(2)}
+          </span>
+        ) : (
+          <span className="text-sm font-medium text-green-600 bg-green-100 px-2 py-1 rounded">
+            Free
+          </span>
+        )}
       </CardHeader>
 
       <CardContent>
