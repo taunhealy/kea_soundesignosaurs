@@ -2,9 +2,26 @@ import { NextResponse, NextRequest } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 import { z } from "zod";
+import { PresetType } from "@prisma/client";
 
 const priceSchema = z.object({
   price: z.number().min(5, "Price must be at least $5"),
+});
+
+const presetUploadSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  description: z.string().optional(),
+  guide: z.string().optional(),
+  spotifyLink: z.string().optional().nullable(),
+  soundPreviewUrl: z.string().optional().nullable(),
+  presetFileUrl: z.string(),
+  originalFileName: z.string().optional().nullable(),
+  presetType: z.nativeEnum(PresetType),
+  tags: z.array(z.string()).optional(),
+  genreId: z.string().optional().nullable(),
+  vstId: z.string().optional().nullable(),
+  price: z.number().min(5, "Price must be at least $5"),
+  quantity: z.number().min(1).default(1),
 });
 
 export async function GET(request: Request) {
@@ -51,64 +68,43 @@ export async function POST(request: NextRequest) {
     const data = await request.json();
     console.log("Received data:", data);
 
-    // Validate required fields and price
-    if (!data.title || !data.presetType) {
-      return NextResponse.json(
-        { error: "Missing required fields" },
-        { status: 400 }
-      );
-    }
-
-    // Validate price
     try {
-      priceSchema.parse({ price: data.price || 5 });
-    } catch (error) {
-      return NextResponse.json(
-        { error: "Price must be at least $5" },
-        { status: 400 }
-      );
-    }
+      const validated = presetUploadSchema.parse(data);
 
-    // First, ensure the user has a SoundDesigner profile
-    let soundDesigner = await prisma.soundDesigner.findUnique({
-      where: { userId: userId },
-    });
-
-    if (!soundDesigner) {
-      soundDesigner = await prisma.soundDesigner.create({
-        data: {
-          userId: userId,
-          username: data.username || "Anonymous",
-          name: data.name || "Anonymous",
-          email: data.email || `${userId}@placeholder.com`,
-        },
+      // First, ensure the user has a SoundDesigner profile
+      let soundDesigner = await prisma.soundDesigner.findUnique({
+        where: { userId: userId },
       });
-    }
 
-    // Create the preset with proper error handling
-    try {
+      if (!soundDesigner) {
+        soundDesigner = await prisma.soundDesigner.create({
+          data: {
+            userId: userId,
+            username: data.username || "Anonymous",
+            name: data.name || "Anonymous",
+            email: data.email || `${userId}@placeholder.com`,
+          },
+        });
+      }
+
       const preset = await prisma.presetUpload.create({
         data: {
-          title: data.title,
-          description: data.description || "",
-          guide: data.guide || "",
-          spotifyLink: data.spotifyLink || null,
-          soundPreviewUrl: data.soundPreviewUrl || null,
-          presetFileUrl: data.presetFileUrl || "",
-          originalFileName: data.originalFileName || null,
-          presetType: data.presetType,
-          tags: data.tags || [],
+          ...validated,
           soundDesignerId: soundDesigner.id,
-          genreId: data.genreId || null,
-          vstId: data.vstId || null,
-          price: data.price || 0,
         },
       });
+
       return NextResponse.json(preset);
-    } catch (prismaError) {
-      console.error("Prisma error:", prismaError);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return NextResponse.json(
+          { error: "Validation error", details: error.errors },
+          { status: 400 }
+        );
+      }
+      console.error("Server error:", error);
       return NextResponse.json(
-        { error: "Database error creating preset" },
+        { error: error instanceof Error ? error.message : "Unknown error" },
         { status: 500 }
       );
     }

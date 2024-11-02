@@ -1,7 +1,9 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { CartType } from "@prisma/client";
+import { CartItemType, CartType } from "@prisma/client";
+import { z } from "zod";
+import { PresetType } from "@prisma/client";
 
 export async function GET(
   request: Request,
@@ -176,10 +178,10 @@ export async function POST(
       return NextResponse.json({ error: "Invalid cart type" }, { status: 400 });
     }
 
-    const { presetId } = await request.json();
-    if (!presetId) {
+    const { presetId, packId } = await request.json();
+    if (!presetId && !packId) {
       return NextResponse.json(
-        { error: "Preset ID is required" },
+        { error: "Either preset ID or pack ID is required" },
         { status: 400 }
       );
     }
@@ -191,7 +193,7 @@ export async function POST(
         type: cartType as CartType,
         items: {
           some: {
-            presetId,
+            OR: [{ preset: { id: presetId } }, { pack: { id: packId } }],
           },
         },
       },
@@ -220,24 +222,37 @@ export async function POST(
         update: {},
       });
 
-      // Get preset to access its current price
-      const preset = await tx.presetUpload.findUnique({
-        where: { id: presetId },
-        select: { price: true },
-      });
-
-      if (!preset) {
-        throw new Error("Preset not found");
+      // Get item price based on type
+      let price: number | null = null;
+      if (presetId) {
+        const preset = await tx.presetUpload.findUnique({
+          where: { id: presetId },
+          select: { price: true },
+        });
+        if (!preset) {
+          throw new Error("Preset not found");
+        }
+        price = preset.price || 0;
+      } else if (packId) {
+        const pack = await tx.presetPack.findUnique({
+          where: { id: packId },
+          select: { price: true },
+        });
+        if (!pack) {
+          throw new Error("Pack not found");
+        }
+        price = pack.price || 0;
       }
 
       // Create cart item
       const cartItem = await tx.cartItem.create({
         data: {
-          cartId: cart.id,
-          presetId,
+          cart: { connect: { id: cart.id } },
+          itemType: presetId ? "PRESET" : "PACK",
+          itemId: presetId ?? packId,
           priceHistory: {
             create: {
-              price: preset.price || 0,
+              price: price || 0,
             },
           },
         },

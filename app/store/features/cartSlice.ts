@@ -39,9 +39,9 @@ export const fetchCartItems = createAsyncThunk(
     const response = await fetch(`/api/cart/${upperCaseType}`);
     if (!response.ok) throw new Error("Failed to fetch items");
     const data = await response.json();
-    
+
     console.log("Raw response data:", data);
-    
+
     const mappedData = data.map((item: any) => ({
       ...item,
       priceHistory:
@@ -50,7 +50,7 @@ export const fetchCartItems = createAsyncThunk(
           timestamp: new Date(history.timestamp),
         })) || [],
     }));
-    
+
     console.log("Mapped data:", mappedData);
     return mappedData;
   }
@@ -59,7 +59,11 @@ export const fetchCartItems = createAsyncThunk(
 export const addToCart = createAsyncThunk(
   "cart/addToCart",
   async (
-    { presetId, type }: { presetId: string; type: CartType },
+    {
+      itemId,
+      type,
+      itemType,
+    }: { itemId: string; type: CartType; itemType: "PRESET" | "PACK" },
     { rejectWithValue }
   ) => {
     try {
@@ -68,15 +72,21 @@ export const addToCart = createAsyncThunk(
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ presetId }),
+        body: JSON.stringify({
+          [itemType === "PRESET" ? "presetId" : "packId"]: itemId,
+        }),
       });
 
       if (!response.ok) {
-        throw new Error("Failed to add to cart");
+        const error = await response.json();
+        throw new Error(error.error || "Failed to add to cart");
       }
 
       const data = await response.json();
-      return data;
+      return {
+        ...data,
+        itemType,
+      };
     } catch (error) {
       return rejectWithValue(
         error instanceof Error ? error.message : "Failed to add to cart"
@@ -230,6 +240,25 @@ const cartSlice = createSlice({
           typeof action.payload === "string"
             ? action.payload
             : "Failed to delete item"
+        );
+      })
+      .addCase(addToCart.fulfilled, (state, action) => {
+        const cartType = action.meta.arg.type.toLowerCase();
+        const key = cartType === "saved_for_later" ? "savedForLater" : cartType;
+        state[key as CartStateKey].items.push(action.payload);
+        state[key as CartStateKey].status = "idle";
+        toast.success(`Item added to ${cartType}`);
+      })
+      .addCase(addToCart.rejected, (state, action) => {
+        state.wishlist.status = "failed";
+        state.wishlist.error =
+          typeof action.payload === "string"
+            ? action.payload
+            : "Failed to add item";
+        toast.error(
+          typeof action.payload === "string"
+            ? action.payload
+            : "Failed to add item"
         );
       });
   },

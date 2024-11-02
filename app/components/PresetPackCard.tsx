@@ -20,6 +20,7 @@ import {
 import { useState, useCallback, useEffect } from "react";
 import { toast } from "react-toastify";
 import { useQueryClient } from "@tanstack/react-query";
+import { addToCart } from "@/app/store/features/cartSlice";
 
 interface PresetPackCardProps {
   pack: {
@@ -116,6 +117,19 @@ export function PresetPackCard({ pack, isOwner }: PresetPackCardProps) {
     }
 
     await queryClient.invalidateQueries({ queryKey: ["presetPacks"] });
+  };
+
+  const handleAddToCart = async () => {
+    try {
+      await addToCart({
+        itemId: pack.id,
+        type: "WISHLIST",
+        itemType: "PACK"
+      });
+      toast.success("Pack added to wishlist");
+    } catch (error) {
+      toast.error("Failed to add pack to wishlist");
+    }
   };
 
   const displayedPresets = pack.presets.slice(0, 5);

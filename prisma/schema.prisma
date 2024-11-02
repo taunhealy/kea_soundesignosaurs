@@ -71,6 +71,7 @@ model PresetUpload {
   priceHistory    PriceHistory[]
   packs           PackPresets[]
   cartItems       CartItem[]
+  quantity        Int             @default(1)
   @@index([genreId])
   @@index([soundDesignerId])
   @@index([vstId])
@@ -302,16 +303,17 @@ enum CartItemType {
 }
 
 model CartItem {
-  id        String      @id @default(cuid())
-  cart      Cart        @relation(fields: [cartId], references: [id])
-  cartId    String
-  itemId    String
-  itemType  CartItemType
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
-  priceHistory    PriceHistory[]
-  preset     PresetUpload? @relation(fields: [itemId], references: [id], map: "CartItem_presetId_fkey")
-  pack       PresetPack?   @relation(fields: [itemId], references: [id], map: "CartItem_packId_fkey")
+  id           String       @id @default(cuid())
+  cart         Cart        @relation(fields: [cartId], references: [id])
+  cartId       String
+  itemType     CartItemType
+  itemId       String      // This will store either presetId or packId
+  quantity     Int         @default(1)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  priceHistory PriceHistory[]
+  preset       PresetUpload? @relation(fields: [itemId], references: [id], map: "CartItem_presetId_fkey")
+  pack         PresetPack?   @relation(fields: [itemId], references: [id], map: "CartItem_packId_fkey")
 
   @@unique([cartId, itemId, itemType])
   @@index([cartId])

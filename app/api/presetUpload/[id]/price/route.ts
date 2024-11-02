@@ -61,7 +61,7 @@ export async function PATCH(
 
       // Find and update cart items
       const cartItems = await tx.cartItem.findMany({
-        where: { presetId: params.id },
+        where: { itemId: params.id },
         include: {
           priceHistory: {
             orderBy: { timestamp: 'desc' },
