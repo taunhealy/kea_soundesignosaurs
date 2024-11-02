@@ -44,8 +44,8 @@ export default function HomePage() {
           <div className="flex flex-col gap-4">
             <Tabs
               value={contentType}
-              onValueChange={(value: "presets" | "packs") =>
-                setContentType(value)
+              onValueChange={(value) => 
+                setContentType(value as "presets" | "packs")
               }
               className="w-full"
             >

@@ -10,9 +10,10 @@ import { useEffect } from "react";
 
 interface ExploreGridProps {
   filters: SearchFilters;
+  contentType?: "presets" | "packs";
 }
 
-export const ExploreGrid = ({ filters }: ExploreGridProps) => {
+export const ExploreGrid = ({ filters, contentType = "presets" }: ExploreGridProps) => {
   const queryClient = useQueryClient();
   const searchParams = useSearchParams();
   const category = searchParams?.get("category") || "presets";

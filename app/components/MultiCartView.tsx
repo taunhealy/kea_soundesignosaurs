@@ -147,6 +147,7 @@ export function MultiCartView() {
     try {
       setDeletingId(itemId);
       await dispatch(deleteCartItem({ itemId, type })).unwrap();
+      await dispatch(fetchCartItems(type.toLowerCase() as "cart" | "savedForLater" | "wishlist"));
       toast.success("Item removed");
     } catch (error) {
       toast.error("Failed to remove item");
@@ -173,6 +174,7 @@ export function MultiCartView() {
               item={item}
               currentList="CART"
               onMove={(to) => handleMoveItem(item.id, "CART", to)}
+              onDelete={(id) => handleDelete(id, "CART")}
               isLoading={false}
             />
           ))}
@@ -187,6 +189,7 @@ export function MultiCartView() {
               item={item}
               currentList="SAVED_FOR_LATER"
               onMove={(to) => handleMoveItem(item.id, "SAVED_FOR_LATER", to)}
+              onDelete={(id) => handleDelete(id, "SAVED_FOR_LATER")}
               isLoading={false}
             />
           ))}

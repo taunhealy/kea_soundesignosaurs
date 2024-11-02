@@ -156,8 +156,14 @@ model Download {
   createdAt     DateTime     @default(now())
   userId        String      // ID of the user who downloaded
   presetId      String?
-  preset        PresetUpload? @relation(fields: [presetId], references: [id]) // Updated relation
-  @@index([userId, presetId])
+  preset        PresetUpload? @relation(fields: [presetId], references: [id])
+  packId        String?
+  pack          PresetPack?   @relation(fields: [packId], references: [id])
+  
+  @@unique([userId, presetId, packId])  // Prevent duplicate downloads
+  @@index([userId])
+  @@index([presetId])
+  @@index([packId])
 }
 
 enum VSTType {
@@ -262,7 +268,6 @@ model PresetPack {
   priceHistory    PriceHistory[]
   presets         PackPresets[]
   cartItems       CartItem[]
-
   @@index([soundDesignerId])
   @@index([createdAt])
 }

@@ -25,6 +25,8 @@ export interface SearchFilters {
   presetTypes: string[];
   tags: string[];
   types: string[];
+  priceFilter?: "all" | "free" | "premium";
+  contentType?: "presets" | "packs";
 }
 
 export interface SearchSidebarProps {
