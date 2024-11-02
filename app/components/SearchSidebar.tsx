@@ -102,13 +102,32 @@ export function SearchSidebar({ filters, setFilters }: SearchSidebarProps) {
         </div>
       </div>
 
-      <div className="mb-4">
+      <div className="mb-4 flex flex-col gap-2">
+        <Label>Preset Type</Label>
+        {Object.values(PresetType).map((type) => (
+          <div key={type} className="flex items-center">
+            <Checkbox
+              id={`type-${type}`}
+              checked={filters.presetTypes.includes(type)}
+              onCheckedChange={(checked) =>
+                handlePresetTypeChange(type, checked as boolean)
+              }
+              disabled={filters.showAll}
+            />
+            <Label htmlFor={`type-${type}`} className="ml-2">
+              {type}
+            </Label>
+          </div>
+        ))}
+      </div>
+
+      <div className="mb-4 flex flex-col gap-2">
         <Label>Genre</Label>
         {isLoadingGenres ? (
           <div>Loading genres...</div>
         ) : (
           genres?.map((genre: { id: string; name: string }) => (
-            <div key={genre.id} className="flex items-center">
+            <div key={genre.id} className="flex items-center gap-1">
               <Checkbox
                 id={`genre-${genre.id}`}
                 checked={filters.genres.includes(genre.name)}
@@ -128,7 +147,7 @@ export function SearchSidebar({ filters, setFilters }: SearchSidebarProps) {
         )}
       </div>
 
-      <div className="mb-4">
+      <div className="mb-4 flex flex-col gap-2">
         <Label>VST</Label>
         {VST_OPTIONS.map((vst) => (
           <div key={vst} className="flex items-center">
@@ -142,25 +161,6 @@ export function SearchSidebar({ filters, setFilters }: SearchSidebarProps) {
             />
             <Label htmlFor={`vst-${vst}`} className="ml-2">
               {vst}
-            </Label>
-          </div>
-        ))}
-      </div>
-
-      <div>
-        <Label>Preset Type</Label>
-        {Object.values(PresetType).map((type) => (
-          <div key={type} className="flex items-center">
-            <Checkbox
-              id={`type-${type}`}
-              checked={filters.presetTypes.includes(type)}
-              onCheckedChange={(checked) =>
-                handlePresetTypeChange(type, checked as boolean)
-              }
-              disabled={filters.showAll}
-            />
-            <Label htmlFor={`type-${type}`} className="ml-2">
-              {type}
             </Label>
           </div>
         ))}

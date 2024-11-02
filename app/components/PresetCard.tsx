@@ -168,7 +168,7 @@ export function PresetCard({ preset }: PresetCardProps) {
 
   return (
     <Card
-      className="relative group overflow-hidden hover:shadow-lg transition-all duration-300"
+      className="relative group overflow-hidden hover:shadow-lg transition-all duration-300 animate-in fade-in-0"
       onClick={handleCardClick}
     >
       <ItemActionButtons

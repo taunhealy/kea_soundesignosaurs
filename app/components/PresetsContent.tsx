@@ -4,51 +4,61 @@ import { useQuery } from "@tanstack/react-query";
 import { PresetCard } from "@/app/components/PresetCard";
 import { useAuth } from "@clerk/nextjs";
 import { type Preset as PresetType } from "@/types/PresetTypes";
+import { SearchFilters } from "@/app/components/SearchSidebar";
+import { PresetPackCard } from "@/app/components/PresetPackCard";
 
 interface PresetsContentProps {
-  type: "downloaded" | "uploaded";
+  type: "uploaded" | "downloaded";
+  filters: SearchFilters;
+  contentType?: "presets" | "packs";
 }
 
-export default function PresetsContent({ type }: PresetsContentProps) {
+export default function PresetsContent({
+  type,
+  filters,
+  contentType = "presets",
+}: PresetsContentProps) {
   const { userId } = useAuth();
 
+  const queryFn = async () => {
+    const params = new URLSearchParams();
+    params.append("type", type);
+    params.append("contentType", contentType);
+
+    if (!filters.showAll) {
+      if (filters.genres.length > 0) {
+        params.append("genres", filters.genres.join(","));
+      }
+      if (filters.vsts.length > 0) {
+        params.append("vsts", filters.vsts.join(","));
+      }
+      if (filters.presetTypes.length > 0) {
+        params.append("presetTypes", filters.presetTypes.join(","));
+      }
+    }
+
+    const response = await fetch(`/api/presets?${params.toString()}`);
+
+    if (!response.ok) {
+      console.error("API Response Error:", await response.text());
+      throw new Error("Failed to fetch presets");
+    }
+
+    return response.json();
+  };
+
   const {
-    data: presets,
+    data: items,
     isLoading,
     error,
   } = useQuery({
-    queryKey: ["presets", type],
-    queryFn: async () => {
-      const response = await fetch(`/api/presets/user?type=${type}`);
-      if (!response.ok) {
-        throw new Error("Failed to fetch presets");
-      }
-      const data = await response.json();
-
-      // Transform the data based on type
-      if (type === "downloaded") {
-        return data.map((download: any) => ({
-          ...download.preset,
-          soundDesigner: {
-            username: download.preset.soundDesigner?.username || "Unknown",
-            profileImage: download.preset.soundDesigner?.profileImage || "",
-          },
-        }));
-      }
-
-      return data.map((preset: any) => ({
-        ...preset,
-        soundDesigner: {
-          username: preset.soundDesigner?.username || "Unknown",
-          profileImage: preset.soundDesigner?.profileImage || "",
-        },
-      }));
-    },
-    enabled: !!userId, // Only run query if userId exists
+    queryKey: ["userContent", type, contentType, filters],
+    queryFn,
+    enabled: !!userId,
   });
 
   if (!userId) {
-    return <div>Please sign in to view your presets.</div>;
+    return <div>Please sign in to view your content.</div>;
   }
 
   if (isLoading) {
@@ -56,14 +66,18 @@ export default function PresetsContent({ type }: PresetsContentProps) {
   }
 
   if (error) {
-    return <div>Error loading presets</div>;
+    return <div>Error loading content</div>;
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {presets?.map((preset: PresetType) => (
-        <PresetCard key={preset.id} preset={preset} />
-      ))}
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 flex-auto w-full overflow-auto min-h-[1000px]">
+      {items?.map((item: any) =>
+        contentType === "packs" ? (
+          <PresetPackCard key={item.id} pack={item} isOwner={true} />
+        ) : (
+          <PresetCard key={item.id} preset={item} />
+        )
+      )}
     </div>
   );
 }

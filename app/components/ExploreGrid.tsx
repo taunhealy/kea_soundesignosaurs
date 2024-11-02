@@ -47,30 +47,28 @@ export const ExploreGrid = ({ filters }: ExploreGridProps) => {
     queryFn: async () => {
       const params = new URLSearchParams();
 
-      // Common filters for both categories
-      if (filters.genres.length)
-        params.append("genre", filters.genres.join(","));
-      if (filters.vsts.length) params.append("vst", filters.vsts.join(","));
-      if (filters.presetTypes.length)
-        params.append("presetType", filters.presetTypes[0]);
-
       // Add search term if present
       if (filters.searchTerm) {
         params.append("q", filters.searchTerm);
       }
 
-      // Choose endpoint based on category
-      const endpoint =
-        category === "requests"
-          ? "presetRequest"
-          : filters.searchTerm
-          ? "search"
-          : "presetUpload";
+      // Add filters only if they're not empty and showAll is false
+      if (!filters.showAll) {
+        if (filters.genres.length) {
+          params.append("genres", filters.genres.join(","));
+        }
+        if (filters.vsts.length) {
+          params.append("vsts", filters.vsts.join(","));
+        }
+        if (filters.presetTypes.length) {
+          params.append("presetTypes", filters.presetTypes.join(","));
+        }
+      }
 
+      const endpoint = category === "requests" ? "presetRequest" : "search";
       const response = await fetch(`/api/${endpoint}?${params.toString()}`);
+
       if (!response.ok) {
-        const errorData = await response.json();
-        console.error("Failed to fetch items:", errorData);
         throw new Error("Failed to fetch items");
       }
       return response.json();

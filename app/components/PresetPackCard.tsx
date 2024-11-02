@@ -123,19 +123,19 @@ export function PresetPackCard({ pack, isOwner }: PresetPackCardProps) {
     try {
       await addToCart({
         itemId: pack.id,
-        type: "WISHLIST",
-        itemType: "PACK"
+        type: "CART",
+        itemType: "PACK",
       });
-      toast.success("Pack added to wishlist");
+      toast.success("Pack added to cart");
     } catch (error) {
-      toast.error("Failed to add pack to wishlist");
+      toast.error("Failed to add pack to cart");
     }
   };
 
   const displayedPresets = pack.presets.slice(0, 5);
 
   return (
-    <Card className="relative group overflow-hidden hover:shadow-lg transition-all duration-300">
+    <Card className="relative group overflow-hidden hover:shadow-lg transition-all duration-300 animate-in fade-in-0">
       {isOwner && (
         <div className="absolute top-2 right-2 z-10">
           <ItemActionButtons
@@ -216,6 +216,9 @@ export function PresetPackCard({ pack, isOwner }: PresetPackCardProps) {
               View Details
             </Button>
           </Link>
+          <Button className="w-full" onClick={handleAddToCart}>
+            Add to Cart
+          </Button>
         </div>
       </CardContent>
     </Card>

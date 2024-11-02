@@ -6,27 +6,53 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const query = searchParams.get("q") || "";
-    const genre = searchParams.get("genre");
-    const vst = searchParams.get("vst");
-    const presetType = searchParams.get("presetType");
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "20");
+    const genres = searchParams.get("genres")?.split(",").filter(Boolean) || [];
+    const vsts = searchParams.get("vsts")?.split(",").filter(Boolean) || [];
+    const presetTypes = searchParams.get("presetTypes")?.split(",").filter(Boolean) || [];
 
-    const whereClause: { OR: any[]; AND?: any[] } = {
+    const whereClause: any = {
       OR: [
-        { title: { contains: query, mode: "insensitive" as const } },
-        { description: { contains: query, mode: "insensitive" as const } },
-      ],
-      AND: [
-        ...(genre ? [{ genre: { name: genre } }] : []),
-        ...(vst ? [{ vst: { name: vst } }] : []),
-        ...(presetType ? [{ presetType: presetType as PresetType }] : []),
+        { title: { contains: query, mode: "insensitive" } },
+        { description: { contains: query, mode: "insensitive" } },
       ],
     };
 
-    if (whereClause.AND?.length === 0) {
-      delete whereClause.AND;
+    // Add filters only if they're not empty
+    const AND = [];
+
+    if (genres.length > 0) {
+      AND.push({
+        genre: {
+          name: {
+            in: genres,
+          },
+        },
+      });
     }
+
+    if (vsts.length > 0) {
+      AND.push({
+        vst: {
+          name: {
+            in: vsts,
+          },
+        },
+      });
+    }
+
+    if (presetTypes.length > 0) {
+      AND.push({
+        presetType: {
+          in: presetTypes,
+        },
+      });
+    }
+
+    if (AND.length > 0) {
+      whereClause.AND = AND;
+    }
+
+    console.log('Search query whereClause:', JSON.stringify(whereClause, null, 2));
 
     const results = await prisma.presetUpload.findMany({
       where: whereClause,
@@ -38,14 +64,14 @@ export async function GET(request: Request) {
           },
         },
         genre: true,
+        vst: true,
       },
-      take: limit,
-      skip: (page - 1) * limit,
       orderBy: {
         createdAt: "desc",
       },
     });
 
+    console.log(`Found ${results.length} results`);
     return NextResponse.json(results);
   } catch (error) {
     console.error("Search error details:", error);

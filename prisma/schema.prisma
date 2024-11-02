@@ -307,15 +307,17 @@ model CartItem {
   cart         Cart        @relation(fields: [cartId], references: [id])
   cartId       String
   itemType     CartItemType
-  itemId       String      // This will store either presetId or packId
+  presetId     String?     // Separate field for preset ID
+  packId       String?     // Separate field for pack ID
   quantity     Int         @default(1)
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
   priceHistory PriceHistory[]
-  preset       PresetUpload? @relation(fields: [itemId], references: [id], map: "CartItem_presetId_fkey")
-  pack         PresetPack?   @relation(fields: [itemId], references: [id], map: "CartItem_packId_fkey")
+  preset       PresetUpload? @relation(fields: [presetId], references: [id])
+  pack         PresetPack?   @relation(fields: [packId], references: [id])
 
-  @@unique([cartId, itemId, itemType])
+  @@unique([cartId, presetId, packId])
   @@index([cartId])
-  @@index([itemId])
+  @@index([presetId])
+  @@index([packId])
 }
