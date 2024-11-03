@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { PriceType } from "@/types/PresetTypes";
 
 export async function GET(request: Request) {
   try {
@@ -12,6 +13,8 @@ export async function GET(request: Request) {
     const vsts = searchParams.get("vsts")?.split(",").filter(Boolean) || [];
     const presetTypes =
       searchParams.get("presetTypes")?.split(",").filter(Boolean) || [];
+    const priceTypes =
+      searchParams.get("priceTypes")?.split(",").filter(Boolean) || [];
 
     if (!userId) {
       return new NextResponse("Unauthorized", { status: 401 });
@@ -40,6 +43,12 @@ export async function GET(request: Request) {
     if (presetTypes.length > 0) {
       baseWhereClause.presetType = {
         in: presetTypes,
+      };
+    }
+
+    if (priceTypes.length > 0) {
+      baseWhereClause.priceType = {
+        in: priceTypes as PriceType[],
       };
     }
 
@@ -174,6 +183,7 @@ export async function GET(request: Request) {
       genres,
       vsts,
       presetTypes,
+      priceTypes,
       whereClause: baseWhereClause,
     });
 

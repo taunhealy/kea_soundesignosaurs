@@ -12,7 +12,7 @@ import { Label } from "@/app/components/ui/label";
 import { Checkbox } from "@/app/components/ui/checkbox";
 import { useGenres } from "@/app/hooks/useGenres";
 import { cn } from "@/lib/utils";
-import { PresetType, VSTType } from "@/types/PresetTypes";
+import { PresetType, PriceType, ContentType } from "@prisma/client";
 
 const VST_OPTIONS = ["Serum", "Vital"] as const;
 const PRESET_TYPES = ["Pad", "Lead", "Pluck", "Bass", "FX", "Other"] as const;
@@ -23,10 +23,10 @@ export interface SearchFilters {
   category: string;
   showAll: boolean;
   presetTypes: string[];
+  priceTypes: PriceType[];
   tags: string[];
   types: string[];
-  priceFilter?: "all" | "free" | "premium";
-  contentType?: "presets" | "packs";
+  contentType?: ContentType;
 }
 
 export interface SearchSidebarProps {
@@ -166,6 +166,45 @@ export function SearchSidebar({ filters, setFilters }: SearchSidebarProps) {
             </Label>
           </div>
         ))}
+      </div>
+
+      <div>
+        <h3 className="mb-2 text-lg font-medium">Price Type</h3>
+        <div className="space-y-2">
+          <Checkbox
+            id="free"
+            checked={filters.priceTypes.includes(PriceType.FREE)}
+            onCheckedChange={(checked) => {
+              setFilters((prev) => ({
+                ...prev,
+                priceTypes: checked
+                  ? [...prev.priceTypes, PriceType.FREE]
+                  : prev.priceTypes.filter((type) => type !== PriceType.FREE),
+              }));
+            }}
+          />
+          <label htmlFor="free" className="ml-2">
+            Free
+          </label>
+
+          <Checkbox
+            id="premium"
+            checked={filters.priceTypes.includes(PriceType.PREMIUM)}
+            onCheckedChange={(checked) => {
+              setFilters((prev) => ({
+                ...prev,
+                priceTypes: checked
+                  ? [...prev.priceTypes, PriceType.PREMIUM]
+                  : prev.priceTypes.filter(
+                      (type) => type !== PriceType.PREMIUM
+                    ),
+              }));
+            }}
+          />
+          <label htmlFor="premium" className="ml-2">
+            Premium
+          </label>
+        </div>
       </div>
     </div>
   );

@@ -1,11 +1,14 @@
 import prisma from "@/lib/prisma";
+import { PriceType } from "@prisma/client";
 
 interface PriceChange {
   presetId?: string;
   packId?: string;
-  oldPrice: number;
-  newPrice: number;
-  percentageChange: number;
+  oldPrice: number | null;
+  newPrice: number | null;
+  oldPriceType: PriceType;
+  newPriceType: PriceType;
+  percentageChange?: number;
 }
 
 export async function trackPriceChange(
@@ -42,9 +45,10 @@ export async function trackPriceChange(
 
       // Find all cart items containing this preset/pack
       const cartItems = await tx.cartItem.findMany({
-        where: type === "PRESET" 
-          ? { itemType: "PRESET", itemId: id }
-          : { itemType: "PACK", itemId: id },
+        where:
+          type === "PRESET"
+            ? { itemType: "PRESET", presetId: id }
+            : { itemType: "PACK", packId: id },
         include: {
           cart: true,
           priceHistory: {
@@ -60,7 +64,7 @@ export async function trackPriceChange(
 
       // Update cart item price histories
       for (const item of cartItems) {
-        const lastPrice = item.priceHistory[0]?.price;
+        const lastPrice = item.priceHistory?.[0]?.price;
 
         if (!lastPrice || Number(lastPrice) !== newPrice) {
           const cartItemHistory = await tx.priceHistory.create({

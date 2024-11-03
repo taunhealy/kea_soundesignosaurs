@@ -40,18 +40,21 @@ export const fetchCartItems = createAsyncThunk(
     if (!response.ok) throw new Error("Failed to fetch items");
     const data = await response.json();
 
-    console.log("Raw response data:", data);
-
     const mappedData = data.map((item: any) => ({
       ...item,
-      priceHistory:
-        item.priceHistory?.map((history: any) => ({
-          price: Number(history.price),
-          timestamp: new Date(history.timestamp),
-        })) || [],
+      priceHistory: item.priceHistory
+        ? item.priceHistory.map((history: any) => ({
+            price: Number(history.price),
+            timestamp: new Date(history.timestamp),
+          }))
+        : [
+            {
+              price: Number(item.price),
+              timestamp: new Date(),
+            },
+          ],
     }));
 
-    console.log("Mapped data:", mappedData);
     return mappedData;
   }
 );

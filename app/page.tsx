@@ -10,6 +10,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/app/components/ui/tabs";
+import { PriceType, ContentType } from "@prisma/client";
 
 export default function HomePage() {
   const [filters, setFilters] = useState<SearchFilters>({
@@ -21,6 +22,7 @@ export default function HomePage() {
     category: "",
     showAll: false,
     types: [],
+    priceTypes: [],
   });
 
   const [contentType, setContentType] = useState<"presets" | "packs">(
@@ -44,7 +46,7 @@ export default function HomePage() {
           <div className="flex flex-col gap-4">
             <Tabs
               value={contentType}
-              onValueChange={(value) => 
+              onValueChange={(value) =>
                 setContentType(value as "presets" | "packs")
               }
               className="w-full"
@@ -68,20 +70,28 @@ export default function HomePage() {
 
                   <TabsContent value="all">
                     <ExploreGrid
-                      filters={{ ...filters, priceFilter: "all", contentType }}
+                      filters={{
+                        ...filters,
+                        priceTypes: [PriceType.FREE, PriceType.PREMIUM],
+                        contentType: ContentType.PRESETS,
+                      }}
                     />
                   </TabsContent>
                   <TabsContent value="free">
                     <ExploreGrid
-                      filters={{ ...filters, priceFilter: "free", contentType }}
+                      filters={{
+                        ...filters,
+                        priceTypes: [PriceType.FREE],
+                        contentType: ContentType.PRESETS,
+                      }}
                     />
                   </TabsContent>
                   <TabsContent value="premium">
                     <ExploreGrid
                       filters={{
                         ...filters,
-                        priceFilter: "premium",
-                        contentType,
+                        priceTypes: [PriceType.PREMIUM],
+                        contentType: ContentType.PRESETS,
                       }}
                     />
                   </TabsContent>
@@ -98,20 +108,28 @@ export default function HomePage() {
 
                   <TabsContent value="all">
                     <ExploreGrid
-                      filters={{ ...filters, priceFilter: "all", contentType }}
+                      filters={{
+                        ...filters,
+                        priceTypes: [PriceType.FREE, PriceType.PREMIUM],
+                        contentType: ContentType.PACKS,
+                      }}
                     />
                   </TabsContent>
                   <TabsContent value="free">
                     <ExploreGrid
-                      filters={{ ...filters, priceFilter: "free", contentType }}
+                      filters={{
+                        ...filters,
+                        priceTypes: [PriceType.FREE],
+                        contentType: ContentType.PACKS,
+                      }}
                     />
                   </TabsContent>
                   <TabsContent value="premium">
                     <ExploreGrid
                       filters={{
                         ...filters,
-                        priceFilter: "premium",
-                        contentType,
+                        priceTypes: [PriceType.PREMIUM],
+                        contentType: ContentType.PACKS,
                       }}
                     />
                   </TabsContent>

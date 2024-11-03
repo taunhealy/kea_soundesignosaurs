@@ -29,7 +29,7 @@ export interface PresetSettings {
   spotifyLink?: string;
 }
 
-export function PresetCard({ preset }: PresetCardProps) {
+export function PresetCard({ preset, type }: PresetCardProps) {
   const router = useRouter();
   console.log("Preset in card:", preset); // Debug log
 
@@ -49,7 +49,7 @@ export function PresetCard({ preset }: PresetCardProps) {
       }
       return response.json();
     },
-    enabled: !!preset.id,
+    enabled: !!preset.id && type === "uploaded",
     staleTime: 1000 * 60 * 5, // 5 minutes
     retry: false,
   });
@@ -168,16 +168,18 @@ export function PresetCard({ preset }: PresetCardProps) {
 
   return (
     <Card
-      className="relative group overflow-hidden hover:shadow-lg transition-all duration-300 animate-in fade-in-0"
+      className="relative group overflow-hidden hover:shadow-lg transition-all duration-300 cursor-pointer"
       onClick={handleCardClick}
     >
-      <ItemActionButtons
-        id={preset.id}
-        price={preset.price}
-        type="preset"
-        onDelete={handleDelete}
-        downloadUrl={preset.presetFileUrl}
-      />
+      {type === "uploaded" && (
+        <ItemActionButtons
+          id={preset.id}
+          price={preset.price}
+          type="preset"
+          onDelete={handleDelete}
+          downloadUrl={preset.presetFileUrl}
+        />
+      )}
 
       <CardHeader className="pb-2 flex justify-between items-start">
         <CardTitle className="text-[16px] font-regular">
@@ -195,13 +197,15 @@ export function PresetCard({ preset }: PresetCardProps) {
       </CardHeader>
 
       <CardContent>
-        <PriceChangeDisplay
-          currentPrice={preset.price ?? 0}
-          previousPrice={priceHistory?.[1]?.price}
-          size="lg"
-          className="mb-4"
-          itemType="preset"
-        />
+        {type === "uploaded" && (
+          <PriceChangeDisplay
+            currentPrice={preset.price ?? 0}
+            previousPrice={priceHistory?.[1]?.price}
+            size="lg"
+            className="mb-4"
+            itemType="preset"
+          />
+        )}
         {/* Metadata section */}
         <div className="space-y-1 mb-4 text-sm text-muted-foreground">
           {preset.soundDesigner && (

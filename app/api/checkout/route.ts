@@ -72,6 +72,7 @@ export async function POST(req: Request) {
         cartItems: JSON.stringify(
           cart.items.map((item) => ({
             id: item.preset?.id || item.pack?.id,
+            type: item.preset ? 'PRESET' : 'PACK',
             price: item.preset?.price || item.pack?.price,
           }))
         ),

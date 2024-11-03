@@ -1,19 +1,4 @@
-// Preset Type Enum
-export enum PresetType {
-  PAD = "PAD",
-  LEAD = "LEAD",
-  PLUCK = "PLUCK",
-  BASS = "BASS",
-  FX = "FX",
-  OTHER = "OTHER",
-}
-
-// VST Type Enum
-export enum VSTType {
-  SERUM = "SERUM",
-  VITAL = "VITAL",
-  POLYGRID = "POLYGRID",
-}
+import { PresetType, PriceType } from "@prisma/client";
 
 // Base interface for common fields
 interface BaseItem {
@@ -41,9 +26,9 @@ export interface Preset extends BaseItem {
     id: string;
     name: string;
   };
-  presetType?: string;
+  presetType?: PresetType;
   tags?: string[];
-  isFree?: boolean;
+  priceType: PriceType;
 }
 
 // Form data interface for creating/editing presets
@@ -58,7 +43,8 @@ export interface PresetFormData {
   tags?: string[];
   soundPreviewUrl?: string;
   presetFileUrl?: string;
-  price?: number;
+  price?: number | null;
+  priceType: PriceType;
 }
 
 // API response interface
@@ -83,9 +69,10 @@ export interface PresetCardProps {
     title: string;
     price?: number;
     presetFileUrl?: string;
+    downloadUrl?: string;
     originalFileName?: string;
     soundPreviewUrl?: string;
-    downloadUrl?: string;
+    description?: string;
     soundDesigner?: {
       username: string;
       profileImage?: string;
@@ -100,4 +87,5 @@ export interface PresetCardProps {
     };
     presetType?: string;
   };
+  type: "uploaded" | "downloaded";
 }

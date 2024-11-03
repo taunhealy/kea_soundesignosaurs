@@ -4,6 +4,7 @@ import { MultiCartView } from "../components/MultiCartView";
 import { CheckoutButton } from "../components/SubmitButtons";
 import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
+import { useEffect } from "react";
 
 export default function CartPage() {
   const router = useRouter();

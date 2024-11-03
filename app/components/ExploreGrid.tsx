@@ -92,6 +92,7 @@ export const ExploreGrid = ({ filters, contentType = "presets" }: ExploreGridPro
             ) : (
               <PresetCard
                 key={item.id}
+                type="uploaded"
                 preset={{
                   ...item,
                   soundDesigner: item.soundDesigner

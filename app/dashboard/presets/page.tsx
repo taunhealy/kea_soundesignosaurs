@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import PresetsContent from "@/app/components/PresetsContent";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { PresetsContent } from "@/app/components/PresetsContent";
 import {
   Tabs,
   TabsContent,
@@ -12,6 +13,11 @@ import { UploadPresetButton } from "@/app/components/dashboard/UploadPresetButto
 import { SearchFilters, SearchSidebar } from "@/app/components/SearchSidebar";
 
 export default function PresetsPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [activeTab, setActiveTab] = useState<"uploaded" | "downloaded">(
+    (searchParams.get("type") as "uploaded" | "downloaded") || "uploaded"
+  );
   const [filters, setFilters] = useState<SearchFilters>({
     searchTerm: "",
     genres: [],
@@ -21,7 +27,13 @@ export default function PresetsPage() {
     category: "",
     showAll: false,
     types: [],
+    priceTypes: [],
   });
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value as "uploaded" | "downloaded");
+    router.push(`/dashboard/presets?type=${value}`);
+  };
 
   return (
     <div className="flex-col w-auto min-w-[2000px] container gap-5 px-4 py-8 overflow-hidden">
@@ -34,7 +46,11 @@ export default function PresetsPage() {
           <SearchSidebar filters={filters} setFilters={setFilters} />
         </div>
         <div className="flex-auto w-full">
-          <Tabs defaultValue="uploaded" className="w-full">
+          <Tabs
+            defaultValue={activeTab}
+            className="w-full"
+            onValueChange={handleTabChange}
+          >
             <TabsList>
               <TabsTrigger value="uploaded">Uploaded</TabsTrigger>
               <TabsTrigger value="downloaded">Downloaded</TabsTrigger>

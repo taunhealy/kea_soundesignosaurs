@@ -45,6 +45,16 @@ enum PresetType {
   OTHER
 }
 
+enum PriceType {
+  FREE
+  PREMIUM
+}
+
+enum ContentType {
+  PRESETS
+  PACKS
+}
+
 model PresetUpload {
   id              String         @id @default(cuid())
   title           String         @db.VarChar(255)
@@ -52,6 +62,7 @@ model PresetUpload {
   presetType      PresetType
   soundPreviewUrl String?
   presetFileUrl   String?
+  priceType       PriceType     @default(FREE)
   price           Float?
   spotifyLink     String?
   downloads       Download[]
@@ -72,6 +83,7 @@ model PresetUpload {
   packs           PackPresets[]
   cartItems       CartItem[]
   quantity        Int             @default(1)
+  contentType ContentType @default(PRESETS)
   @@index([genreId])
   @@index([soundDesignerId])
   @@index([vstId])
@@ -152,15 +164,17 @@ model OrderItem {
 }
 
 model Download {
-  id            String       @id @default(cuid())
-  createdAt     DateTime     @default(now())
-  userId        String      // ID of the user who downloaded
-  presetId      String?
-  preset        PresetUpload? @relation(fields: [presetId], references: [id])
-  packId        String?
-  pack          PresetPack?   @relation(fields: [packId], references: [id])
-  
-  @@unique([userId, presetId, packId])  // Prevent duplicate downloads
+  id        String   @id @default(cuid())
+  userId    String
+  preset    PresetUpload? @relation(fields: [presetId], references: [id])
+  presetId  String?
+  pack      PresetPack? @relation(fields: [packId], references: [id])
+  packId    String?
+  isPurchased Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, presetId, packId])
   @@index([userId])
   @@index([presetId])
   @@index([packId])
@@ -258,6 +272,7 @@ model PresetPack {
   id              String         @id @default(cuid())
   title           String         @db.VarChar(255)
   description     String?        @db.Text
+  priceType       PriceType     @default(FREE)
   price           Float?
   soundPreviewUrl String?
   soundDesigner   SoundDesigner? @relation(fields: [soundDesignerId], references: [id], onDelete: SetNull)
@@ -268,6 +283,7 @@ model PresetPack {
   priceHistory    PriceHistory[]
   presets         PackPresets[]
   cartItems       CartItem[]
+  downloads       Download[]
   @@index([soundDesignerId])
   @@index([createdAt])
 }

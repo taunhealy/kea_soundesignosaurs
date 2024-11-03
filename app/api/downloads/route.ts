@@ -3,41 +3,45 @@ import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const type = searchParams.get("type");
-  const userId = searchParams.get("userId");
-
+  const { userId } = await auth();
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
-    let downloads;
-    if (type === "presets") {
-      downloads = await prisma.presetUpload.findMany({
-        where: {
-          soundDesigner: {
-            userId: userId,
+    const downloads = await prisma.download.findMany({
+      where: {
+        userId: userId,
+      },
+      include: {
+        preset: {
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            presetFileUrl: true,
+            soundDesigner: {
+              select: {
+                username: true,
+              },
+            },
           },
         },
-        select: {
-          id: true,
-          title: true,
-          _count: {
-            select: { downloads: true },
+        pack: {
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            downloads: true,
+            soundDesigner: {
+              select: {
+                username: true,
+              },
+            },
           },
         },
-      });
-
-      // Transform the data to match the expected format
-      downloads = downloads.map((d) => ({
-        id: d.id,
-        title: d.title,
-        downloadCount: d._count.downloads,
-      }));
-    } else {
-      return NextResponse.json({ error: "Invalid type" }, { status: 400 });
-    }
+      },
+    });
 
     return NextResponse.json(downloads);
   } catch (error) {

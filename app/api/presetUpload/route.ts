@@ -20,7 +20,8 @@ const presetUploadSchema = z.object({
   tags: z.array(z.string()).optional(),
   genreId: z.string().optional().nullable(),
   vstId: z.string().optional().nullable(),
-  price: z.number().min(5, "Price must be at least $5"),
+  priceType: z.enum(['FREE', 'PREMIUM']),
+  price: z.number().min(5, "Price must be at least $5").nullable().optional(),
   quantity: z.number().min(1).default(1),
 });
 
