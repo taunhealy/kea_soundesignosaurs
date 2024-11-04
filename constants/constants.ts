@@ -1,10 +1,7 @@
-export const VST_TYPES = {
-  SERUM: "Serum",
-  VITAL: "Vital",
-  POLYGRID: "Polygrid",
-} as const;
+import { PresetType } from "@prisma/client";
+// Make sure PresetType is properly generated in your Prisma schema as an enum
 
-export const PRESET_TYPES = {
+export const PRESET_TYPE_LABELS: Record<PresetType, string> = {
   PAD: "Pad",
   LEAD: "Lead",
   PLUCK: "Pluck",
@@ -13,45 +10,13 @@ export const PRESET_TYPES = {
   OTHER: "Other",
 } as const;
 
-export enum VSTType {
-  SERUM,
-  VITAL,
-  // Add any other VST types you need
-}
-
-// Define system genres as a const object
 export const SystemGenres = {
-  ELECTRONIC: "Electronic",
-  HIP_HOP: "Hip Hop",
-  ROCK: "Rock",
-  METAL: "Metal",
-  HARDWAVE: "HardWave",
-  WAVE: "Wave",
-  PHONK: "Phonk",
-  FUTURE_BASS: "Future Bass",
-  COLOR_BASS: "Color Bass",
-  HOUSE: "House",
-  TECHNO: "Techno",
-  TRANCE: "Trance",
-  DUBSTEP: "Dubstep",
-  DRUM_AND_BASS: "Drum and Bass",
-  DRILL: "Drill",
-  AMAPIANO: "Amapiano",
-  TRAP: "Trap",
-  AMBIENT: "Ambient",
-  SYNTHWAVE: "Synthwave",
-  EXPERIMENTAL: "Experimental",
-  IDM: "IDM",
-  BREAKBEAT: "Breakbeat",
-  GLITCH_HOP: "Glitch Hop",
-  DOWNTEMPO: "Downtempo",
-  LO_FI: "Lo-Fi",
+  ELECTRONIC: "ELECTRONIC",
+  HIP_HOP: "HIP_HOP",
+  ROCK: "ROCK",
+  METAL: "METAL",
+  HARDWAVE: "HARDWAVE",
+  WAVE: "WAVE",
+  PHONK: "PHONK",
+  // ... add other genres from your GenreType enum
 } as const;
-
-// Type for system genres
-export type SystemGenreType = (typeof SystemGenres)[keyof typeof SystemGenres];
-
-// Type guard for system genres (fixed the incomplete function)
-export const isSystemGenre = (genre: string): genre is SystemGenreType => {
-  return Object.values(SystemGenres).includes(genre as SystemGenreType);
-};

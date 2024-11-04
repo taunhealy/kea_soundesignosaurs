@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Tabs, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
-import { SearchFilters } from "./SearchSidebar";
+import { SearchFilters } from "@/types/SearchTypes";
 
 // Add this interface at the top of CategoryTabs.tsx
 interface CategoryTabsProps {

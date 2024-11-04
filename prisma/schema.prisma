@@ -1,8 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
   provider = "prisma-client-js"
@@ -13,28 +11,72 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+
+// Core User Model
 model SoundDesigner {
-  id              String            @id @default(cuid())
-  userId          String            @unique // This should match the Clerk user ID
-  name            String
-  username        String?           @unique
-  email           String
-  profileImage    String?
-  presets         PresetUpload[]    // Renamed from presets
-  tutorials       Tutorial[]
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
-  websiteUrl      String?
-  presetRequests  PresetRequest[]   // Renamed from requestThreads
-  presetSubmissions     PresetSubmission[]
-  presetPacks         PresetPack[]
+  id                String             @id @default(cuid())
+  userId            String             @unique
+  name              String
+  username          String?            @unique
+  email             String
+  profileImage      String?
+  websiteUrl        String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  presets           PresetUpload[]
+  tutorials         Tutorial[]
+  presetRequests    PresetRequest[]
+  presetSubmissions PresetSubmission[]
+  presetPacks       PresetPackUpload[]
 }
 
-model VST {
-  id      String         @id @default(cuid())
-  name    String         @unique
-  presets PresetUpload[]
+
+// Core Content Models
+model PresetUpload {
+  id              String           @id @default(cuid())
+  userId          String
+  title           String           @db.VarChar(255)
+  description     String?          @db.Text
+  presetType      PresetType       @default(LEAD)
+  soundPreviewUrl String?
+  presetFileUrl   String?
+  priceType       PriceType        @default(FREE)
+  spotifyLink     String?
+  originalFileName String?
+  price           Float?
+  guide           String?
+  tags            String[]
+  quantity        Int              @default(1)
+  contentType     ContentType      @default(PRESETS)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  
+  genre           Genre?           @relation(fields: [genreId], references: [id], onDelete: SetNull)
+  genreId         String?
+  soundDesigner   SoundDesigner?   @relation(fields: [soundDesignerId], references: [id], onDelete: SetNull)
+  soundDesignerId String?
+  presetRequest   PresetRequest?   @relation(fields: [presetRequestId], references: [id], onDelete: SetNull)
+  presetRequestId String?
+  vst             VST?             @relation(fields: [vstId], references: [id], onDelete: SetNull)
+  vstId           String?
+  
+  // Child relations
+  priceHistory    PriceHistory[]
+  packs           PackPresets[]
+  cartItems       CartItem[]
+  downloads       PresetDownload[]
+
+  @@index([genreId])
+  @@index([soundDesignerId])
+  @@index([vstId])
+  @@index([createdAt])
 }
+
+enum PriceType {
+  FREE
+  PREMIUM
+}
+
 
 enum PresetType {
   PAD
@@ -45,88 +87,63 @@ enum PresetType {
   OTHER
 }
 
-enum PriceType {
-  FREE
-  PREMIUM
+model VST {
+  id        String      @id @default(cuid())
+  name      String
+  type      VstType
+  presets   PresetUpload[]
+  // ... other fields
 }
 
-enum ContentType {
-  PRESETS
-  PACKS
-}
-
-model PresetUpload {
+model PresetPackUpload {
   id              String         @id @default(cuid())
   title           String         @db.VarChar(255)
   description     String?        @db.Text
-  presetType      PresetType
-  soundPreviewUrl String?
-  presetFileUrl   String?
   priceType       PriceType     @default(FREE)
   price           Float?
-  spotifyLink     String?
-  downloads       Download[]
-  genre           Genre?          @relation(fields: [genreId], references: [id], onDelete: SetNull)
-  genreId         String?
-  soundDesigner   SoundDesigner?  @relation(fields: [soundDesignerId], references: [id], onDelete: SetNull)
-  soundDesignerId String?
+  soundPreviewUrl String?
+  tags            String[]
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
-  presetRequestId String?
-  presetRequest   PresetRequest? @relation(fields: [presetRequestId], references: [id], onDelete: SetNull)
-  vst             VST?            @relation(fields: [vstId], references: [id], onDelete: SetNull)
-  vstId           String?         // Changed from Int to String to match VST.id type
-  guide           String?
-  tags            String[]
-  originalFileName String?
+  
+  // Relations
+  soundDesigner   SoundDesigner? @relation(fields: [soundDesignerId], references: [id], onDelete: SetNull)
+  soundDesignerId String?
+  
+  // Child relations
   priceHistory    PriceHistory[]
-  packs           PackPresets[]
+  presets         PackPresets[]
   cartItems       CartItem[]
-  quantity        Int             @default(1)
-  contentType ContentType @default(PRESETS)
-  @@index([genreId])
+  downloads       PresetPackDownload[]
+
   @@index([soundDesignerId])
-  @@index([vstId])
   @@index([createdAt])
 }
 
-model PresetRequest {
-  id              String            @id @default(cuid())
-  title           String
-  youtubeLink     String?
-  genre           Genre?            @relation(fields: [genreId], references: [id], onDelete: SetNull)
-  genreId         String?
-  enquiryDetails  String
-  status          RequestStatus     @default(OPEN)
-  userId          String
-  soundDesigner   SoundDesigner     @relation(fields: [userId], references: [userId])
-  submissions     PresetSubmission[]
-  presetUploads   PresetUpload[]
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
-  tags            String[]
+
+// Download Tracking Models
+model PresetDownload {
+  id        String       @id @default(cuid())
+  userId    String
+  createdAt DateTime     @default(now())
+  
+  preset    PresetUpload @relation(fields: [presetId], references: [id])
+  presetId  String
 
   @@index([userId])
-  @@index([genreId])
+  @@index([presetId])
 }
 
-model PresetSubmission {  // Already correctly named
-  id              String        @id @default(cuid())
-  presetRequestId String
-  presetRequest   PresetRequest @relation(fields: [presetRequestId], references: [id])
-  userId          String
-  soundDesigner   SoundDesigner @relation(fields: [userId], references: [userId])
-  title           String
-  soundPreviewUrl String?
-  presetFileUrl   String?
-  guide           String?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  tags            String[]
+model PresetPackDownload {
+  id        String     @id @default(cuid())
+  userId    String
+  createdAt DateTime   @default(now())
+  
+  pack      PresetPackUpload @relation(fields: [packId], references: [id])
+  packId    String
 
-
-  @@index([presetRequestId])
   @@index([userId])
+  @@index([packId])
 }
 
 model Tutorial {
@@ -135,68 +152,191 @@ model Tutorial {
   description     String
   url             String
   soundPreviewUrl String
-  soundDesigner   SoundDesigner @relation(fields: [soundDesignerId], references: [id])
-  soundDesignerId String
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
+  
+  soundDesigner   SoundDesigner @relation(fields: [soundDesignerId], references: [id])
+  soundDesignerId String
+}
+
+// Request/Submission Models
+model PresetRequest {
+  id             String             @id @default(cuid())
+  title          String
+  youtubeLink    String?
+  enquiryDetails String
+  status         RequestStatus      @default(OPEN)
+  tags           String[]
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  
+  // Relations
+  userId         String
+  soundDesigner  SoundDesigner      @relation(fields: [userId], references: [userId])
+  genre          Genre?             @relation(fields: [genreId], references: [id], onDelete: SetNull)
+  genreId        String?
+  
+  // Child relations
+  submissions    PresetSubmission[]
+  presetUploads  PresetUpload[]
+
+  @@index([userId])
+  @@index([genreId])
+}
+
+model PresetSubmission {
+  id              String        @id @default(cuid())
+  title           String
+  soundPreviewUrl String?
+  presetFileUrl   String?
+  guide           String?
+  tags            String[]
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  // Relations
+  presetRequestId String
+  presetRequest   PresetRequest @relation(fields: [presetRequestId], references: [id])
+  userId          String
+  soundDesigner   SoundDesigner @relation(fields: [userId], references: [userId])
+
+  @@index([presetRequestId])
+  @@index([userId])
+}
+
+// Shopping Models
+model Cart {
+  id        String     @id @default(cuid())
+  userId    String
+  type      CartType
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  items     CartItem[]
+
+  @@unique([userId, type])
+}
+
+model CartItem {
+  id           String          @id @default(cuid())
+  itemType     CartItemType
+  quantity     Int            @default(1)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  
+  // Relations
+  cart         Cart           @relation(fields: [cartId], references: [id])
+  cartId       String
+  preset       PresetUpload?  @relation(fields: [presetId], references: [id])
+  presetId     String?
+  pack         PresetPackUpload?    @relation(fields: [packId], references: [id])
+  packId       String?
+  
+  // Child relations
+  priceHistory PriceHistory[]
+
+  @@unique([cartId, presetId, packId])
+  @@index([cartId])
+  @@index([presetId])
+  @@index([packId])
 }
 
 model Order {
-  id        String   @id @default(cuid())
+  id        String      @id @default(cuid())
   userId    String
   amount    Float
   status    String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
   items     OrderItem[]
 }
 
 model OrderItem {
   id        String   @id @default(cuid())
-  orderId   String
-  order     Order    @relation(fields: [orderId], references: [id])
   presetId  String?
   sampleId  String?
   quantity  Int
   price     Float
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  
+  order     Order    @relation(fields: [orderId], references: [id])
+  orderId   String
 }
 
-model Download {
-  id        String   @id @default(cuid())
-  userId    String
-  preset    PresetUpload? @relation(fields: [presetId], references: [id])
-  presetId  String?
-  pack      PresetPack? @relation(fields: [packId], references: [id])
-  packId    String?
-  isPurchased Boolean @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 
-  @@unique([userId, presetId, packId])
-  @@index([userId])
+enum VstType {
+  SERUM
+  VITAL
+  // ... add other VST types as needed
+}
+
+model Genre {
+  id             String         @id @default(cuid())
+  name           String         @unique
+  type           String
+  isSystem       Boolean        @default(false)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  
+  presets        PresetUpload[]
+  presetRequests PresetRequest[]
+}
+
+model PriceHistory {
+  id          String        @id @default(cuid())
+  price       Decimal
+  timestamp   DateTime      @default(now())
+  
+  presetId    String?
+  preset      PresetUpload? @relation(fields: [presetId], references: [id])
+  packId      String?
+  pack        PresetPackUpload?   @relation(fields: [packId], references: [id])
+  cartItemId  String?
+  cartItem    CartItem?     @relation(fields: [cartItemId], references: [id])
+
+  @@index([presetId])
+  @@index([packId])
+  @@index([cartItemId])
+}
+
+model PackPresets {
+  preset    PresetUpload @relation(fields: [presetId], references: [id])
+  presetId  String
+  pack      PresetPackUpload   @relation(fields: [packId], references: [id])
+  packId    String
+  addedAt   DateTime     @default(now())
+
+  @@id([presetId, packId])
   @@index([presetId])
   @@index([packId])
 }
 
-enum VSTType {
-  SERUM
-  VITAL
-  POLYGRID
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  message   String
+  metadata  Json?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
+// Enums
 
-model Genre {
-  id        String    @id @default(cuid())
-  name      String    @unique
-  type      String    // Changed from GenreType enum
-  isSystem  Boolean   @default(false)
-  presets   PresetUpload[]
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  presetRequests PresetRequest[]
+
+enum CartType {
+  CART
+  SAVED_FOR_LATER
+  WISHLIST
 }
+
+enum CartItemType {
+  PRESET
+  PACK
+}
+
 
 enum GenreType {
   ELECTRONIC
@@ -228,8 +368,6 @@ enum GenreType {
   SYSTEM
 }
 
-
-
 enum RequestStatus {
   OPEN
   IN_PROGRESS
@@ -237,108 +375,7 @@ enum RequestStatus {
   CANCELLED
 }
 
-model PriceHistory {
-  id          String       @id @default(cuid())
-  price       Decimal
-  timestamp   DateTime     @default(now())
-  
-  presetId    String?
-  preset      PresetUpload? @relation(fields: [presetId], references: [id])
-  
-  packId      String?
-  pack        PresetPack?   @relation(fields: [packId], references: [id])
-
-  cartItemId  String?      // Add this field
-  cartItem    CartItem?    @relation(fields: [cartItemId], references: [id]) // Add this relation
-
-  @@index([presetId])
-  @@index([packId])
-  @@index([cartItemId])    // Add this index
-}
-
-model Notification {
-  id        String   @id @default(cuid())
-  userId    String
-  type      String
-  message   String
-  metadata  Json?
-  read      Boolean  @default(false)
-  createdAt DateTime @default(now())
-
-  @@index([userId])
-}
-
-model PresetPack {
-  id              String         @id @default(cuid())
-  title           String         @db.VarChar(255)
-  description     String?        @db.Text
-  priceType       PriceType     @default(FREE)
-  price           Float?
-  soundPreviewUrl String?
-  soundDesigner   SoundDesigner? @relation(fields: [soundDesignerId], references: [id], onDelete: SetNull)
-  soundDesignerId String?
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
-  tags            String[]
-  priceHistory    PriceHistory[]
-  presets         PackPresets[]
-  cartItems       CartItem[]
-  downloads       Download[]
-  @@index([soundDesignerId])
-  @@index([createdAt])
-}
-
-// Renamed from PresetsOnPacks to PackPresets
-model PackPresets {
-  preset      PresetUpload @relation(fields: [presetId], references: [id])
-  presetId    String
-  pack        PresetPack   @relation(fields: [packId], references: [id])
-  packId      String
-  addedAt     DateTime     @default(now())
-
-  @@id([presetId, packId])
-  @@index([presetId])
-  @@index([packId])
-}
-
-model Cart {
-  id        String     @id @default(cuid())
-  userId    String
-  type      CartType   // Change to enum
-  items     CartItem[]
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-
-  @@unique([userId, type])
-}
-
-enum CartType {
-  CART
-  SAVED_FOR_LATER
-  WISHLIST
-}
-
-enum CartItemType {
-  PRESET
-  PACK
-}
-
-model CartItem {
-  id           String       @id @default(cuid())
-  cart         Cart        @relation(fields: [cartId], references: [id])
-  cartId       String
-  itemType     CartItemType
-  presetId     String?     // Separate field for preset ID
-  packId       String?     // Separate field for pack ID
-  quantity     Int         @default(1)
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
-  priceHistory PriceHistory[]
-  preset       PresetUpload? @relation(fields: [presetId], references: [id])
-  pack         PresetPack?   @relation(fields: [packId], references: [id])
-
-  @@unique([cartId, presetId, packId])
-  @@index([cartId])
-  @@index([presetId])
-  @@index([packId])
+enum ContentType {
+  PRESETS
+  PACKS
 }

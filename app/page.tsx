@@ -2,15 +2,15 @@
 
 import { useState } from "react";
 import { SearchSidebar } from "@/app/components/SearchSidebar";
-import { ExploreGrid } from "@/app/components/ExploreGrid";
-import { SearchFilters } from "@/app/components/SearchSidebar";
+import { PresetsContainer } from "@/app/components/PresetsContainer";
+import { SearchFilters } from "@/types/SearchTypes";
 import {
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
 } from "@/app/components/ui/tabs";
-import { PriceType, ContentType } from "@prisma/client";
+import { PriceType, ContentType, PresetType } from "@prisma/client";
 
 export default function HomePage() {
   const [filters, setFilters] = useState<SearchFilters>({
@@ -23,6 +23,7 @@ export default function HomePage() {
     showAll: false,
     types: [],
     priceTypes: [],
+    contentType: ContentType.PRESETS,
   });
 
   const [contentType, setContentType] = useState<"presets" | "packs">(
@@ -69,30 +70,36 @@ export default function HomePage() {
                   </TabsList>
 
                   <TabsContent value="all">
-                    <ExploreGrid
+                    <PresetsContainer
                       filters={{
                         ...filters,
                         priceTypes: [PriceType.FREE, PriceType.PREMIUM],
                         contentType: ContentType.PRESETS,
                       }}
+                      type="uploaded"
+                      contentType={ContentType.PRESETS}
                     />
                   </TabsContent>
                   <TabsContent value="free">
-                    <ExploreGrid
+                    <PresetsContainer
                       filters={{
                         ...filters,
                         priceTypes: [PriceType.FREE],
                         contentType: ContentType.PRESETS,
                       }}
+                      type="uploaded"
+                      contentType={ContentType.PRESETS}
                     />
                   </TabsContent>
                   <TabsContent value="premium">
-                    <ExploreGrid
+                    <PresetsContainer
                       filters={{
                         ...filters,
                         priceTypes: [PriceType.PREMIUM],
                         contentType: ContentType.PRESETS,
                       }}
+                      type="uploaded"
+                      contentType={ContentType.PRESETS}
                     />
                   </TabsContent>
                 </Tabs>
@@ -107,30 +114,36 @@ export default function HomePage() {
                   </TabsList>
 
                   <TabsContent value="all">
-                    <ExploreGrid
+                    <PresetsContainer
                       filters={{
                         ...filters,
                         priceTypes: [PriceType.FREE, PriceType.PREMIUM],
                         contentType: ContentType.PACKS,
                       }}
+                      type="uploaded"
+                      contentType={ContentType.PACKS}
                     />
                   </TabsContent>
                   <TabsContent value="free">
-                    <ExploreGrid
+                    <PresetsContainer
                       filters={{
                         ...filters,
                         priceTypes: [PriceType.FREE],
                         contentType: ContentType.PACKS,
                       }}
+                      type="uploaded"
+                      contentType={ContentType.PACKS}
                     />
                   </TabsContent>
                   <TabsContent value="premium">
-                    <ExploreGrid
+                    <PresetsContainer
                       filters={{
                         ...filters,
                         priceTypes: [PriceType.PREMIUM],
                         contentType: ContentType.PACKS,
                       }}
+                      type="uploaded"
+                      contentType={ContentType.PACKS}
                     />
                   </TabsContent>
                 </Tabs>

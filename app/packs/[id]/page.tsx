@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { PresetCard } from "@/app/components/PresetCard";
+import { PresetPackCard } from "@/app/components/PresetPackCard";
 import { Button } from "@/app/components/ui/button";
 import { PriceChangeDisplay } from "@/app/components/PriceChangeDisplay";
 import { useCart } from "@/app/hooks/useCart";
@@ -35,32 +35,7 @@ export default function PackPage({ params }: { params: { id: string } }) {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold mb-4">{pack.title}</h1>
-
-        <div className="mb-6">
-          <PriceChangeDisplay
-            currentPrice={pack.price}
-            size="xl"
-            itemType="pack"
-          />
-        </div>
-
-        {pack.description && (
-          <p className="text-lg text-muted-foreground mb-6">
-            {pack.description}
-          </p>
-        )}
-
-        <Button onClick={handleAddToCart} size="lg" className="mb-8">
-          Add to Cart
-        </Button>
-
-        <h2 className="text-2xl font-semibold mb-4">Included Presets</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {Array.isArray(pack.presets) && pack.presets.map((item: any) => (
-            <PresetCard key={item.preset.id} preset={item.preset} />
-          ))}
-        </div>
+        <PresetPackCard pack={pack} />
       </div>
     </div>
   );

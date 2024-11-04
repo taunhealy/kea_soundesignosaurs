@@ -1,71 +1,32 @@
 "use client";
 
-import { useDispatch, useSelector } from "react-redux";
-import {
-  toggleVST,
-  toggleType,
-  toggleGenre,
-} from "@/app/store/searchFiltersSlice";
-import { RootState } from "@/app/store/store";
+import { useState } from "react";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { Checkbox } from "@/app/components/ui/checkbox";
 import { useGenres } from "@/app/hooks/useGenres";
-import { cn } from "@/lib/utils";
-import { PresetType, PriceType, ContentType } from "@prisma/client";
-
-const VST_OPTIONS = ["Serum", "Vital"] as const;
-const PRESET_TYPES = ["Pad", "Lead", "Pluck", "Bass", "FX", "Other"] as const;
-export interface SearchFilters {
-  searchTerm: string;
-  genres: string[];
-  vsts: string[];
-  category: string;
-  showAll: boolean;
-  presetTypes: string[];
-  priceTypes: PriceType[];
-  tags: string[];
-  types: string[];
-  contentType?: ContentType;
-}
-
-export interface SearchSidebarProps {
-  filters: SearchFilters;
-  setFilters: React.Dispatch<React.SetStateAction<SearchFilters>>;
-}
+import { PriceType, Prisma, VstType, PresetType } from "@prisma/client";
+import { SearchFilters, SearchSidebarProps } from "@/types/SearchTypes";
+import { PRESET_TYPE_LABELS } from "@/constants/constants";
 
 export function SearchSidebar({ filters, setFilters }: SearchSidebarProps) {
   const { data: genres, isLoading: isLoadingGenres } = useGenres();
-  const dispatch = useDispatch();
 
-  const handleVSTChange = (vst: string, checked: boolean) => {
-    setFilters((prevFilters) => ({
-      ...prevFilters,
-      vsts: checked
-        ? [...prevFilters.vsts, vst]
-        : prevFilters.vsts.filter((v) => v !== vst),
+  const handleFilterChange = (
+    filterType: keyof SearchFilters,
+    value: string,
+    checked: boolean
+  ) => {
+    setFilters((prev) => ({
+      ...prev,
+      [filterType]: checked
+        ? [...(Array.isArray(prev[filterType]) ? prev[filterType] : []), value]
+        : Array.isArray(prev[filterType])
+        ? (prev[filterType] as string[]).filter(
+            (item: string) => item !== value
+          )
+        : [],
     }));
-    dispatch(toggleVST(vst));
-  };
-
-  const handlePresetTypeChange = (type: string, checked: boolean) => {
-    setFilters((prevFilters) => ({
-      ...prevFilters,
-      presetTypes: checked
-        ? [...prevFilters.presetTypes, type]
-        : prevFilters.presetTypes.filter((t) => t !== type),
-    }));
-    dispatch(toggleType(type));
-  };
-
-  const handleGenreChange = (genre: string, checked: boolean) => {
-    setFilters((prevFilters) => ({
-      ...prevFilters,
-      genres: checked
-        ? [...prevFilters.genres, genre]
-        : prevFilters.genres.filter((g) => g !== genre),
-    }));
-    dispatch(toggleGenre(genre));
   };
 
   return (
@@ -74,74 +35,47 @@ export function SearchSidebar({ filters, setFilters }: SearchSidebarProps) {
         <Label htmlFor="searchbox">Search</Label>
         <Input
           id="searchbox"
-          type="text"
           value={filters.searchTerm}
           onChange={(e) =>
-            setFilters((prevFilters) => ({
-              ...prevFilters,
-              searchTerm: e.target.value,
-            }))
+            setFilters((prev) => ({ ...prev, searchTerm: e.target.value }))
           }
           placeholder="Search..."
         />
       </div>
 
       <div className="mb-4">
-        <div className="flex items-center">
-          <Checkbox
-            id="show-all"
-            checked={filters.showAll}
-            onCheckedChange={(checked) =>
-              setFilters((prevFilters) => ({
-                ...prevFilters,
-                showAll: checked as boolean,
-              }))
-            }
-          />
-          <Label htmlFor="show-all" className="ml-2 font-bold">
-            Show All
-          </Label>
-        </div>
-      </div>
-
-      <div className="mb-4 flex flex-col gap-2">
         <Label>Preset Type</Label>
-        {Object.values(PresetType).map((type) => (
+        {Object.entries(PRESET_TYPE_LABELS).map(([type, label]) => (
           <div key={type} className="flex items-center">
             <Checkbox
               id={`type-${type}`}
-              checked={filters.presetTypes.includes(type)}
+              checked={filters.presetTypes.includes(type as PresetType)}
               onCheckedChange={(checked) =>
-                handlePresetTypeChange(type, checked as boolean)
+                handleFilterChange("presetTypes", type, checked as boolean)
               }
-              disabled={filters.showAll}
             />
             <Label htmlFor={`type-${type}`} className="ml-2">
-              {type}
+              {label}
             </Label>
           </div>
         ))}
       </div>
 
-      <div className="mb-4 flex flex-col gap-2">
+      <div className="mb-4">
         <Label>Genre</Label>
         {isLoadingGenres ? (
           <div>Loading genres...</div>
         ) : (
           genres?.map((genre: { id: string; name: string }) => (
-            <div key={genre.id} className="flex items-center gap-1">
+            <div key={genre.id} className="flex items-center">
               <Checkbox
                 id={`genre-${genre.id}`}
                 checked={filters.genres.includes(genre.name)}
                 onCheckedChange={(checked) =>
-                  handleGenreChange(genre.name, checked as boolean)
+                  handleFilterChange("genres", genre.name, checked as boolean)
                 }
-                disabled={filters.showAll}
               />
-              <Label
-                htmlFor={`genre-${genre.id}`}
-                className={cn("ml-2", filters.showAll && "text-gray-400")}
-              >
+              <Label htmlFor={`genre-${genre.id}`} className="ml-2">
                 {genre.name}
               </Label>
             </div>
@@ -149,17 +83,16 @@ export function SearchSidebar({ filters, setFilters }: SearchSidebarProps) {
         )}
       </div>
 
-      <div className="mb-4 flex flex-col gap-2">
+      <div className="mb-4">
         <Label>VST</Label>
-        {VST_OPTIONS.map((vst) => (
+        {Object.values(VstType).map((vst) => (
           <div key={vst} className="flex items-center">
             <Checkbox
               id={`vst-${vst}`}
               checked={filters.vsts.includes(vst)}
               onCheckedChange={(checked) =>
-                handleVSTChange(vst, checked as boolean)
+                handleFilterChange("vsts", vst, checked as boolean)
               }
-              disabled={filters.showAll}
             />
             <Label htmlFor={`vst-${vst}`} className="ml-2">
               {vst}
@@ -169,42 +102,21 @@ export function SearchSidebar({ filters, setFilters }: SearchSidebarProps) {
       </div>
 
       <div>
-        <h3 className="mb-2 text-lg font-medium">Price Type</h3>
-        <div className="space-y-2">
-          <Checkbox
-            id="free"
-            checked={filters.priceTypes.includes(PriceType.FREE)}
-            onCheckedChange={(checked) => {
-              setFilters((prev) => ({
-                ...prev,
-                priceTypes: checked
-                  ? [...prev.priceTypes, PriceType.FREE]
-                  : prev.priceTypes.filter((type) => type !== PriceType.FREE),
-              }));
-            }}
-          />
-          <label htmlFor="free" className="ml-2">
-            Free
-          </label>
-
-          <Checkbox
-            id="premium"
-            checked={filters.priceTypes.includes(PriceType.PREMIUM)}
-            onCheckedChange={(checked) => {
-              setFilters((prev) => ({
-                ...prev,
-                priceTypes: checked
-                  ? [...prev.priceTypes, PriceType.PREMIUM]
-                  : prev.priceTypes.filter(
-                      (type) => type !== PriceType.PREMIUM
-                    ),
-              }));
-            }}
-          />
-          <label htmlFor="premium" className="ml-2">
-            Premium
-          </label>
-        </div>
+        <Label>Price Type</Label>
+        {Object.values(PriceType).map((type) => (
+          <div key={type} className="flex items-center">
+            <Checkbox
+              id={`price-${type}`}
+              checked={filters.priceTypes.includes(type)}
+              onCheckedChange={(checked) =>
+                handleFilterChange("priceTypes", type, checked as boolean)
+              }
+            />
+            <Label htmlFor={`price-${type}`} className="ml-2">
+              {type}
+            </Label>
+          </div>
+        ))}
       </div>
     </div>
   );

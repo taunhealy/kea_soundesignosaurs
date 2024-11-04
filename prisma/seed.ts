@@ -1,8 +1,9 @@
-import { PrismaClient, PresetType } from '@prisma/client';
-import { SystemGenres } from '../constants/constants';
-import { faker } from '@faker-js/faker';
+import { PrismaClient, PresetType } from "@prisma/client";
+import { SystemGenres } from "../constants/constants";
+import { faker } from "@faker-js/faker";
+import prismaClient from "@/lib/prisma";
 
-const prisma = new PrismaClient();
+const prisma = prismaClient;
 
 async function main() {
   try {
@@ -10,9 +11,7 @@ async function main() {
     await prisma.packPresets.deleteMany();
     await prisma.cartItem.deleteMany();
     await prisma.priceHistory.deleteMany();
-    await prisma.download.deleteMany();
     await prisma.presetUpload.deleteMany();
-    await prisma.presetPack.deleteMany();
     await prisma.genre.deleteMany();
     await prisma.vST.deleteMany();
     await prisma.soundDesigner.deleteMany();
@@ -34,11 +33,24 @@ async function main() {
     console.log("✅ Genres seeded");
 
     // Create VSTs
-    const vsts = await Promise.all([
-      prisma.vST.create({ data: { name: "Serum" } }),
-      prisma.vST.create({ data: { name: "Vital" } }),
-      prisma.vST.create({ data: { name: "Polygrid" } }),
-    ]);
+    await prisma.vST.createMany({
+      data: [
+        {
+          id: "serum",
+          name: "Serum",
+          type: "SERUM",
+        },
+        {
+          id: "vital",
+          name: "Vital",
+          type: "VITAL",
+        },
+      ],
+      skipDuplicates: true,
+    });
+
+    // Fetch VSTs after creation
+    const vsts = await prisma.vST.findMany();
     console.log("✅ VSTs seeded");
 
     // Create sound designers
@@ -60,33 +72,34 @@ async function main() {
     );
     console.log("✅ Sound designers seeded");
 
-    // Create presets
-    const presetTypes = Object.values(PresetType);
+    // Create PresetUploads
     const presets = await Promise.all(
-      Array(20)
+      Array(20) // Create 20 presets
         .fill(null)
         .map(() => {
           const randomGenre = genres[Math.floor(Math.random() * genres.length)];
           const randomVst = vsts[Math.floor(Math.random() * vsts.length)];
-          const randomDesigner =
-            soundDesigners[Math.floor(Math.random() * soundDesigners.length)];
           const randomType =
-            presetTypes[Math.floor(Math.random() * presetTypes.length)];
-
+            Object.values(PresetType)[
+              Math.floor(Math.random() * Object.values(PresetType).length)
+            ];
+          const randomSoundDesigner =
+            soundDesigners[Math.floor(Math.random() * soundDesigners.length)]; // Select a random sound designer
           return prisma.presetUpload.create({
             data: {
               title: faker.music.songName(),
               description: faker.lorem.paragraph(),
               presetType: randomType,
-              price: parseFloat(faker.commerce.price({ min: 5, max: 50 })),
+              priceType: faker.helpers.arrayElement(["FREE", "PREMIUM"]),
+              userId: faker.string.uuid(), // Add missing userId field
               spotifyLink: faker.internet.url(),
               genreId: randomGenre.id,
               vstId: randomVst.id,
-              soundDesignerId: randomDesigner.id,
               tags: Array(3)
                 .fill(null)
                 .map(() => faker.music.genre()),
               guide: faker.lorem.paragraphs(2),
+              soundDesignerId: randomSoundDesigner.id, // Assign the preset to the selected sound designer
             },
           });
         })

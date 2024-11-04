@@ -23,7 +23,7 @@ import { toast } from "react-hot-toast";
 import { GenreCombobox } from "@/app/components/GenreCombobox";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatPresetFileName } from "@/utils/presetNaming";
-import { PresetType } from "@/types/PresetTypes";
+import { PresetType } from "@prisma/client";
 
 interface PresetFormProps {
   initialData?: any;
@@ -34,16 +34,24 @@ const presetSchema = z.object({
   title: z.string().optional(),
   description: z.string().optional(),
   guide: z.string().optional(),
-  spotifyLink: z.string().url().nullish(),
-  genreId: z.string().min(1, "Genre is required"),
+  spotifyLink: z.string().optional(),
+  genreId: z.string().optional(),
   vstId: z.string().optional(),
+  priceType: z.enum(["FREE", "PREMIUM"]).optional(),
   presetType: z
     .enum(["PAD", "LEAD", "PLUCK", "BASS", "FX", "OTHER"])
     .optional(),
-  price: z.number().min(5, "Price must be at least $5").optional(),
+  price: z.number().optional(),
 });
 
 type PresetFormData = z.infer<typeof presetSchema>;
+
+// Add predefined VST options
+const VST_OPTIONS = [
+  { value: "vital", label: "Vital" },
+  { value: "serum", label: "Serum" },
+  { value: "other", label: "Other" },
+];
 
 export function PresetForm({ initialData, presetId }: PresetFormProps) {
   const [soundPreviewUrl, setSoundPreviewUrl] = useState(
@@ -80,19 +88,8 @@ export function PresetForm({ initialData, presetId }: PresetFormProps) {
       label: genre.name,
     })) || [];
 
-  const { data: vsts } = useQuery({
-    queryKey: ["vsts"],
-    queryFn: async () => {
-      const response = await fetch("/api/vsts");
-      return response.json();
-    },
-  });
-
-  const vstList =
-    vsts?.map((vst: any) => ({
-      value: vst.id,
-      label: vst.name,
-    })) || [];
+  // Replace the VST query with the predefined options
+  const vstList = VST_OPTIONS;
 
   const {
     control,
@@ -101,6 +98,7 @@ export function PresetForm({ initialData, presetId }: PresetFormProps) {
     formState: { errors, isSubmitting: formIsSubmitting },
     setValue,
     watch,
+    getValues,
   } = useForm<PresetFormData>({
     resolver: zodResolver(presetSchema),
     defaultValues: {
@@ -140,22 +138,28 @@ export function PresetForm({ initialData, presetId }: PresetFormProps) {
 
     try {
       setIsSubmitting(true);
+
+      if (!user?.id) {
+        throw new Error("User ID is required");
+      }
+
+      const formData = {
+        userId: user.id, // Ensure userId is included first
+        ...data,
+        presetFileUrl: uploadedFile?.url || "",
+        originalFileName: uploadedFile?.originalName || "",
+        soundPreviewUrl: soundPreviewUrl || "",
+        soundDesignerId: user.id,
+        genreId: data.genreId || "",
+        vstId: data.vstId || "",
+      };
+
+      console.log("Submitting data:", formData);
+
       const endpoint = presetId
         ? `/api/presetUpload/${presetId}`
         : "/api/presetUpload";
       const method = presetId ? "PATCH" : "POST";
-
-      const formData = {
-        ...data,
-        presetFileUrl: uploadedFile?.url,
-        originalFileName: uploadedFile?.originalName,
-        soundPreviewUrl,
-        soundDesignerId: user?.id,
-        genreId: data.genreId,
-        vstId: data.vstId,
-      };
-
-      console.log("Submitting data:", formData);
 
       const response = await fetch(endpoint, {
         method,
@@ -226,6 +230,8 @@ export function PresetForm({ initialData, presetId }: PresetFormProps) {
     console.log("Initial data:", initialData);
     console.log("Preset ID:", presetId);
   }, [control._formValues, initialData, presetId]);
+
+  const priceType = watch("priceType");
 
   return (
     <form
@@ -325,32 +331,32 @@ export function PresetForm({ initialData, presetId }: PresetFormProps) {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="price">Price (USD) - Minimum $5</Label>
-        <div className="flex items-center gap-2">
+        <Label htmlFor="priceType">Price Type</Label>
+        <select {...register("priceType")} id="priceType">
+          <option value="FREE">Free</option>
+          <option value="PREMIUM">Premium</option>
+        </select>
+        {errors.priceType && (
+          <p className="text-red-500">{errors.priceType.message}</p>
+        )}
+      </div>
+
+      {priceType === "PREMIUM" && (
+        <div className="space-y-2">
+          <Label htmlFor="price">Price (USD)</Label>
           <Input
             type="number"
             step="0.01"
             min="5"
+            {...register("price", { valueAsNumber: true })}
             id="price"
             placeholder="Enter price (minimum $5)"
-            {...register("price", {
-              valueAsNumber: true,
-              min: {
-                value: 5,
-                message: "Price must be at least $5",
-              },
-            })}
           />
-          {watch("price") !== initialData?.price && (
-            <span className="text-sm text-amber-500">
-              Price change will notify users
-            </span>
+          {errors.price && (
+            <p className="text-red-500">{errors.price.message}</p>
           )}
         </div>
-        {errors.price && (
-          <p className="text-red-500 text-sm">{errors.price.message}</p>
-        )}
-      </div>
+      )}
 
       <div className="space-y-2">
         <Label>Genre</Label>
@@ -359,7 +365,7 @@ export function PresetForm({ initialData, presetId }: PresetFormProps) {
           control={control}
           render={({ field }) => (
             <GenreCombobox
-              value={field.value}
+              value={field.value || ""}
               onChange={(value) => {
                 field.onChange(value);
               }}
@@ -415,8 +421,13 @@ export function PresetForm({ initialData, presetId }: PresetFormProps) {
           <pre className="text-xs overflow-auto">
             {JSON.stringify(
               {
-                formValues: control._formValues,
-                errors,
+                formValues: getValues(),
+                errorMessages: Object.fromEntries(
+                  Object.entries(errors).map(([key, value]) => [
+                    key,
+                    value?.message,
+                  ])
+                ),
                 isSubmitting,
                 formIsSubmitting,
               },

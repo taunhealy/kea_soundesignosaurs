@@ -33,7 +33,7 @@ export async function POST(request: Request) {
     }
 
     // Create the preset pack with connections
-    const pack = await prisma.presetPack.create({
+    const pack = await prisma.presetPackUpload.create({
       data: {
         title: validated.title,
         description: validated.description,
