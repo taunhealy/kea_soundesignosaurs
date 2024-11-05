@@ -21,7 +21,7 @@ export async function GET(request: Request) {
       );
     }
 
-    const packs = await prisma.presetPack.findMany({
+    const packs = await prisma.presetPackUpload.findMany({
       where: {
         soundDesignerId: soundDesigner.id,
       },

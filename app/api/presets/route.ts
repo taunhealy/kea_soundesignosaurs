@@ -1,4 +1,3 @@
-import { createFilterClause } from "@/lib/queryHelpers";
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
@@ -11,19 +10,47 @@ export async function GET(request: Request) {
     }
 
     const params = Object.fromEntries(new URL(request.url).searchParams);
-    const filterClause = createFilterClause(params);
+    const where: any = {};
 
-    console.log("Searching for presets with userId:", userId);
-    console.log("Type parameter:", params.type);
+    // If type is 'uploaded', only show user's uploads
+    if (params.type === "uploaded") {
+      where.userId = userId;
+    }
+
+    // Handle price types as an array for the enum
+    if (params.priceTypes && params.priceTypes !== "") {
+      where.priceType = {
+        in: params.priceTypes.split(","),
+      };
+    }
+
+    // Handle VST types
+    if (params.vstTypes && params.vstTypes !== "") {
+      where.vst = {
+        type: {
+          in: params.vstTypes.split(","),
+        },
+      };
+    }
+
+    // Handle genres as an array
+    if (params.genres && params.genres !== "") {
+      where.genreId = {
+        in: params.genres.split(","),
+      };
+    }
+
+    // Handle preset types as an array
+    if (params.presetTypes && params.presetTypes !== "") {
+      where.presetType = {
+        in: params.presetTypes.split(","),
+      };
+    }
+
+    console.log("Final where clause:", where);
 
     const results = await prisma.presetUpload.findMany({
-      where: {
-        ...filterClause,
-        OR: [
-          { userId: userId },
-          { soundDesignerId: params.type === "uploaded" ? userId : undefined },
-        ],
-      },
+      where,
       include: {
         soundDesigner: {
           select: { username: true, profileImage: true },
@@ -35,8 +62,6 @@ export async function GET(request: Request) {
         createdAt: "desc",
       },
     });
-
-    console.log("Found presets:", results);
 
     return NextResponse.json(results);
   } catch (error: any) {

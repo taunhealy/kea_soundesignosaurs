@@ -107,8 +107,8 @@ model PresetPackUpload {
   updatedAt       DateTime       @updatedAt
   
   // Relations
-  soundDesigner   SoundDesigner? @relation(fields: [soundDesignerId], references: [id], onDelete: SetNull)
-  soundDesignerId String?
+  soundDesigner   SoundDesigner @relation(fields: [soundDesignerId], references: [id], onDelete: Cascade)
+  soundDesignerId String
   
   // Child relations
   priceHistory    PriceHistory[]

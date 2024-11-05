@@ -70,3 +70,49 @@ export async function POST(request: Request) {
     );
   }
 }
+
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const searchTerm = searchParams.get("searchTerm") || "";
+
+    const packs = await prisma.presetPackUpload.findMany({
+      where: {
+        OR: [
+          { title: { contains: searchTerm, mode: "insensitive" } },
+          { description: { contains: searchTerm, mode: "insensitive" } },
+        ],
+      },
+      include: {
+        soundDesigner: {
+          select: {
+            username: true,
+            profileImage: true,
+          },
+        },
+        presets: {
+          include: {
+            preset: {
+              select: {
+                id: true,
+                title: true,
+                soundPreviewUrl: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    return NextResponse.json(packs);
+  } catch (error) {
+    console.error("Error fetching preset packs:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch preset packs" },
+      { status: 500 }
+    );
+  }
+}

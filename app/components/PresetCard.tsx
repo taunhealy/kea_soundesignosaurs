@@ -1,8 +1,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import type { Preset } from "@/types/PresetTypes";
 import { PresetCardProps } from "@/types/PresetTypes";
 
 export function PresetCard({ preset, variant, actions }: PresetCardProps) {
+  if (!preset) return null;
+  
+  console.log("PresetCard rendering with:", preset);
+  
   return (
     <Card className="relative group overflow-hidden hover:shadow-lg transition-all duration-300 rounded-lg border">
       <CardHeader className="border-b p-4">
@@ -10,7 +13,7 @@ export function PresetCard({ preset, variant, actions }: PresetCardProps) {
           {preset.title}
         </CardTitle>
         <div className="text-sm text-muted-foreground">
-          Price: {preset.price || "Free"}
+          Price: {preset.priceType === 'FREE' ? "Free" : `$${preset.price}`}
         </div>
       </CardHeader>
       <CardContent className="p-4 space-y-2">
@@ -18,7 +21,7 @@ export function PresetCard({ preset, variant, actions }: PresetCardProps) {
           <div>
             Designer:{" "}
             <span className="font-medium">
-              {preset.soundDesigner?.username}
+              {preset.soundDesigner?.username || "Anonymous"}
             </span>
           </div>
           <div>
@@ -28,7 +31,9 @@ export function PresetCard({ preset, variant, actions }: PresetCardProps) {
             </span>
           </div>
           <div>
-            VST: <span className="font-medium">{preset.vst || "N/A"}</span>
+            VST: <span className="font-medium">
+              {preset.vst?.name || "N/A"}
+            </span>
           </div>
           <div>
             Type:{" "}

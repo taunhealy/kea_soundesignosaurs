@@ -1,15 +1,14 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/app/components/ui/button";
 import { PlayIcon, PauseIcon } from "lucide-react";
-import { toast } from "react-hot-toast";
+import {
+  useAudioPlayer,
+  UseAudioPlayerOptions,
+} from "@/app/hooks/useAudioPlayer";
 
 export default function PresetPage({ params }: { params: { id: string } }) {
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
-
   const { data: preset, isLoading } = useQuery({
     queryKey: ["preset", params.id],
     queryFn: async () => {
@@ -22,49 +21,25 @@ export default function PresetPage({ params }: { params: { id: string } }) {
     },
   });
 
-  const cleanupAudio = useCallback(() => {
-    if (audio) {
-      audio.pause();
-      audio.removeEventListener("ended", () => setIsPlaying(false));
-      setAudio(null);
-      setIsPlaying(false);
-    }
-  }, [audio]);
+  const audioOptions: UseAudioPlayerOptions = {
+    volume: 1.0,
+    onEnd: () => console.log("Audio playback ended"),
+    onError: (error) => console.error("Audio playback error:", error),
+    onPlay: () => console.log("Started playing"),
+    onPause: () => console.log("Paused playing"),
+  };
 
-  useEffect(() => {
-    return () => cleanupAudio();
-  }, [cleanupAudio]);
+  const { isPlaying, activeTrack, play, pause } = useAudioPlayer(audioOptions);
 
-  const togglePlay = useCallback(() => {
-    if (!preset?.soundPreviewUrl) {
-      toast.error("No sound preview available");
-      return;
-    }
+  const handlePlayClick = () => {
+    if (!preset?.soundPreviewUrl) return;
 
-    if (!audio) {
-      const newAudio = new Audio(preset.soundPreviewUrl);
-      newAudio.addEventListener("ended", () => setIsPlaying(false));
-      setAudio(newAudio);
-      newAudio.play().catch((error) => {
-        console.error("Audio playback error:", error);
-        toast.error("Failed to play audio");
-        cleanupAudio();
-      });
-      setIsPlaying(true);
+    if (isPlaying && activeTrack === preset.id) {
+      pause();
     } else {
-      if (isPlaying) {
-        audio.pause();
-        setIsPlaying(false);
-      } else {
-        audio.play().catch((error) => {
-          console.error("Audio playback error:", error);
-          toast.error("Failed to play audio");
-          cleanupAudio();
-        });
-        setIsPlaying(true);
-      }
+      play(preset.id, preset.soundPreviewUrl);
     }
-  }, [preset?.soundPreviewUrl, audio, isPlaying, cleanupAudio]);
+  };
 
   if (isLoading) return <div>Loading...</div>;
   if (!preset) return <div>Preset not found</div>;
@@ -75,9 +50,13 @@ export default function PresetPage({ params }: { params: { id: string } }) {
         <h1 className="text-3xl font-bold mb-4">{preset.title}</h1>
 
         <div className="flex items-center gap-4 mb-6">
-          <Button onClick={togglePlay} variant="outline" size="lg">
-            {isPlaying ? <PauseIcon /> : <PlayIcon />}
-            {isPlaying ? "Pause" : "Play Preview"}
+          <Button onClick={handlePlayClick} variant="outline" size="lg">
+            {isPlaying && activeTrack === preset.id ? (
+              <PauseIcon className="mr-2 h-4 w-4" />
+            ) : (
+              <PlayIcon className="mr-2 h-4 w-4" />
+            )}
+            {isPlaying && activeTrack === preset.id ? "Pause" : "Play Preview"}
           </Button>
 
           {preset.presetFileUrl && (

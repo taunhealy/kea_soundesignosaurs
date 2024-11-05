@@ -1,123 +1,86 @@
 "use client";
 
-import { useState } from "react";
-import { Input } from "@/app/components/ui/input";
-import { Label } from "@/app/components/ui/label";
-import { Checkbox } from "@/app/components/ui/checkbox";
 import { useGenres } from "@/app/hooks/useGenres";
-import { PriceType, Prisma, VstType, PresetType } from "@prisma/client";
-import { SearchFilters, SearchSidebarProps } from "@/types/SearchTypes";
-import { PRESET_TYPE_LABELS } from "@/constants/constants";
+import { Checkbox } from "@/app/components/ui/checkbox";
+import { Label } from "@/app/components/ui/label";
+import { useSearch } from "@/contexts/SearchContext";
+import { PriceType, Genre, VstType } from "@prisma/client";
 
-export function SearchSidebar({ filters, setFilters }: SearchSidebarProps) {
+export function SearchSidebar() {
+  const { filters, toggleFilter } = useSearch();
   const { data: genres, isLoading: isLoadingGenres } = useGenres();
 
-  const handleFilterChange = (
-    filterType: keyof SearchFilters,
-    value: string,
-    checked: boolean
-  ) => {
-    setFilters((prev) => ({
-      ...prev,
-      [filterType]: checked
-        ? [...(Array.isArray(prev[filterType]) ? prev[filterType] : []), value]
-        : Array.isArray(prev[filterType])
-        ? (prev[filterType] as string[]).filter(
-            (item: string) => item !== value
-          )
-        : [],
-    }));
+  const handleVstTypeChange = (type: string, checked: boolean) => {
+    const updatedVstTypes = checked
+      ? [...filters.vstTypes, type as VstType]
+      : filters.vstTypes.filter((t) => t !== type);
+
+    console.log("Updating VST types:", { type, checked, updatedVstTypes });
+
+    toggleFilter("vstTypes", type, checked as boolean);
   };
 
   return (
-    <div className="w-64 bg-gray-100 p-4">
-      <div className="mb-4">
-        <Label htmlFor="searchbox">Search</Label>
-        <Input
-          id="searchbox"
-          value={filters.searchTerm}
-          onChange={(e) =>
-            setFilters((prev) => ({ ...prev, searchTerm: e.target.value }))
-          }
-          placeholder="Search..."
-        />
-      </div>
-
-      <div className="mb-4">
-        <Label>Preset Type</Label>
-        {Object.entries(PRESET_TYPE_LABELS).map(([type, label]) => (
-          <div key={type} className="flex items-center">
-            <Checkbox
-              id={`type-${type}`}
-              checked={filters.presetTypes.includes(type as PresetType)}
-              onCheckedChange={(checked) =>
-                handleFilterChange("presetTypes", type, checked as boolean)
-              }
-            />
-            <Label htmlFor={`type-${type}`} className="ml-2">
-              {label}
-            </Label>
+    <div className="w-64 space-y-6">
+      {filters.displayMode === "browse" && (
+        <>
+          <div>
+            <Label>Price Type</Label>
+            {Object.values(PriceType).map((type) => (
+              <div key={type} className="flex items-center">
+                <Checkbox
+                  id={`price-${type}`}
+                  checked={filters.priceTypes.includes(type)}
+                  onCheckedChange={(checked) =>
+                    toggleFilter("priceTypes", type, checked as boolean)
+                  }
+                />
+                <Label htmlFor={`price-${type}`} className="ml-2">
+                  {type}
+                </Label>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
 
-      <div className="mb-4">
-        <Label>Genre</Label>
-        {isLoadingGenres ? (
-          <div>Loading genres...</div>
-        ) : (
-          genres?.map((genre: { id: string; name: string }) => (
-            <div key={genre.id} className="flex items-center">
-              <Checkbox
-                id={`genre-${genre.id}`}
-                checked={filters.genres.includes(genre.name)}
-                onCheckedChange={(checked) =>
-                  handleFilterChange("genres", genre.name, checked as boolean)
-                }
-              />
-              <Label htmlFor={`genre-${genre.id}`} className="ml-2">
-                {genre.name}
-              </Label>
+          <div>
+            <Label>Vst Type</Label>
+            {Object.values(VstType).map((type) => (
+              <div key={type} className="flex items-center">
+                <Checkbox
+                  id={`vst-${type}`}
+                  checked={filters.vstTypes.includes(type)}
+                  onCheckedChange={(checked: boolean) =>
+                    handleVstTypeChange(type, checked)
+                  }
+                />
+                <Label htmlFor={`vst-${type}`} className="ml-2">
+                  {type}
+                </Label>
+              </div>
+            ))}
+          </div>
+
+          {!isLoadingGenres && (
+            <div>
+              <Label>Genres</Label>
+              {genres?.map((genre: Genre) => (
+                <div key={genre.id} className="flex items-center">
+                  <Checkbox
+                    id={`genre-${genre.id}`}
+                    checked={filters.genres.includes(genre.id)}
+                    onCheckedChange={(checked) =>
+                      toggleFilter("genres", genre.id, checked as boolean)
+                    }
+                  />
+                  <Label htmlFor={`genre-${genre.id}`} className="ml-2">
+                    {genre.name}
+                  </Label>
+                </div>
+              ))}
             </div>
-          ))
-        )}
-      </div>
-
-      <div className="mb-4">
-        <Label>VST</Label>
-        {Object.values(VstType).map((vst) => (
-          <div key={vst} className="flex items-center">
-            <Checkbox
-              id={`vst-${vst}`}
-              checked={filters.vsts.includes(vst)}
-              onCheckedChange={(checked) =>
-                handleFilterChange("vsts", vst, checked as boolean)
-              }
-            />
-            <Label htmlFor={`vst-${vst}`} className="ml-2">
-              {vst}
-            </Label>
-          </div>
-        ))}
-      </div>
-
-      <div>
-        <Label>Price Type</Label>
-        {Object.values(PriceType).map((type) => (
-          <div key={type} className="flex items-center">
-            <Checkbox
-              id={`price-${type}`}
-              checked={filters.priceTypes.includes(type)}
-              onCheckedChange={(checked) =>
-                handleFilterChange("priceTypes", type, checked as boolean)
-              }
-            />
-            <Label htmlFor={`price-${type}`} className="ml-2">
-              {type}
-            </Label>
-          </div>
-        ))}
-      </div>
+          )}
+        </>
+      )}
     </div>
   );
 }

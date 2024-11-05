@@ -2,154 +2,54 @@
 
 import { useState } from "react";
 import { SearchSidebar } from "@/app/components/SearchSidebar";
-import { PresetsContainer } from "@/app/components/PresetsContainer";
 import { SearchFilters } from "@/types/SearchTypes";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/app/components/ui/tabs";
-import { PriceType, ContentType, PresetType } from "@prisma/client";
+import { ContentType } from "@prisma/client";
+import { ContentExplorer } from "@/app/components/ContentExplorer";
+import { useSearch } from "@/contexts/SearchContext";
+import { CategoryTabs } from "@/app/components/CategoryTabs";
 
 export default function HomePage() {
-  const [filters, setFilters] = useState<SearchFilters>({
-    searchTerm: "",
-    genres: [],
-    vsts: [],
-    presetTypes: [],
-    tags: [],
-    category: "",
-    showAll: false,
-    types: [],
-    priceTypes: [],
-    contentType: ContentType.PRESETS,
-  });
-
-  const [contentType, setContentType] = useState<"presets" | "packs">(
-    "presets"
-  );
+  const { filters, updateFilter } = useSearch();
+  const showContentTypeSwitch = filters.displayMode === "browse";
 
   return (
-    <div className="flex-col container gap-5 px-4 py-8 overflow-hidden">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">
-          Explore {contentType === "presets" ? "Presets" : "Preset Packs"}
-        </h1>
-      </div>
-
-      <div className="flex gap-6 overflow-hidden">
-        <div className="w-64 flex-shrink-0">
-          <SearchSidebar filters={filters} setFilters={setFilters} />
-        </div>
-
-        <div className="flex-auto">
-          <div className="flex flex-col gap-4">
-            <Tabs
-              value={contentType}
-              onValueChange={(value) =>
-                setContentType(value as "presets" | "packs")
-              }
-              className="w-full"
-            >
-              <TabsList className="w-full">
-                <TabsTrigger value="presets" className="flex-1">
-                  Presets
-                </TabsTrigger>
-                <TabsTrigger value="packs" className="flex-1">
-                  Preset Packs
-                </TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="presets">
-                <Tabs defaultValue="all" className="w-full mt-4">
-                  <TabsList>
-                    <TabsTrigger value="all">All Presets</TabsTrigger>
-                    <TabsTrigger value="free">Free</TabsTrigger>
-                    <TabsTrigger value="premium">Premium</TabsTrigger>
-                  </TabsList>
-
-                  <TabsContent value="all">
-                    <PresetsContainer
-                      filters={{
-                        ...filters,
-                        priceTypes: [PriceType.FREE, PriceType.PREMIUM],
-                        contentType: ContentType.PRESETS,
-                      }}
-                      type="uploaded"
-                      contentType={ContentType.PRESETS}
-                    />
-                  </TabsContent>
-                  <TabsContent value="free">
-                    <PresetsContainer
-                      filters={{
-                        ...filters,
-                        priceTypes: [PriceType.FREE],
-                        contentType: ContentType.PRESETS,
-                      }}
-                      type="uploaded"
-                      contentType={ContentType.PRESETS}
-                    />
-                  </TabsContent>
-                  <TabsContent value="premium">
-                    <PresetsContainer
-                      filters={{
-                        ...filters,
-                        priceTypes: [PriceType.PREMIUM],
-                        contentType: ContentType.PRESETS,
-                      }}
-                      type="uploaded"
-                      contentType={ContentType.PRESETS}
-                    />
-                  </TabsContent>
-                </Tabs>
-              </TabsContent>
-
-              <TabsContent value="packs">
-                <Tabs defaultValue="all" className="w-full mt-4">
-                  <TabsList>
-                    <TabsTrigger value="all">All Packs</TabsTrigger>
-                    <TabsTrigger value="free">Free</TabsTrigger>
-                    <TabsTrigger value="premium">Premium</TabsTrigger>
-                  </TabsList>
-
-                  <TabsContent value="all">
-                    <PresetsContainer
-                      filters={{
-                        ...filters,
-                        priceTypes: [PriceType.FREE, PriceType.PREMIUM],
-                        contentType: ContentType.PACKS,
-                      }}
-                      type="uploaded"
-                      contentType={ContentType.PACKS}
-                    />
-                  </TabsContent>
-                  <TabsContent value="free">
-                    <PresetsContainer
-                      filters={{
-                        ...filters,
-                        priceTypes: [PriceType.FREE],
-                        contentType: ContentType.PACKS,
-                      }}
-                      type="uploaded"
-                      contentType={ContentType.PACKS}
-                    />
-                  </TabsContent>
-                  <TabsContent value="premium">
-                    <PresetsContainer
-                      filters={{
-                        ...filters,
-                        priceTypes: [PriceType.PREMIUM],
-                        contentType: ContentType.PACKS,
-                      }}
-                      type="uploaded"
-                      contentType={ContentType.PACKS}
-                    />
-                  </TabsContent>
-                </Tabs>
-              </TabsContent>
-            </Tabs>
-          </div>
+    <div className="container mx-auto px-4 py-8">
+      <CategoryTabs
+        filters={filters}
+        setFilters={(newFilters) => {
+          Object.entries(newFilters).forEach(([key, value]) => {
+            updateFilter(key as keyof SearchFilters, value);
+          });
+        }}
+      />
+      <div className="flex gap-6">
+        <SearchSidebar />
+        <div className="flex-1">
+          {showContentTypeSwitch && (
+            <div className="inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground mb-4">
+              <button
+                onClick={() => updateFilter("contentType", ContentType.PRESETS)}
+                className={`inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 ${
+                  filters.contentType === ContentType.PRESETS
+                    ? "bg-background text-foreground shadow-sm"
+                    : "hover:bg-background/50 hover:text-foreground"
+                }`}
+              >
+                Presets
+              </button>
+              <button
+                onClick={() => updateFilter("contentType", ContentType.PACKS)}
+                className={`inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 ${
+                  filters.contentType === ContentType.PACKS
+                    ? "bg-background text-foreground shadow-sm"
+                    : "hover:bg-background/50 hover:text-foreground"
+                }`}
+              >
+                Preset Packs
+              </button>
+            </div>
+          )}
+          <ContentExplorer mode="explore" />
         </div>
       </div>
     </div>

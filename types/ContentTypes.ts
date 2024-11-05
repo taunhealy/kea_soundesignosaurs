@@ -1,10 +1,8 @@
 import { ContentType } from "@prisma/client";
 import { SearchFilters } from "./SearchTypes";
-
-export type ListingType = 'UPLOADED' | 'DOWNLOADED';
-
+import { UserStatus } from "./enums";
 export interface ContentListingParams {
-  listingType: ListingType;
+  userStatus: UserStatus;
   contentType: ContentType;
   filters?: SearchFilters;
 }

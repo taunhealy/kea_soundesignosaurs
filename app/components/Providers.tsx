@@ -1,6 +1,7 @@
 "use client";
 
 import { ReactQueryProvider } from "@/app/components/ReactQueryProvider";
+import { SearchProvider } from "@/contexts/SearchContext";
 import ErrorBoundary from "@/app/components/ErrorBoundary";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import dynamic from "next/dynamic";
@@ -21,10 +22,12 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <ReactQueryProvider>
-      <ErrorBoundary>{children}</ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <ReactQueryDevtools initialIsOpen={false} />
-      </QueryClientProvider>
+      <SearchProvider>
+        <ErrorBoundary>{children}</ErrorBoundary>
+        <QueryClientProvider client={queryClient}>
+          <ReactQueryDevtools initialIsOpen={false} />
+        </QueryClientProvider>
+      </SearchProvider>
     </ReactQueryProvider>
   );
 }

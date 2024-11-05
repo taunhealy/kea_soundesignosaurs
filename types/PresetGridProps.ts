@@ -1,6 +1,10 @@
-import { ContentType, PriceType } from "@prisma/client";    
+import { ContentType, PriceType } from "@prisma/client";
 
 export interface PresetGridProps {
+  presets: any[];
+  type: string;
+  isLoading: boolean;
+  userId?: string;
   filters: {
     searchTerm: string;
     genres: string[];
