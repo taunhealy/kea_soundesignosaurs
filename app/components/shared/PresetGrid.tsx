@@ -2,37 +2,18 @@
 
 import { PresetCard } from "@/app/components/PresetCard";
 import { Skeleton } from "@/app/components/ui/skeleton";
-import { useSearch } from "@/contexts/SearchContext";
-import { UserStatus } from "@/types/enums";
-import { usePresets } from "@/app/hooks/queries/usePresets";
-import { Prisma } from "@prisma/client";
-import type { PresetUpload } from "@prisma/client";
-import { PresetGridProps } from "@/types/PresetGridProps";
-import { useAuth } from "@clerk/nextjs";
+import { PresetUpload } from "@prisma/client";
 
-type PresetWithRelations = Prisma.PresetUploadGetPayload<{
-  include: { soundDesigner: true; preset: true };
-}>;
+interface PresetGridProps {
+  presets?: any[];
+  type: "uploaded" | "downloaded" | "explore";
+  isLoading: boolean;
+}
 
-export function PresetGrid() {
-  const { filters } = useSearch();
-  const {
-    data: presets,
-    isLoading,
-    error,
-  } = usePresets({
-    ...filters,
-    type: "uploaded",
-  });
-  const { userId } = useAuth();
-
-  console.log("PresetGrid - filters:", filters);
-  console.log("PresetGrid - presets:", presets);
-  console.log("PresetGrid - error:", error);
-
+export function PresetGrid({ presets, type, isLoading }: PresetGridProps) {
   if (isLoading) {
     return (
-      <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 grid-cols-1 md:grid-cols-1 lg:grid-cols-1">
         {[...Array(6)].map((_, i) => (
           <Skeleton key={i} className="h-[300px] w-full" />
         ))}
@@ -49,10 +30,14 @@ export function PresetGrid() {
   }
 
   return (
-    <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-      {/* @ts-ignore */}
-      {presets.map((preset) => (
-        <PresetCard key={preset.id} preset={preset} variant="default" />
+    <div className="grid gap-4 grid-cols-1 md:grid-cols-1 lg:grid-cols-1">
+      {presets.map((preset: PresetUpload) => (
+        <PresetCard
+          key={preset.id}
+          preset={preset}
+          variant="default"
+          type={type}
+        />
       ))}
     </div>
   );

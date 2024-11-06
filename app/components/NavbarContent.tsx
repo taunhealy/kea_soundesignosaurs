@@ -2,6 +2,7 @@ import Link from "next/link";
 import { UserButton, useAuth } from "@clerk/nextjs";
 import { Button } from "./ui/button";
 import { ShoppingCart } from "lucide-react";
+import { CartIndicator } from "./CartIndicator";
 
 export default function NavbarContent() {
   const { isSignedIn } = useAuth();
@@ -28,6 +29,7 @@ export default function NavbarContent() {
           </Link>
         )}
       </div>
+      <CartIndicator />
     </div>
   );
 }

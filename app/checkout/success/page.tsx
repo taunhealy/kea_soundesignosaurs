@@ -3,118 +3,81 @@ import { currentUser } from "@clerk/nextjs/server";
 import { stripe } from "@/lib/stripe";
 import prisma from "@/lib/prisma";
 import CheckoutStatus from "@/app/components/CheckoutStatus";
+import { auth } from "@clerk/nextjs/server";
 
 export default async function CheckoutSuccessPage({
   searchParams,
 }: {
   searchParams: { session_id: string };
 }) {
-  const user = await currentUser();
-  if (!user) {
-    return (
-      <CheckoutStatus
-        status="error"
-        message="Please sign in to complete your purchase"
-        redirect="/sign-in"
-      />
-    );
+  const { userId } = await auth();
+  if (!userId || !searchParams.session_id) {
+    redirect("/");
   }
 
-  const sessionId = searchParams.session_id;
-  if (!sessionId) {
-    return (
-      <CheckoutStatus
-        status="error"
-        message="Your session has expired. Please try again."
-        redirect="/cart"
-      />
-    );
+  const session = await stripe.checkout.sessions.retrieve(
+    searchParams.session_id,
+    {
+      expand: ["line_items", "line_items.data.price.product"],
+    }
+  );
+
+  if (!session.metadata?.cartId) {
+    throw new Error("No cart ID found in session metadata");
   }
 
-  try {
-    const session = await stripe.checkout.sessions.retrieve(sessionId);
+  const cartItems = await prisma.cartItem.findMany({
+    where: {
+      cartId: session.metadata.cartId,
+    },
+    include: {
+      preset: true,
+      pack: true,
+    },
+  });
 
-    if (session.payment_status !== "paid") {
-      return (
-        <CheckoutStatus
-          status="error"
-          message="Your payment was not completed. Please try again."
-          redirect="/cart"
-        />
-      );
-    }
-
-    const cartItems = JSON.parse(session.metadata?.cartItems || "[]");
-    if (!cartItems.length) {
-      return (
-        <CheckoutStatus
-          status="error"
-          message="No items found in your order. Please try again."
-          redirect="/cart"
-        />
-      );
-    }
-
-    try {
-      // Database operations...
-      await prisma.cart.update({
-        where: {
-          userId_type: {
-            userId: user.id,
-            type: "CART",
+  const downloads = await Promise.all(
+    cartItems.map(async (item) => {
+      if (item.itemType === "PRESET" && item.presetId) {
+        return prisma.presetDownload.create({
+          data: {
+            userId,
+            presetId: item.presetId,
           },
-        },
-        data: {
-          items: {
-            deleteMany: {},
+        });
+      } else if (item.itemType === "PACK" && item.packId) {
+        return prisma.presetPackDownload.create({
+          data: {
+            userId,
+            packId: item.packId,
           },
-        },
-      });
+        });
+      }
+      return null;
+    })
+  );
 
-      await Promise.all(
-        cartItems.map((item: { id: string; type: string }) =>
-          prisma.download.create({
-            data: {
-              userId: user.id,
-              ...(item.type === "PRESET"
-                ? { presetId: item.id }
-                : { packId: item.id }),
-            },
-          })
-        )
-      );
+  const successfulDownloads = downloads.filter(Boolean);
+  console.log(`Created ${successfulDownloads.length} download records`);
 
-      // On success:
-      return (
-        <CheckoutStatus
-          status="success"
-          message="Thank you for your purchase!"
-          redirect={
-            cartItems.some((item: { type: string }) => item.type === "PACK") &&
-            !cartItems.some((item: { type: string }) => item.type === "PRESET")
-              ? "/dashboard/packs?tab=downloaded"
-              : "/dashboard/presets?tab=downloaded"
-          }
-        />
-      );
-    } catch (dbError) {
-      console.error("Database error:", dbError);
-      return (
-        <CheckoutStatus
-          status="error"
-          message="We're processing your order. Please check your downloads in a few minutes."
-          redirect="/dashboard"
-        />
-      );
-    }
-  } catch (error) {
-    console.error("Error processing success page:", error);
-    return (
-      <CheckoutStatus
-        status="error"
-        message="We're verifying your purchase. Please check your downloads in a few minutes."
-        redirect="/dashboard"
-      />
-    );
+  if (successfulDownloads.length === 0) {
+    throw new Error("Failed to create any download records");
   }
+
+  // Delete cart items after successful download records creation
+  await prisma.cartItem.deleteMany({
+    where: {
+      cartId: session.metadata.cartId,
+    },
+  });
+
+  // Delete the cart itself
+  await prisma.cart.delete({
+    where: {
+      id: session.metadata.cartId,
+    },
+  });
+
+  // Redirect to downloads page
+  redirect("/dashboard/presets?type=downloaded");
 }

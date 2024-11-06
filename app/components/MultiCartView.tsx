@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useAppDispatch, useAppSelector } from "../store/hooks";
+import { useAppDispatch, useAppSelector } from "@/app/store/hooks";
 import { CartType } from "@prisma/client";
 import {
   fetchCartItems,
@@ -10,9 +10,14 @@ import {
   selectSavedItems,
   selectWishlistItems,
   deleteCartItem,
-} from "../store/features/cartSlice";
-import { Button } from "./ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
+} from "@/app/store/features/cartSlice";
+import { Button } from "@/app/components/ui/button";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/app/components/ui/tabs";
 import { CartItem } from "@/lib/interfaces";
 import { Trash, MoveRight } from "lucide-react";
 import { toast } from "react-hot-toast";
@@ -147,7 +152,11 @@ export function MultiCartView() {
     try {
       setDeletingId(itemId);
       await dispatch(deleteCartItem({ itemId, type })).unwrap();
-      await dispatch(fetchCartItems(type.toLowerCase() as "cart" | "savedForLater" | "wishlist"));
+      await dispatch(
+        fetchCartItems(
+          type.toLowerCase() as "cart" | "savedForLater" | "wishlist"
+        )
+      );
       toast.success("Item removed");
     } catch (error) {
       toast.error("Failed to remove item");

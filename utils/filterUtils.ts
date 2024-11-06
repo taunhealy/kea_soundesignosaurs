@@ -1,11 +1,10 @@
 import { SearchFilters } from "@/types/SearchTypes";
-import { DisplayMode, UserStatus } from "@/types/enums";
+import { UserStatus } from "@/types/enums";
 import { ContentType } from "@prisma/client";
 
 export const DEFAULT_FILTERS: SearchFilters = {
   searchTerm: "",
   contentType: ContentType.PRESETS,
-  displayMode: DisplayMode.BROWSE,
   userStatus: UserStatus.NONE,
   priceTypes: [],
   genres: [],
@@ -13,6 +12,11 @@ export const DEFAULT_FILTERS: SearchFilters = {
   presetTypes: [],
   tags: [],
   showAll: false,
+  page: 1,
+  pageSize: 20,
+  categories: [],
+  sortBy: "createdAt",
+  sortOrder: "desc",
 };
 
 export function updateFilter<K extends keyof SearchFilters>(

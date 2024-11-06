@@ -34,6 +34,7 @@ model SoundDesigner {
 // Core Content Models
 model PresetUpload {
   id              String           @id @default(cuid())
+  stripeProductId String?         @unique
   userId          String
   title           String           @db.VarChar(255)
   description     String?          @db.Text
@@ -123,15 +124,14 @@ model PresetPackUpload {
 
 // Download Tracking Models
 model PresetDownload {
-  id        String       @id @default(cuid())
+  id        String   @id @default(cuid())
   userId    String
-  createdAt DateTime     @default(now())
-  
-  preset    PresetUpload @relation(fields: [presetId], references: [id])
   presetId  String
+  preset    PresetUpload @relation(fields: [presetId], references: [id])
+  createdAt DateTime @default(now())
 
-  @@index([userId])
-  @@index([presetId])
+  // Add a constraint to prevent self-downloads
+  @@unique([userId, presetId])
 }
 
 model PresetPackDownload {
@@ -379,3 +379,4 @@ enum ContentType {
   PRESETS
   PACKS
 }
+

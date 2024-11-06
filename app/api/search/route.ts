@@ -1,14 +1,18 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { PresetType } from "@/types/PresetTypes";
+import { PresetUpload } from "@prisma/client";
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const query = searchParams.get("q") || "";
     const genres = searchParams.get("genres")?.split(",").filter(Boolean) || [];
-    const vsts = searchParams.get("vsts")?.split(",").filter(Boolean) || [];
-    const presetTypes = searchParams.get("presetTypes")?.split(",").filter(Boolean) || [];
+    const vstTypes =
+      searchParams.get("vstTypes")?.split(",").filter(Boolean) || [];
+    const priceTypes =
+      searchParams.get("priceTypes")?.split(",").filter(Boolean) || [];
+    const presetTypes =
+      searchParams.get("presetTypes")?.split(",").filter(Boolean) || [];
 
     const whereClause: any = {
       OR: [
@@ -17,42 +21,37 @@ export async function GET(request: Request) {
       ],
     };
 
-    // Add filters only if they're not empty
     const AND = [];
 
     if (genres.length > 0) {
       AND.push({
-        genre: {
-          name: {
-            in: genres,
-          },
+        genreId: { in: genres },
+      });
+    }
+
+    if (vstTypes.length > 0) {
+      AND.push({
+        vst: {
+          type: { in: vstTypes },
         },
       });
     }
 
-    if (vsts.length > 0) {
+    if (priceTypes.length > 0) {
       AND.push({
-        vst: {
-          name: {
-            in: vsts,
-          },
-        },
+        priceType: { in: priceTypes },
       });
     }
 
     if (presetTypes.length > 0) {
       AND.push({
-        presetType: {
-          in: presetTypes,
-        },
+        presetType: { in: presetTypes },
       });
     }
 
     if (AND.length > 0) {
       whereClause.AND = AND;
     }
-
-    console.log('Search query whereClause:', JSON.stringify(whereClause, null, 2));
 
     const results = await prisma.presetUpload.findMany({
       where: whereClause,
@@ -71,10 +70,12 @@ export async function GET(request: Request) {
       },
     });
 
-    console.log(`Found ${results.length} results`);
     return NextResponse.json(results);
   } catch (error) {
-    console.error("Search error details:", error);
-    return NextResponse.json({ error: "Search failed" }, { status: 500 });
+    console.error("Search error:", error);
+    return NextResponse.json(
+      { error: "Failed to search presets" },
+      { status: 500 }
+    );
   }
 }

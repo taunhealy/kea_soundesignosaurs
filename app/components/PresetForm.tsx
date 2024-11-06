@@ -42,6 +42,8 @@ const presetSchema = z.object({
     .enum(["PAD", "LEAD", "PLUCK", "BASS", "FX", "OTHER"])
     .optional(),
   price: z.number().optional(),
+  presetFileUrl: z.string().optional(),
+  originalFileName: z.string().optional(),
 });
 
 type PresetFormData = z.infer<typeof presetSchema>;
@@ -201,8 +203,10 @@ export function PresetForm({ initialData, presetId }: PresetFormProps) {
 
   const handleUpload = (res: any) => {
     if (res && res[0]) {
+      console.log("UploadThing response:", res[0]);
       const originalFileName = res[0].name;
       const fileNameWithoutExt = originalFileName.replace(/\.[^/.]+$/, "");
+      const fileExtension = originalFileName.split(".").pop();
 
       // Get current preset type from form
       const currentPresetType = watch("presetType") as PresetType;
@@ -213,23 +217,30 @@ export function PresetForm({ initialData, presetId }: PresetFormProps) {
         currentPresetType
       );
 
+      // Add back the file extension
+      const finalFileName = `${formattedFileName}.${fileExtension}`;
+
+      console.log("Setting uploaded file:", {
+        url: res[0].url,
+        name: finalFileName,
+        originalName: originalFileName,
+      });
+
       setUploadedFile({
         url: res[0].url,
-        name: formattedFileName,
+        name: finalFileName,
         originalName: originalFileName,
       });
 
       if (!watch("title")) {
         setValue("title", formattedFileName);
       }
+
+      // Store both the URL and filename
+      setValue("presetFileUrl", res[0].url);
+      setValue("originalFileName", originalFileName);
     }
   };
-
-  useEffect(() => {
-    console.log("Current form values:", control._formValues);
-    console.log("Initial data:", initialData);
-    console.log("Preset ID:", presetId);
-  }, [control._formValues, initialData, presetId]);
 
   const priceType = watch("priceType");
 
@@ -414,29 +425,6 @@ export function PresetForm({ initialData, presetId }: PresetFormProps) {
           <span>{presetId ? "Update Preset" : "Create Preset"}</span>
         )}
       </Button>
-
-      {process.env.NODE_ENV !== "production" && (
-        <div className="mt-4 p-4 bg-gray-100 rounded">
-          <p className="font-bold">Debug Info:</p>
-          <pre className="text-xs overflow-auto">
-            {JSON.stringify(
-              {
-                formValues: getValues(),
-                errorMessages: Object.fromEntries(
-                  Object.entries(errors).map(([key, value]) => [
-                    key,
-                    value?.message,
-                  ])
-                ),
-                isSubmitting,
-                formIsSubmitting,
-              },
-              null,
-              2
-            )}
-          </pre>
-        </div>
-      )}
     </form>
   );
 }

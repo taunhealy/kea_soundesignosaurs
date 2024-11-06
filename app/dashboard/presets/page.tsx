@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Tabs,
@@ -10,30 +10,39 @@ import {
 } from "@/app/components/ui/tabs";
 import { UploadPresetButton } from "@/app/components/dashboard/UploadPresetButton";
 import { SearchSidebar } from "@/app/components/SearchSidebar";
-import { SearchFilters } from "@/types/SearchTypes";
-import { ContentType } from "@prisma/client";
-import { UserStatus } from "@/types/enums";
-import { DisplayMode } from "@/types/enums";
 import { PresetGrid } from "@/app/components/shared/PresetGrid";
+import { usePresets } from "@/app/hooks/queries/usePresets";
+import { useSearch } from "@/contexts/SearchContext";
+import { SearchFilters } from "@/types/SearchTypes";
+import { UserStatus } from "@/types/enums";
 
 export default function PresetsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { filters, updateFilter } = useSearch();
+
   const [activeTab, setActiveTab] = useState<"uploaded" | "downloaded">(
     (searchParams.get("type") as "uploaded" | "downloaded") || "uploaded"
   );
-  const [filters, setFilters] = useState<SearchFilters>({
-    searchTerm: "",
-    genres: [],
-    vstTypes: [],
-    presetTypes: [],
-    tags: [],
-    showAll: false,
-    priceTypes: [],
-    contentType: ContentType.PRESETS,
-    displayMode: DisplayMode.BROWSE,
-    userStatus: UserStatus.UPLOADED,
-  });
+
+  const { data: presets, isLoading } = usePresets(activeTab);
+
+  useEffect(() => {
+    const status =
+      activeTab === "uploaded" ? UserStatus.UPLOADED : UserStatus.DOWNLOADED;
+    if (filters.userStatus !== status) {
+      updateFilter("userStatus", status);
+    }
+  }, [activeTab]);
+
+  const handleSearch = (newFilters: Partial<SearchFilters>) => {
+    const { userStatus } = filters;
+    Object.entries(newFilters).forEach(([key, value]) => {
+      if (key !== "userStatus") {
+        updateFilter(key as keyof SearchFilters, value);
+      }
+    });
+  };
 
   const handleTabChange = (value: string) => {
     setActiveTab(value as "uploaded" | "downloaded");
@@ -47,9 +56,7 @@ export default function PresetsPage() {
         <UploadPresetButton />
       </div>
       <div className="flex min-w-full w-full gap-6 overflow-hidden">
-        <div className="w-64 flex-shrink-0">
-          <SearchSidebar />
-        </div>
+        <SearchSidebar filters={filters} onSubmit={handleSearch} />
         <div className="flex-auto w-full">
           <Tabs
             defaultValue={activeTab}
@@ -61,10 +68,18 @@ export default function PresetsPage() {
               <TabsTrigger value="downloaded">Downloaded</TabsTrigger>
             </TabsList>
             <TabsContent value="uploaded">
-              <PresetGrid />
+              <PresetGrid
+                presets={presets}
+                type="uploaded"
+                isLoading={isLoading}
+              />
             </TabsContent>
             <TabsContent value="downloaded">
-              <PresetGrid />
+              <PresetGrid
+                presets={presets}
+                type="downloaded"
+                isLoading={isLoading}
+              />
             </TabsContent>
           </Tabs>
         </div>

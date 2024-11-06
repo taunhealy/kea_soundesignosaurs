@@ -54,7 +54,7 @@ export function PresetPackForm({ initialData, packId }: PresetPackFormProps) {
   const { data: userPresets } = useQuery({
     queryKey: ["presets", "uploaded"],
     queryFn: async () => {
-      const response = await fetch("/api/presets/user?type=uploaded");
+      const response = await fetch("/api/presets?type=uploaded");
       if (!response.ok) throw new Error("Failed to fetch presets");
       return response.json();
     },

@@ -28,11 +28,6 @@ export enum SystemGenres {
   SYSTEM = "SYSTEM",
 }
 
-export enum DisplayMode {
-  BROWSE = "browse",
-  REQUESTS = "requests",
-}
-
 export enum UserStatus {
   UPLOADED = "uploaded",
   DOWNLOADED = "downloaded",
@@ -42,3 +37,26 @@ export enum UserStatus {
 export const isSystemGenre = (name: string): boolean => {
   return Object.values(SystemGenres).includes(name as SystemGenres);
 };
+
+export enum PresetType {
+  PAD = "PAD",
+  LEAD = "LEAD",
+  PLUCK = "PLUCK",
+  BASS = "BASS",
+  FX = "FX",
+  OTHER = "OTHER",
+}
+
+export enum PriceType {
+  FREE = "FREE",
+  PREMIUM = "PREMIUM",
+}
+
+export enum VstType {
+  SERUM = "SERUM",
+  VITAL = "VITAL",
+  MASSIVE = "MASSIVE",
+  PHASE_PLANT = "PHASE_PLANT",
+  PIGMENTS = "PIGMENTS",
+  OTHER = "OTHER",
+}

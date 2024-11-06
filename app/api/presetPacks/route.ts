@@ -73,32 +73,87 @@ export async function POST(request: Request) {
 
 export async function GET(request: Request) {
   try {
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     const { searchParams } = new URL(request.url);
+
+    // Extract all possible filter parameters
     const searchTerm = searchParams.get("searchTerm") || "";
+    const priceTypes =
+      searchParams.get("priceTypes")?.split(",").filter(Boolean) || [];
+    const genres = searchParams.get("genres")?.split(",").filter(Boolean) || [];
+    const vstTypes =
+      searchParams.get("vstTypes")?.split(",").filter(Boolean) || [];
+
+    // Build the where clause
+    const where: any = {
+      OR: [
+        { title: { contains: searchTerm, mode: "insensitive" } },
+        { description: { contains: searchTerm, mode: "insensitive" } },
+      ],
+    };
+
+    // Add filters for presets within packs
+    const presetFilters: any[] = [];
+
+    if (genres.length) {
+      presetFilters.push({ genreId: { in: genres } });
+    }
+
+    if (vstTypes.length) {
+      presetFilters.push({
+        vst: {
+          type: {
+            in: vstTypes,
+          },
+        },
+      });
+    }
+
+    if (priceTypes.length) {
+      presetFilters.push({ priceType: { in: priceTypes } });
+    }
+
+    // Only add preset filters if there are any
+    if (presetFilters.length > 0) {
+      where.presets = {
+        some: {
+          preset: {
+            AND: presetFilters,
+          },
+        },
+      };
+    }
 
     const packs = await prisma.presetPackUpload.findMany({
       where: {
-        OR: [
-          { title: { contains: searchTerm, mode: "insensitive" } },
-          { description: { contains: searchTerm, mode: "insensitive" } },
-        ],
+        soundDesigner: {
+          userId: userId,
+        },
       },
       include: {
+        presets: {
+          include: {
+            preset: {
+              include: {
+                genre: true,
+                vst: true,
+                soundDesigner: {
+                  select: {
+                    username: true,
+                    profileImage: true,
+                  },
+                },
+              },
+            },
+          },
+        },
         soundDesigner: {
           select: {
             username: true,
             profileImage: true,
-          },
-        },
-        presets: {
-          include: {
-            preset: {
-              select: {
-                id: true,
-                title: true,
-                soundPreviewUrl: true,
-              },
-            },
           },
         },
       },

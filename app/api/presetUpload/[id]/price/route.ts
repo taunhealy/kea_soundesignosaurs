@@ -3,6 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 import { trackPriceChange } from "@/utils/ecommerce/priceTracking";
 import { z } from "zod";
+import { stripe } from "@/lib/stripe";
 
 const priceSchema = z.object({
   price: z.number().min(5, "Price must be at least $5").max(1000),
@@ -118,6 +119,15 @@ export async function PATCH(
             cartItemPriceHistory
           );
         }
+      }
+
+      if (currentPreset.stripeProductId) {
+        await stripe.products.update(currentPreset.stripeProductId, {
+          default_price_data: {
+            currency: 'usd',
+            unit_amount: Math.round(validatedPrice * 100),
+          },
+        });
       }
 
       return NextResponse.json({

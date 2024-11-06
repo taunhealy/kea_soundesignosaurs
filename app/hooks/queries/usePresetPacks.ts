@@ -18,7 +18,7 @@ export function usePresetPacks(filters: SearchFilters) {
   return useQuery({
     queryKey: queryKeys.packs.list(queryString.toString()),
     queryFn: async () => {
-      const response = await fetch(`/api/presetPacks?${queryString.toString()}`);
+      const response = await fetch(`/api/search?${queryString.toString()}`);
       if (!response.ok) {
         throw new Error("Failed to fetch preset packs");
       }

@@ -1,11 +1,19 @@
 import { useQuery } from "@tanstack/react-query";
-import { QueryParams, QueryConfig } from "@/types/QueryTypes";
-import { queryKeys } from "@/lib/queries";
+import { useSearch } from "@/contexts/SearchContext";
+import { queryKeys } from "@/app/constants/queryKeys";
 
-export function usePresets(params: QueryParams, config?: QueryConfig) {
+export function usePresets(type?: "uploaded" | "downloaded") {
+  const { filters } = useSearch();
+
   const queryString = new URLSearchParams();
 
-  Object.entries(params).forEach(([key, value]) => {
+  // Add type filter if provided
+  if (type) {
+    queryString.append("type", type);
+  }
+
+  // Add search filters from context
+  Object.entries(filters).forEach(([key, value]) => {
     if (value !== undefined) {
       if (Array.isArray(value)) {
         queryString.append(key, value.join(","));
@@ -16,14 +24,26 @@ export function usePresets(params: QueryParams, config?: QueryConfig) {
   });
 
   return useQuery({
-    queryKey: queryKeys.presets.list(queryString.toString()),
+    queryKey: ["presets", queryString.toString()],
     queryFn: async () => {
-      const response = await fetch(`/api/presets?${queryString.toString()}`);
+      const response = await fetch(`/api/search?${queryString.toString()}`);
       if (!response.ok) {
         throw new Error("Failed to fetch presets");
       }
       return response.json();
     },
-    ...config,
+  });
+}
+
+// For fetching single preset details
+export function usePresetDetails(id: string) {
+  return useQuery({
+    queryKey: queryKeys.presets.detail(id),
+    queryFn: async () => {
+      const response = await fetch(`/api/presets/${id}`);
+      if (!response.ok) throw new Error("Failed to fetch preset");
+      return response.json();
+    },
+    enabled: !!id,
   });
 }

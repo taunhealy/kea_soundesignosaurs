@@ -4,14 +4,17 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Tabs, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
 import { SearchFilters } from "@/types/SearchTypes";
+import { ContentType } from "@prisma/client";
 
-// Add this interface at the top of CategoryTabs.tsx
 interface CategoryTabsProps {
-  filters: SearchFilters;
-  setFilters: React.Dispatch<React.SetStateAction<SearchFilters>>;
+  selectedContentType: ContentType;
+  onSelect: (contentType: ContentType) => void;
 }
 
-export function CategoryTabs({ filters, setFilters }: CategoryTabsProps) {
+export function CategoryTabs({
+  selectedContentType,
+  onSelect,
+}: CategoryTabsProps) {
   const searchParams = useSearchParams();
   const category = searchParams?.get("category") || "presets";
 
@@ -20,6 +23,9 @@ export function CategoryTabs({ filters, setFilters }: CategoryTabsProps) {
       <TabsList>
         <TabsTrigger value="presets" asChild>
           <Link href="/?category=presets">Presets</Link>
+        </TabsTrigger>
+        <TabsTrigger value="packs" asChild>
+          <Link href="/?category=packs">Packs</Link>
         </TabsTrigger>
         <TabsTrigger value="requests" asChild>
           <Link href="/?category=requests">Requests</Link>

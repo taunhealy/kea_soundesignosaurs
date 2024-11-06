@@ -1,37 +1,33 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Label } from "./ui/label";
 import { Checkbox } from "./ui/checkbox";
+import { SearchFilters } from "@/types/SearchTypes";
+import { PresetType } from "@prisma/client";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 
-export function SearchForm() {
-  const [query, setQuery] = useState("");
-  const [type, setType] = useState<string[]>([]);
-  const [genre, setGenre] = useState<string[]>([]);
-  const [vst, setVst] = useState<string[]>([]);
-  const router = useRouter();
+interface SearchFormProps {
+  filters: SearchFilters;
+  onSubmit: (data: SearchFilters) => void;
+}
 
-  // Create a handler function for type changes
-  const handleTypeChange = (typeValue: string, checked: boolean) => {
-    setType((prev) =>
-      checked ? [...prev, typeValue] : prev.filter((t) => t !== typeValue)
-    );
-  };
+const searchSchema = z.object({
+  searchTerm: z.string().default(""),
+  presetTypes: z.array(z.enum(["preset", "sample"])).default([]),
+  genres: z.array(z.string()).default([]),
+  vstTypes: z.array(z.string()).default([]),
+});
 
-  const handleSearch = (event: React.FormEvent) => {
-    event.preventDefault();
-    const searchParams = new URLSearchParams();
-    if (query) searchParams.append("q", query);
-    if (type.length) searchParams.append("type", type.join(","));
-    if (genre.length) searchParams.append("genre", genre.join(","));
-    if (vst.length) searchParams.append("vst", vst.join(","));
-
-    router.push(`/search?${searchParams.toString()}`);
-  };
+export function SearchForm({ filters, onSubmit }: SearchFormProps) {
+  const { register, handleSubmit } = useForm<SearchFilters>({
+    defaultValues: filters,
+    resolver: zodResolver(searchSchema),
+  });
 
   return (
     <Card className="w-full max-w-3xl mx-auto">
@@ -39,51 +35,36 @@ export function SearchForm() {
         <CardTitle>Search Presets and Samples</CardTitle>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSearch} className="space-y-6">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div>
-            <Label htmlFor="search">Search</Label>
+            <Label htmlFor="searchTerm">Search</Label>
             <Input
-              id="search"
+              id="searchTerm"
               type="text"
               placeholder="Search for presets and samples..."
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              {...register("searchTerm")}
             />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label>Type</Label>
-              <div className="space-y-1">
+              <div className="flex items-center space-x-2">
                 <Checkbox
                   id="type-preset"
-                  checked={type.includes("preset")}
-                  onCheckedChange={(checked) => {
-                    handleTypeChange("preset", checked as boolean);
-                  }}
+                  {...register("presetTypes")}
+                  value="preset"
                 />
                 <Label htmlFor="type-preset">Preset</Label>
               </div>
-              <div className="space-y-1">
+              <div className="flex items-center space-x-2">
                 <Checkbox
                   id="type-sample"
-                  checked={type.includes("sample")}
-                  onCheckedChange={(checked) => {
-                    handleTypeChange("sample", checked as boolean);
-                  }}
+                  {...register("presetTypes")}
+                  value="sample"
                 />
                 <Label htmlFor="type-sample">Sample</Label>
               </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Genre</Label>
-              {/* Add genre checkboxes here */}
-            </div>
-
-            <div className="space-y-2">
-              <Label>VST</Label>
-              {/* Add VST checkboxes here */}
             </div>
           </div>
 

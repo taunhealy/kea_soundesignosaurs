@@ -230,7 +230,7 @@ export async function POST(
           throw new Error("Preset not found");
         }
       } else if (packId) {
-        const pack = await tx.presetPack.findUnique({
+        const pack = await tx.presetPackUpload.findUnique({
           where: { id: packId },
         });
         if (!pack) {
@@ -254,7 +254,9 @@ export async function POST(
                     })
                   )?.price || 0
                 : (
-                    await tx.presetPack.findUnique({ where: { id: packId } })
+                    await tx.presetPackUpload.findUnique({
+                      where: { id: packId },
+                    })
                   )?.price || 0,
             },
           },

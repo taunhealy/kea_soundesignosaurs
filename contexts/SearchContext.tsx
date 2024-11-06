@@ -2,13 +2,11 @@ import { createContext, useContext, useState, ReactNode } from "react";
 import { SearchFilters } from "@/types/SearchTypes";
 import { toggleArrayFilter } from "@/utils/filterUtils";
 import { ContentType } from "@prisma/client";
-import { DisplayMode } from "@/types/enums";
 import { UserStatus } from "@/types/enums";
 
 const DEFAULT_FILTERS: SearchFilters = {
   searchTerm: "",
   contentType: ContentType.PRESETS,
-  displayMode: DisplayMode.BROWSE,
   userStatus: UserStatus.NONE,
   priceTypes: [],
   genres: [],
@@ -16,10 +14,16 @@ const DEFAULT_FILTERS: SearchFilters = {
   presetTypes: [],
   tags: [],
   showAll: false,
+  page: 1,
+  pageSize: 20,
+  categories: [],
+  sortBy: "createdAt",
+  sortOrder: "desc",
 };
 
 interface SearchContextType {
   filters: SearchFilters;
+  setFilters: (filters: SearchFilters) => void;
   updateFilter: <K extends keyof SearchFilters>(
     key: K,
     value: SearchFilters[K]
@@ -66,6 +70,7 @@ export function SearchProvider({ children }: { children: ReactNode }) {
     <SearchContext.Provider
       value={{
         filters,
+        setFilters,
         updateFilter,
         toggleFilter,
         resetFilters,

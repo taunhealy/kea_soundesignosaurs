@@ -53,6 +53,9 @@ export async function POST(req: Request) {
           product_data: {
             name: product.title,
             description: product.description || undefined,
+            metadata: {
+              presetId: product.id
+            }
           },
           unit_amount: Math.round(Number(product.price) * 100), // Convert to cents
         },
@@ -68,14 +71,8 @@ export async function POST(req: Request) {
       success_url: `${process.env.NEXT_PUBLIC_APP_URL}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/cart`,
       metadata: {
+        cartId: cart.id,
         userId,
-        cartItems: JSON.stringify(
-          cart.items.map((item) => ({
-            id: item.preset?.id || item.pack?.id,
-            type: item.preset ? 'PRESET' : 'PACK',
-            price: item.preset?.price || item.pack?.price,
-          }))
-        ),
       },
     });
 

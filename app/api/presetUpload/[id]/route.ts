@@ -97,6 +97,7 @@ export async function PATCH(
         presetFileUrl: body.presetFileUrl,
         originalFileName: body.originalFileName,
         price: body.price || 0,
+        stripeProductId: body.stripeProductId,
       },
       include: {
         soundDesigner: {
@@ -125,33 +126,61 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { userId } = await auth();
+    const { userId: clerkUserId } = await auth();
 
-    if (!userId) {
-      return new NextResponse("Unauthorized", { status: 401 });
+    if (!clerkUserId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Get the soundDesigner
+    const soundDesigner = await prisma.soundDesigner.findUnique({
+      where: { userId: clerkUserId },
+      select: { id: true },
+    });
+
+    if (!soundDesigner) {
+      return NextResponse.json(
+        { error: "Sound Designer not found" },
+        { status: 403 }
+      );
+    }
+
+    // Get the preset
     const preset = await prisma.presetUpload.findUnique({
       where: { id: params.id },
       select: { soundDesignerId: true },
     });
 
     if (!preset) {
-      return new NextResponse("Preset not found", { status: 404 });
+      return NextResponse.json({ error: "Preset not found" }, { status: 404 });
     }
 
-    // Ensure user owns the preset
-    if (preset.soundDesignerId !== userId) {
-      return new NextResponse("Unauthorized", { status: 403 });
+    if (preset.soundDesignerId !== soundDesigner.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
-    await prisma.presetUpload.delete({
-      where: { id: params.id },
+    // Use a transaction to delete related records first
+    await prisma.$transaction(async (tx) => {
+      // First delete all related downloads
+      await tx.presetDownload.deleteMany({
+        where: { presetId: params.id },
+      });
+
+      // Then delete the preset itself
+      await tx.presetUpload.delete({
+        where: { id: params.id },
+      });
     });
 
-    return new NextResponse(null, { status: 204 });
+    return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Error deleting preset:", error);
-    return new NextResponse("Internal Server Error", { status: 500 });
+    return NextResponse.json(
+      {
+        error: "Failed to delete preset",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 }
+    );
   }
 }

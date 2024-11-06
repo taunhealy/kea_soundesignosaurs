@@ -1,11 +1,14 @@
-import { NextResponse, NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
-import { PresetType } from "@prisma/client";
+import { stripe } from "@/lib/stripe";
 
+// GET handler
 export async function GET(request: Request) {
   try {
     const { userId } = await auth();
+    const { searchParams } = new URL(request.url);
+    const type = searchParams.get("type");
 
     if (!userId) {
       return NextResponse.json(
@@ -15,6 +18,19 @@ export async function GET(request: Request) {
     }
 
     const presets = await prisma.presetUpload.findMany({
+      where: {
+        ...(type === "downloaded"
+          ? {
+              downloads: {
+                some: {
+                  userId,
+                },
+              },
+            }
+          : {
+              userId,
+            }),
+      },
       include: {
         soundDesigner: {
           select: {
@@ -37,91 +53,78 @@ export async function GET(request: Request) {
   }
 }
 
-export async function POST(request: NextRequest) {
+// POST handler
+export async function POST(request: Request) {
+  console.log("POST request received");
+
   try {
     const { userId } = await auth();
+
     if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json(
+        { error: "Authentication required" },
+        { status: 401 }
+      );
     }
 
-    const data = await request.json();
-
-    // First, ensure the user has a SoundDesigner profile
-    let soundDesigner = await prisma.soundDesigner.findUnique({
-      where: { userId: userId },
+    // First, get the SoundDesigner record for this user
+    const soundDesigner = await prisma.soundDesigner.findUnique({
+      where: {
+        userId: userId,
+      },
     });
 
     if (!soundDesigner) {
-      soundDesigner = await prisma.soundDesigner.create({
-        data: {
-          userId: userId,
-          username: data.username || "Anonymous",
-          name: data.name || "Anonymous",
-          email: data.email || `${userId}@placeholder.com`,
+      return NextResponse.json(
+        { error: "SoundDesigner profile not found" },
+        { status: 404 }
+      );
+    }
+
+    const data = await request.json();
+    console.log("Received data:", data);
+
+    // Validate required fields
+    if (!data.title) {
+      return NextResponse.json({ error: "Title is required" }, { status: 400 });
+    }
+
+    // Create Stripe product if it's a premium preset
+    let stripeProductId = null;
+    if (data.priceType === "PREMIUM") {
+      const stripeProduct = await stripe.products.create({
+        name: data.title,
+        description: data.description || "",
+        default_price_data: {
+          currency: 'usd',
+          unit_amount: Math.round(data.price * 100), // Convert to cents
         },
       });
+      stripeProductId = stripeProduct.id;
     }
 
-    // Validate genre existence if genreId is provided
-    if (data.genreId) {
-      const genre = await prisma.genre.findUnique({
-        where: { id: data.genreId },
-      });
-      if (!genre) {
-        return NextResponse.json(
-          { error: "Selected genre does not exist" },
-          { status: 400 }
-        );
-      }
-    }
-
-    // Validate VST existence if vstId is provided
-    if (data.vstId) {
-      const vst = await prisma.vST.findUnique({
-        where: { id: data.vstId },
-      });
-      if (!vst) {
-        return NextResponse.json(
-          { error: "Selected VST does not exist" },
-          { status: 400 }
-        );
-      }
-    }
-
-    // Prepare the create data object
-    const createData: any = {
-      title: data.title,
-      description: data.description,
-      guide: data.guide,
-      spotifyLink: data.spotifyLink,
-      soundPreviewUrl: data.soundPreviewUrl,
-      presetFileUrl: data.presetFileUrl,
-      originalFileName: data.originalFileName,
-      presetType: data.presetType,
-      priceType: data.priceType || "FREE",
-      price: data.price,
-      userId: userId,
-      soundDesigner: {
-        connect: { id: soundDesigner.id }
-      }
-    };
-
-    // Only add relations if IDs are provided and valid
-    if (data.genreId) {
-      createData.genre = { connect: { id: data.genreId } };
-    }
-    if (data.vstId) {
-      createData.vst = { connect: { id: data.vstId } };
-    }
-
-    // Create the preset
     const preset = await prisma.presetUpload.create({
-      data: createData,
+      data: {
+        userId,
+        stripeProductId,
+        title: data.title,
+        description: data.description || "",
+        guide: data.guide || "",
+        spotifyLink: data.spotifyLink || "",
+        presetFileUrl: data.presetFileUrl || "",
+        originalFileName: data.originalFileName || "",
+        soundPreviewUrl: data.soundPreviewUrl || "",
+        priceType: data.priceType || "FREE",
+        price: data.priceType === "PREMIUM" ? Number(data.price) : 0,
+        presetType: data.presetType || "LEAD",
+        genreId: data.genreId || undefined,
+        vstId: data.vstId || undefined,
+        soundDesignerId: soundDesigner.id,
+      },
       include: {
         soundDesigner: {
           select: {
             username: true,
-            profileImage: true,
           },
         },
         genre: true,
@@ -131,11 +134,11 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(preset);
   } catch (error) {
-    console.error("Server error:", error);
+    console.error("[DEBUG] Preset upload POST error:", error);
     return NextResponse.json(
-      { 
-        error: "Failed to create preset",
-        details: error instanceof Error ? error.message : "Unknown error"
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to create preset",
       },
       { status: 500 }
     );

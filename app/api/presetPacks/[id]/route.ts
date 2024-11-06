@@ -2,33 +2,36 @@ import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 
-export async function GET(request: Request) {
+export async function GET(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
   try {
     const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Get the sound designer first
-    const soundDesigner = await prisma.soundDesigner.findUnique({
-      where: { userId },
-    });
-
-    if (!soundDesigner) {
-      return NextResponse.json(
-        { error: "Sound designer profile not found" },
-        { status: 404 }
-      );
-    }
-
-    const packs = await prisma.presetPackUpload.findMany({
+    // Get the specific pack by ID
+    const pack = await prisma.presetPackUpload.findUnique({
       where: {
-        soundDesignerId: soundDesigner.id,
+        id: params.id
       },
       include: {
         presets: {
           include: {
-            preset: true,
+            preset: {
+              include: {
+                genre: true,
+                vst: true,
+                soundDesigner: {
+                  select: {
+                    username: true,
+                    profileImage: true,
+                  },
+                },
+              },
+            },
           },
         },
         soundDesigner: {
@@ -40,11 +43,15 @@ export async function GET(request: Request) {
       },
     });
 
-    return NextResponse.json(packs);
+    if (!pack) {
+      return NextResponse.json({ error: "Pack not found" }, { status: 404 });
+    }
+
+    return NextResponse.json(pack);
   } catch (error) {
-    console.error("Error fetching preset packs:", error);
+    console.error("Error fetching preset pack:", error);
     return NextResponse.json(
-      { error: "Failed to fetch preset packs" },
+      { error: "Failed to fetch preset pack" },
       { status: 500 }
     );
   }

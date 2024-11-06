@@ -4,33 +4,34 @@ import { Button } from "./ui/button";
 import {
   ShoppingCartIcon,
   HeartIcon,
-  EditIcon,
   TrashIcon,
   DownloadIcon,
+  EditIcon,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
 import { useState } from "react";
-import Link from "next/link";
-import { Edit2Icon } from "lucide-react";
+import { DownloadButton } from "@/app/components/shared/DownloadButton";
 
 interface ItemActionButtonsProps {
-  id: string;
+  itemId: string;
   price?: number;
   type: "preset" | "pack";
   onDelete?: () => Promise<void>;
   downloadUrl?: string;
-  isOwner?: boolean;
+  itemStatus: "uploaded" | "downloaded" | null;
+  itemType?: "preset" | "pack";
+  title?: string;
+  showDownloadOnly?: boolean;
 }
 
 export function ItemActionButtons({
-  id,
-  price,
+  itemId,
   type,
-  onDelete,
+  itemStatus,
   downloadUrl,
-  isOwner,
+  onDelete,
 }: ItemActionButtonsProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -41,7 +42,9 @@ export function ItemActionButtons({
       const response = await fetch("/api/cart/CART", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ [type === "pack" ? "packId" : "presetId"]: id }),
+        body: JSON.stringify({
+          [type === "pack" ? "packId" : "presetId"]: itemId,
+        }),
       });
 
       if (!response.ok) {
@@ -68,7 +71,9 @@ export function ItemActionButtons({
       const response = await fetch("/api/cart/WISHLIST", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ [type === "pack" ? "packId" : "presetId"]: id }),
+        body: JSON.stringify({
+          [type === "pack" ? "packId" : "presetId"]: itemId,
+        }),
       });
 
       if (!response.ok) {
@@ -94,34 +99,6 @@ export function ItemActionButtons({
     },
   });
 
-  const handleDownload = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!downloadUrl) {
-      toast.error("No file available for download");
-      return;
-    }
-
-    try {
-      const response = await fetch(downloadUrl);
-      if (!response.ok) throw new Error("Failed to fetch file");
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `download.${type}`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-
-      toast.success("Download started successfully");
-    } catch (error) {
-      console.error("Download error:", error);
-      toast.error("Failed to download file");
-    }
-  };
-
   const handleDelete = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!onDelete) return;
@@ -137,30 +114,67 @@ export function ItemActionButtons({
     }
   };
 
-  const commonButtons = (
+  const handleEdit = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    router.push(`/dashboard/${type}s/edit/${itemId}`);
+  };
+
+  // If it's a downloaded item, show download and delete buttons
+  if (itemStatus === "downloaded") {
+    return (
+      <>
+        <DownloadButton
+          itemId={itemId}
+          itemType="preset"
+          downloadUrl={downloadUrl}
+        />
+      </>
+    );
+  }
+
+  // If it's an uploaded item, show edit, delete, and download buttons
+  if (itemStatus === "uploaded") {
+    return (
+      <>
+        <Button
+          onClick={handleEdit}
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 bg-white/90 hover:bg-white shadow-sm"
+        >
+          <EditIcon className="h-4 w-4" />
+        </Button>
+        <Button
+          onClick={handleDelete}
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 bg-white/90 hover:bg-white shadow-sm"
+        >
+          <TrashIcon className="h-4 w-4" />
+        </Button>
+        <DownloadButton
+          itemId={itemId}
+          itemType="preset"
+          downloadUrl={downloadUrl}
+        />
+      </>
+    );
+  }
+
+  // Default case: show cart and wishlist buttons
+  return (
     <>
-      {price && price > 0 ? (
-        <Button
-          onClick={(e) => {
-            e.stopPropagation();
-            addToCartMutation.mutate();
-          }}
-          variant="secondary"
-          size="icon"
-          className="h-8 w-8 bg-white/90 hover:bg-white shadow-sm interactive-element"
-        >
-          <ShoppingCartIcon className="h-4 w-4" />
-        </Button>
-      ) : (
-        <Button
-          onClick={handleDownload}
-          variant="secondary"
-          size="icon"
-          className="h-8 w-8 bg-white/90 hover:bg-white shadow-sm interactive-element"
-        >
-          <DownloadIcon className="h-4 w-4" />
-        </Button>
-      )}
+      <Button
+        onClick={(e) => {
+          e.stopPropagation();
+          addToCartMutation.mutate();
+        }}
+        variant="secondary"
+        size="icon"
+        className="h-8 w-8 bg-white/90 hover:bg-white shadow-sm interactive-element"
+      >
+        <ShoppingCartIcon className="h-4 w-4" />
+      </Button>
       <Button
         onClick={(e) => {
           e.stopPropagation();
@@ -173,35 +187,5 @@ export function ItemActionButtons({
         <HeartIcon className="h-4 w-4" />
       </Button>
     </>
-  );
-
-  const ownerButtons = (
-    <>
-      <Link
-        href={`/dashboard/${type}s/edit/${id}`}
-        className="p-2 bg-white/90 rounded-full hover:bg-white transition-colors"
-      >
-        <Edit2Icon className="h-4 w-4" />
-      </Link>
-      {onDelete && (
-        <Button
-          variant="ghost"
-          size="icon"
-          className="p-2 bg-white/90 rounded-full hover:bg-white hover:text-red-500 transition-colors"
-          onClick={handleDelete}
-        >
-          <TrashIcon className="h-4 w-4" />
-        </Button>
-      )}
-    </>
-  );
-
-  return (
-    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-      <div className="flex gap-2">
-        {commonButtons}
-        {isOwner && ownerButtons}
-      </div>
-    </div>
   );
 }
