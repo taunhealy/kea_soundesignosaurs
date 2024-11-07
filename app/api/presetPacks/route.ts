@@ -77,62 +77,30 @@ export async function GET(request: Request) {
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
     const { searchParams } = new URL(request.url);
+    const userStatus = searchParams.get("userStatus");
 
-    // Extract all possible filter parameters
-    const searchTerm = searchParams.get("searchTerm") || "";
-    const priceTypes =
-      searchParams.get("priceTypes")?.split(",").filter(Boolean) || [];
-    const genres = searchParams.get("genres")?.split(",").filter(Boolean) || [];
-    const vstTypes =
-      searchParams.get("vstTypes")?.split(",").filter(Boolean) || [];
-
-    // Build the where clause
-    const where: any = {
-      OR: [
-        { title: { contains: searchTerm, mode: "insensitive" } },
-        { description: { contains: searchTerm, mode: "insensitive" } },
-      ],
+    const where = {
+      ...(userStatus === "UPLOADED" 
+        ? {
+            soundDesigner: {
+              userId: userId,
+            },
+          }
+        : userStatus === "DOWNLOADED"
+        ? {
+            downloads: {
+              some: {
+                userId: userId,
+              },
+            },
+          }
+        : {}),
     };
 
-    // Add filters for presets within packs
-    const presetFilters: any[] = [];
-
-    if (genres.length) {
-      presetFilters.push({ genreId: { in: genres } });
-    }
-
-    if (vstTypes.length) {
-      presetFilters.push({
-        vst: {
-          type: {
-            in: vstTypes,
-          },
-        },
-      });
-    }
-
-    if (priceTypes.length) {
-      presetFilters.push({ priceType: { in: priceTypes } });
-    }
-
-    // Only add preset filters if there are any
-    if (presetFilters.length > 0) {
-      where.presets = {
-        some: {
-          preset: {
-            AND: presetFilters,
-          },
-        },
-      };
-    }
-
     const packs = await prisma.presetPackUpload.findMany({
-      where: {
-        soundDesigner: {
-          userId: userId,
-        },
-      },
+      where,
       include: {
         presets: {
           include: {
@@ -154,6 +122,11 @@ export async function GET(request: Request) {
           select: {
             username: true,
             profileImage: true,
+          },
+        },
+        downloads: {
+          where: {
+            userId: userId,
           },
         },
       },

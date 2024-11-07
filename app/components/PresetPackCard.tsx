@@ -40,10 +40,14 @@ interface PresetPackCardProps {
       profileImage?: string;
     };
   };
-  isOwner?: boolean;
+  userStatus?: "UPLOADED" | "DOWNLOADED" | "NONE";
+  type?: "uploaded" | "downloaded" | "explore";
 }
 
-export function PresetPackCard({ pack, isOwner }: PresetPackCardProps) {
+export function PresetPackCard({
+  pack,
+  userStatus = "NONE",
+}: PresetPackCardProps) {
   const [activePreset, setActivePreset] = useState<string | null>(null);
   const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -132,18 +136,18 @@ export function PresetPackCard({ pack, isOwner }: PresetPackCardProps) {
     }
   };
 
-  const displayedPresets = pack.presets.slice(0, 5);
+  const displayedPresets = pack.presets?.slice(0, 5) || [];
 
   return (
     <Card className="relative group overflow-hidden hover:shadow-lg transition-all duration-300 animate-in fade-in-0">
-      {isOwner && (
+      {userStatus === "UPLOADED" && (
         <div className="absolute top-2 right-2 z-10">
           <ItemActionButtons
-            id={pack.id}
+            itemId={pack.id}
             price={pack.price}
             type="pack"
+            itemStatus="uploaded"
             onDelete={handleDelete}
-            isOwner={isOwner}
           />
         </div>
       )}
@@ -172,7 +176,7 @@ export function PresetPackCard({ pack, isOwner }: PresetPackCardProps) {
           <div className="flex items-center gap-2">
             <PackageIcon className="h-4 w-4 text-muted-foreground" />
             <span className="text-sm">
-              {pack.presets.length} Presets Included
+              {pack.presets?.length || 0} Presets Included
             </span>
           </div>
           {pack.soundDesigner && (

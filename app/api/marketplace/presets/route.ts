@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { PresetUpload } from "@prisma/client";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -12,42 +11,39 @@ export async function GET(request: Request) {
     searchParams.get("presetTypes")?.split(",").filter(Boolean) || [];
 
   try {
-    const whereClause: any = {
-      AND: [],
-    };
+    const whereClause: any = {};
+    const AND = [];
 
-    // Add search term filter
-    if (searchTerm.trim()) {
-      whereClause.AND.push({
+    // Only add search term if it exists
+    if (searchTerm) {
+      AND.push({
         OR: [
-          { title: { contains: searchTerm.trim(), mode: "insensitive" } },
-          { description: { contains: searchTerm.trim(), mode: "insensitive" } },
+          { title: { contains: searchTerm, mode: "insensitive" } },
+          { description: { contains: searchTerm, mode: "insensitive" } },
         ],
       });
     }
 
-    // Add genre filter
+    // Add other filters
     if (genres.length > 0) {
-      whereClause.AND.push({ genreId: { in: genres } });
+      AND.push({ genreId: { in: genres } });
     }
 
-    // Add VST type filter
     if (vstTypes.length > 0) {
-      whereClause.AND.push({
+      AND.push({
         vst: {
           type: { in: vstTypes },
         },
       });
     }
 
-    // Add preset type filter
     if (presetTypes.length > 0) {
-      whereClause.AND.push({ presetType: { in: presetTypes } });
+      AND.push({ presetType: { in: presetTypes } });
     }
 
-    // Remove AND array if empty
-    if (whereClause.AND.length === 0) {
-      delete whereClause.AND;
+    // Only add AND clause if there are conditions
+    if (AND.length > 0) {
+      whereClause.AND = AND;
     }
 
     const presets = await prisma.presetUpload.findMany({

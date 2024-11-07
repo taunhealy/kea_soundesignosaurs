@@ -11,14 +11,22 @@ export default function HomePage() {
     ContentType.PRESETS
   );
   const { filters, setFilters } = useSearch();
+
+  const handleContentTypeChange = (newContentType: ContentType) => {
+    setSelectedContentType(newContentType);
+  };
+
   return (
     <div className="flex h-full">
       <div className="flex-1 flex flex-col">
         <CategoryTabs
           selectedContentType={selectedContentType}
-          onSelect={setSelectedContentType}
+          onSelect={handleContentTypeChange}
         />
-        <ContentExplorer mode="explore" contentType={selectedContentType} />
+        <ContentExplorer 
+          mode="explore" 
+          contentType={selectedContentType} 
+        />
       </div>
     </div>
   );

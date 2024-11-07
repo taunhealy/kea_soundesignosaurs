@@ -378,5 +378,6 @@ enum RequestStatus {
 enum ContentType {
   PRESETS
   PACKS
+  REQUESTS
 }
 

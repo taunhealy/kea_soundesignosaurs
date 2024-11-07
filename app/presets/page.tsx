@@ -33,15 +33,15 @@ export default function ExplorePage() {
       </div>
       <div className="flex min-w-full w-full gap-6 overflow-hidden">
         <div className="w-64 flex-shrink-0">
-          <SearchForm
-            filters={filters}
-            onFilterChange={handleFilterChange}
-            onSubmit={handleFilterChange}
-          />
-          <SearchSidebar filters={filters} setFilters={handleFilterChange} />
+          <SearchForm filters={filters} onSubmit={handleFilterChange} />
+          <SearchSidebar filters={filters} onSubmit={handleFilterChange} />
         </div>
         <div className="flex-auto w-full">
-          <PresetGrid presets={presets} type="explore" isLoading={isLoading} />
+          <PresetGrid
+            presets={presets}
+            viewMode="explore"
+            isLoading={isLoading}
+          />
         </div>
       </div>
     </div>

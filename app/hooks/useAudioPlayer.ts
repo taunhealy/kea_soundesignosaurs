@@ -1,144 +1,93 @@
-import { useState, useCallback, useEffect } from "react";
-import { toast } from "react-toastify";
+import { useCallback, useState } from "react";
+import { audioContextManager } from "@/utils/audioContext";
+import { useQueryClient } from "@tanstack/react-query";
 
-export interface AudioTrack {
-  id: string;
-  url?: string;
-}
-
-export interface UseAudioPlayerOptions {
-  onEnd?: () => void;
-  volume?: number;
+export function useAudioPlayer({
+  onError,
+}: {
   onError?: (error: Error) => void;
-  onPlay?: () => void;
-  onPause?: () => void;
-}
-
-export interface UseAudioPlayerReturn {
-  isPlaying: boolean;
-  activeTrack: string | null;
-  play: (id: string, url?: string) => void;
-  pause: () => void;
-  stop: () => void;
-  setVolume: (volume: number) => void;
-}
-
-export function useAudioPlayer(
-  options: UseAudioPlayerOptions = {}
-): UseAudioPlayerReturn {
-  const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
-  const [isPlaying, setIsPlaying] = useState<boolean>(false);
+}) {
+  const queryClient = useQueryClient();
+  const [isPlaying, setIsPlaying] = useState(false);
   const [activeTrack, setActiveTrack] = useState<string | null>(null);
-  const [volume, setVolumeState] = useState<number>(options.volume ?? 1.0);
+  const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null);
+  const [isWaveformReady, setIsWaveformReady] = useState(false);
 
-  const cleanup = useCallback(() => {
-    if (audio) {
-      audio.pause();
-      audio.removeEventListener("ended", () => setIsPlaying(false));
-      setAudio(null);
+  const cleanupAudio = useCallback(() => {
+    if (audioElement) {
+      audioElement.pause();
+      audioElement.removeEventListener("ended", () => {
+        setIsPlaying(false);
+        setActiveTrack(null);
+      });
+      setAudioElement(null);
       setIsPlaying(false);
       setActiveTrack(null);
+      setIsWaveformReady(false);
     }
-  }, [audio]);
+  }, [audioElement]);
 
-  useEffect(() => {
-    return cleanup;
-  }, [cleanup]);
-
-  const setVolume = useCallback(
-    (newVolume: number) => {
-      setVolumeState(newVolume);
-      if (audio) {
-        audio.volume = newVolume;
-      }
-    },
-    [audio]
-  );
-
-  const pause = useCallback(() => {
-    if (audio && isPlaying) {
-      audio.pause();
-      setIsPlaying(false);
-      options.onPause?.();
-    }
-  }, [audio, isPlaying, options]);
-
-  const stop = useCallback(() => {
-    cleanup();
-    options.onEnd?.();
-  }, [cleanup, options]);
-
-  const play = useCallback(
-    (id: string, url?: string) => {
-      if (!url) {
-        toast.info("No preview available");
+  const play = async (
+    trackId: string,
+    url: string,
+    preloadedAudio?: HTMLAudioElement
+  ) => {
+    try {
+      if (isPlaying && activeTrack === trackId) {
         return;
       }
 
-      if (activeTrack && activeTrack !== id) {
-        cleanup();
+      cleanupAudio();
+
+      let audio = preloadedAudio;
+      if (!audio) {
+        const cachedAudio = await queryClient.fetchQuery({
+          queryKey: ["audio", trackId],
+          queryFn: async () => {
+            const newAudio = new Audio(url);
+            newAudio.crossOrigin = "anonymous";
+            await newAudio.load();
+            return newAudio;
+          },
+          staleTime: 1000 * 60 * 5,
+        });
+        audio = cachedAudio;
       }
 
-      if (!audio || activeTrack !== id) {
-        const newAudio = new Audio(url);
-        newAudio.volume = volume;
+      setAudioElement(audio);
+      setActiveTrack(trackId);
 
-        const handleEnded = () => {
-          setIsPlaying(false);
-          setActiveTrack(null);
-          options.onEnd?.();
-        };
+      const analyser = audioContextManager.setupAudioNode(audio);
+      setIsWaveformReady(true);
 
-        const handleError = (error: ErrorEvent) => {
-          toast.error("Failed to load audio");
-          options.onError?.(new Error(error.message));
-          cleanup();
-        };
+      const handleEnded = () => {
+        setIsPlaying(false);
+        setActiveTrack(null);
+      };
 
-        newAudio.addEventListener("ended", handleEnded);
-        newAudio.addEventListener("error", handleError);
+      audio.addEventListener("ended", handleEnded);
+      await audio.play();
+      setIsPlaying(true);
+    } catch (error) {
+      console.error("Error playing audio:", error);
+      onError?.(error as Error);
+    }
+  };
 
-        setAudio(newAudio);
-        setActiveTrack(id);
-
-        newAudio
-          .play()
-          .then(() => {
-            setIsPlaying(true);
-            options.onPlay?.();
-          })
-          .catch((error) => {
-            toast.error("Failed to play audio");
-            options.onError?.(error);
-            cleanup();
-          });
-      } else {
-        if (isPlaying) {
-          pause();
-        } else {
-          audio
-            .play()
-            .then(() => {
-              setIsPlaying(true);
-              options.onPlay?.();
-            })
-            .catch((error) => {
-              toast.error("Failed to play audio");
-              options.onError?.(error);
-              cleanup();
-            });
-        }
-      }
-    },
-    [audio, isPlaying, cleanup, activeTrack, volume, options, pause]
-  );
+  const pause = () => {
+    if (audioElement) {
+      audioElement.pause();
+      setIsPlaying(false);
+    }
+  };
 
   return {
     isPlaying,
     activeTrack,
+    audioElement,
+    isWaveformReady,
     play,
     pause,
-    stop,
-    setVolume,
+    cleanup: cleanupAudio,
   };
 }

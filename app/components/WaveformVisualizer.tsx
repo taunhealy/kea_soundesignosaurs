@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useRef, useCallback, useEffect } from "react";
 import { audioContextManager } from "@/utils/audioContext";
 
 interface WaveformVisualizerProps {
@@ -16,13 +16,13 @@ export function WaveformVisualizer({
   const animationFrameRef = useRef<number>();
   const analyserRef = useRef<AnalyserNode>();
 
+  // Setup audio context and analyser node
   useEffect(() => {
-    if (!audioElement || !canvasRef.current) return;
+    if (!audioElement) return;
 
     try {
       analyserRef.current = audioContextManager.setupAudioNode(audioElement);
       if (analyserRef.current) {
-        // Increase FFT size for better frequency resolution
         analyserRef.current.fftSize = 2048;
       }
     } catch (error) {
@@ -36,6 +36,7 @@ export function WaveformVisualizer({
     };
   }, [audioElement]);
 
+  // Handle visualization drawing
   useEffect(() => {
     if (!canvasRef.current || !analyserRef.current || !isPlaying) {
       if (animationFrameRef.current) {
@@ -55,10 +56,8 @@ export function WaveformVisualizer({
       const dataArray = new Uint8Array(bufferLength);
       analyserRef.current.getByteFrequencyData(dataArray);
 
-      // Clear canvas
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Draw frequency bars
       const barWidth = (canvas.width / bufferLength) * 2.5;
       let x = 0;
 
@@ -66,18 +65,14 @@ export function WaveformVisualizer({
         const barHeight =
           (dataArray[i] / 255) * canvas.height * amplitudeMultiplier;
 
-        // Create gradient
         const gradient = ctx.createLinearGradient(0, canvas.height, 0, 0);
-        gradient.addColorStop(0, "#2563eb33"); // Transparent blue
-        gradient.addColorStop(1, "#2563eb"); // Solid blue
+        gradient.addColorStop(0, "#2563eb33");
+        gradient.addColorStop(1, "#2563eb");
 
-        // Fill style
         ctx.fillStyle = gradient;
-
-        // Draw bar
         ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
 
-        x += barWidth + 1; // Add small gap between bars
+        x += barWidth + 1;
       }
 
       animationFrameRef.current = requestAnimationFrame(draw);

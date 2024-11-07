@@ -70,14 +70,14 @@ export default function PresetsPage() {
             <TabsContent value="uploaded">
               <PresetGrid
                 presets={presets}
-                type="uploaded"
+                viewMode="uploaded"
                 isLoading={isLoading}
               />
             </TabsContent>
             <TabsContent value="downloaded">
               <PresetGrid
                 presets={presets}
-                type="downloaded"
+                viewMode="downloaded"
                 isLoading={isLoading}
               />
             </TabsContent>

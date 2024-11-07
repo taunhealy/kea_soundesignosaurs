@@ -3,12 +3,13 @@
 import { useGenres } from "@/app/hooks/useGenres";
 import { Checkbox } from "@/app/components/ui/checkbox";
 import { Label } from "@/app/components/ui/label";
-import { useSearch } from "@/contexts/SearchContext";
+import { Input } from "@/app/components/ui/input";
 import { PresetType, PriceType, VstType } from "@prisma/client";
-import { UserStatus } from "@/types/enums";
 import { SearchFilters } from "@/types/SearchTypes";
+import { useDebounce } from "@/app/hooks/useDebounce";
+import { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-// Add these constant arrays for the filter options
 const PRESET_TYPES = Object.values(PresetType);
 const PRICE_TYPES = Object.values(PriceType);
 const VST_TYPES = Object.values(VstType);
@@ -23,9 +24,58 @@ export const SearchSidebar: React.FC<SearchSidebarProps> = ({
   onSubmit,
 }) => {
   const { data: genres } = useGenres();
+  const [searchTerm, setSearchTerm] = useState(filters.searchTerm || "");
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
+  const queryClient = useQueryClient();
+
+  const filterMutation = useMutation({
+    mutationFn: (newFilters: Partial<SearchFilters>) => {
+      onSubmit(newFilters);
+      return Promise.resolve();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["presets"] });
+    },
+  });
+
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    filterMutation.mutate({
+      ...filters,
+      searchTerm: value,
+    });
+  };
+
+  const handleFilterChange = (
+    key: keyof SearchFilters,
+    value: any,
+    checked: boolean
+  ) => {
+    const newFilters = {
+      ...filters,
+      [key]: checked
+        ? Array.isArray(filters[key])
+          ? [...filters[key], value]
+          : [value]
+        : Array.isArray(filters[key])
+        ? filters[key].filter((item: any) => item !== value)
+        : [],
+    };
+    filterMutation.mutate(newFilters);
+  };
 
   return (
     <div className="space-y-6">
+      <div className="space-y-2">
+        <h3 className="font-medium">Search</h3>
+        <Input
+          type="text"
+          placeholder="Search presets..."
+          value={searchTerm}
+          onChange={(e) => handleSearchChange(e.target.value)}
+        />
+      </div>
+
       {/* Price Types */}
       <div className="space-y-2">
         <h3 className="font-medium">Price</h3>
@@ -34,15 +84,9 @@ export const SearchSidebar: React.FC<SearchSidebarProps> = ({
             <Checkbox
               id={`price-${priceType}`}
               checked={filters.priceTypes.includes(priceType)}
-              onCheckedChange={(checked) => {
-                const newFilters = {
-                  ...filters,
-                  priceTypes: checked
-                    ? [...filters.priceTypes, priceType]
-                    : filters.priceTypes.filter((type) => type !== priceType),
-                };
-                onSubmit(newFilters);
-              }}
+              onCheckedChange={(checked) =>
+                handleFilterChange("priceTypes", priceType, checked as boolean)
+              }
             />
             <Label htmlFor={`price-${priceType}`} className="ml-2">
               {priceType.charAt(0) + priceType.slice(1).toLowerCase()}
@@ -59,15 +103,13 @@ export const SearchSidebar: React.FC<SearchSidebarProps> = ({
             <Checkbox
               id={`preset-${presetType}`}
               checked={filters.presetTypes.includes(presetType)}
-              onCheckedChange={(checked) => {
-                const newFilters = {
-                  ...filters,
-                  presetTypes: checked
-                    ? [...filters.presetTypes, presetType]
-                    : filters.presetTypes.filter((type) => type !== presetType),
-                };
-                onSubmit(newFilters);
-              }}
+              onCheckedChange={(checked) =>
+                handleFilterChange(
+                  "presetTypes",
+                  presetType,
+                  checked as boolean
+                )
+              }
             />
             <Label htmlFor={`preset-${presetType}`} className="ml-2">
               {presetType.charAt(0) + presetType.slice(1).toLowerCase()}
@@ -84,15 +126,9 @@ export const SearchSidebar: React.FC<SearchSidebarProps> = ({
             <Checkbox
               id={`vst-${vstType}`}
               checked={filters.vstTypes.includes(vstType)}
-              onCheckedChange={(checked) => {
-                const newFilters = {
-                  ...filters,
-                  vstTypes: checked
-                    ? [...filters.vstTypes, vstType]
-                    : filters.vstTypes.filter((type) => type !== vstType),
-                };
-                onSubmit(newFilters);
-              }}
+              onCheckedChange={(checked) =>
+                handleFilterChange("vstTypes", vstType, checked as boolean)
+              }
             />
             <Label htmlFor={`vst-${vstType}`} className="ml-2">
               {vstType.charAt(0) + vstType.slice(1).toLowerCase()}
@@ -109,15 +145,9 @@ export const SearchSidebar: React.FC<SearchSidebarProps> = ({
             <Checkbox
               id={`genre-${genre.id}`}
               checked={filters.genres.includes(genre.id)}
-              onCheckedChange={(checked) => {
-                const newFilters = {
-                  ...filters,
-                  genres: checked
-                    ? [...filters.genres, genre.id]
-                    : filters.genres.filter((id) => id !== genre.id),
-                };
-                onSubmit(newFilters);
-              }}
+              onCheckedChange={(checked) =>
+                handleFilterChange("genres", genre.id, checked as boolean)
+              }
             />
             <Label htmlFor={`genre-${genre.id}`} className="ml-2">
               {genre.name}

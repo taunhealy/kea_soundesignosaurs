@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { Badge } from "../ui/badge";
 import { RequestSubmission, PresetRequest } from "@/types/PresetRequestTypes";
+import { AudioPlayer } from "@/app/components/AudioPlayer";
 
 interface PresetRequestCardProps {
   request: PresetRequest & {
@@ -284,22 +285,13 @@ export function PresetRequestCard({
                           </div>
 
                           {submission.soundPreviewUrl && (
-                            <Button
-                              onClick={togglePlay(submission)}
-                              variant="outline"
-                              className="w-full"
-                            >
-                              {isPlaying &&
-                              activeSubmission?.id === submission.id ? (
-                                <PauseIcon className="h-4 w-4 mr-2" />
-                              ) : (
-                                <PlayIcon className="h-4 w-4 mr-2" />
-                              )}
-                              {isPlaying &&
-                              activeSubmission?.id === submission.id
-                                ? "Pause Preview"
-                                : "Play Preview"}
-                            </Button>
+                            <AudioPlayer
+                              trackId={submission.id}
+                              url={submission.soundPreviewUrl}
+                              onError={(error) => {
+                                console.error("Audio playback error:", error);
+                              }}
+                            />
                           )}
 
                           {submission.presetFileUrl && (

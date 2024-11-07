@@ -2,14 +2,17 @@
 
 import { PresetPackCard } from "@/app/components/PresetPackCard";
 import { Skeleton } from "@/app/components/ui/skeleton";
-import { useSearch } from "@/contexts/SearchContext";
-import { usePresetPacks } from "@/app/hooks/queries/usePresetPacks";
 import { PresetPackWithRelations } from "@/types/presetPack";
 
-export function PresetPackGrid() {
-  const { filters } = useSearch();
-  const { data: packs, isLoading } = usePresetPacks(filters);
-
+export function PresetPackGrid({
+  packs,
+  type,
+  isLoading,
+}: {
+  packs: PresetPackWithRelations[];
+  type: "uploaded" | "downloaded" | "explore";
+  isLoading: boolean;
+}) {
   if (isLoading) {
     return (
       <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
@@ -30,7 +33,7 @@ export function PresetPackGrid() {
 
   return (
     <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-      {packs.map((pack: PresetPackWithRelations) => (
+      {packs.map((pack) => (
         <PresetPackCard key={pack.id} pack={pack} />
       ))}
     </div>
