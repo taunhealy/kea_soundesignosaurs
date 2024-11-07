@@ -18,7 +18,7 @@ const navItems = [
   },
   {
     name: "Preset Requests",
-    href: "/dashboard/presetRequests",
+    href: "/dashboard/requests",
     icon: HelpCircle,
   },
   {

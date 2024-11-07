@@ -25,7 +25,10 @@ export default function PresetsPage() {
     (searchParams.get("type") as "uploaded" | "downloaded") || "uploaded"
   );
 
-  const { data: presets, isLoading } = usePresets(activeTab);
+  const { data: presets, isLoading } = usePresets({
+    ...filters,
+    userStatus: activeTab === "uploaded" ? UserStatus.UPLOADED : UserStatus.DOWNLOADED,
+  });
 
   useEffect(() => {
     const status =

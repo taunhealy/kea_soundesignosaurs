@@ -6,7 +6,6 @@ import { PresetGrid } from "@/app/components/shared/PresetGrid";
 import { SearchSidebar } from "@/app/components/SearchSidebar";
 import { ContentType } from "@prisma/client";
 import { SearchFilters } from "@/types/SearchTypes";
-import { useMarketplaceContent } from "@/app/hooks/queries/useMarketplaceContent";
 import { SearchForm } from "@/app/components/SearchForm";
 import { useDispatch, useSelector } from "react-redux";
 import type { RootState } from "@/app/store/store";
@@ -14,12 +13,13 @@ import {
   updateFilters,
   clearAllFilters,
 } from "@/app/store/features/filtersSlice";
+import { usePresetRequests } from "@/app/hooks/queries/usePresetRequests";
 
 export default function ExplorePage() {
   const dispatch = useDispatch();
   const filters = useSelector((state: RootState) => state.filters);
 
-  const { data: presets, isLoading } = useMarketplaceContent(filters);
+  const { data: presets, isLoading } = usePresetRequests(filters);
 
   const handleFilterChange = (newFilters: Partial<SearchFilters>) => {
     dispatch(updateFilters(newFilters));

@@ -7,62 +7,26 @@ export async function GET(request: Request) {
   const type = searchParams.get("type");
   const userId = searchParams.get("userId");
 
+  console.log("[DEBUG] PresetRequests API called");
+  console.log("[DEBUG] Search Params:", { type, userId });
+
   try {
-    let requests;
-    if (type === "requested") {
-      if (!userId) {
-        return NextResponse.json(
-          { error: "userId is required" },
-          { status: 400 }
-        );
-      }
-
-      requests = await prisma.presetRequest.findMany({
-        where: {
-          userId: userId,
-        },
-        include: {
-          genre: true,
-          soundDesigner: {
-            select: {
-              username: true,
-            },
-          },
-          submissions: true,
-        },
-      });
-    } else if (type === "assisted") {
-      if (!userId) {
-        return NextResponse.json(
-          { error: "userId is required" },
-          { status: 400 }
-        );
-      }
-
-      requests = await prisma.presetRequest.findMany({
-        where: {
-          submissions: {
-            some: {
-              soundDesigner: {
-                userId: userId,
-              },
-            },
+    let requests = await prisma.presetRequest.findMany({
+      include: {
+        genre: true,
+        soundDesigner: {
+          select: {
+            username: true,
           },
         },
-        include: {
-          soundDesigner: {
-            select: {
-              username: true,
-              userId: true,
-            },
-          },
-        },
-      });
-    }
+        submissions: true,
+      },
+    });
 
+    console.log("[DEBUG] Database query results:", requests);
     return NextResponse.json(requests || []);
   } catch (error) {
-    console.error("Error fetching requests:", error);
+    console.error("[DEBUG] PresetRequests API error:", error);
     return NextResponse.json(
       { error: "Failed to fetch requests" },
       { status: 500 }

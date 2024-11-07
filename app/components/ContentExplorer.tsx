@@ -57,7 +57,7 @@ export function ContentExplorer({ mode, contentType }: ContentExplorerProps) {
           />
         );
       case ContentType.REQUESTS:
-        return <PresetRequestGrid filters={filters} />;
+        return <PresetRequestGrid />;
       default:
         return null;
     }

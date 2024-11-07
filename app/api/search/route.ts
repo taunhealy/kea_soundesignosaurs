@@ -137,6 +137,24 @@ export async function GET(request: Request) {
         },
       });
       return NextResponse.json(packs);
+    } else if (type === "requests") {
+      const requests = await prisma.presetRequest.findMany({
+        where: whereClause,
+        include: {
+          genre: true,
+          soundDesigner: {
+            select: {
+              username: true,
+              profileImage: true,
+            },
+          },
+          submissions: true,
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+      });
+      return NextResponse.json(requests);
     } else {
       const presets = await prisma.presetUpload.findMany({
         where: whereClause,

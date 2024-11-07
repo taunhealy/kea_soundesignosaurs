@@ -41,7 +41,7 @@ export default function HelpPostCreateRoute() {
 
   const mutation = useMutation({
     mutationFn: async (formData: z.infer<typeof helpPostSchema>) => {
-      const response = await fetch("/api/presetRequest", {
+      const response = await fetch("/api/presetRequests", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -58,7 +58,7 @@ export default function HelpPostCreateRoute() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["presetRequests"] });
-      router.push("/dashboard/presetRequests");
+      router.push("/dashboard/requests");
     },
     onError: (error) => {
       toast.error(error instanceof Error ? error.message : "An error occurred");

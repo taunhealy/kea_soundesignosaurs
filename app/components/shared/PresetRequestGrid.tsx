@@ -3,19 +3,22 @@
 import { useQuery } from "@tanstack/react-query";
 import { PresetRequestCard } from "@/app/components/dashboard/PresetRequestCard";
 import { Skeleton } from "@/app/components/ui/skeleton";
-import type { SearchFilters } from "@/types/SearchTypes";
 import type { PresetRequest } from "@/types/PresetRequestTypes";
 
 interface PresetRequestGridProps {
-  filters: SearchFilters;
+  type: "public" | "requested" | "assisted";
 }
 
-export function PresetRequestGrid({ filters }: PresetRequestGridProps) {
+export function PresetRequestGrid({ type }: PresetRequestGridProps) {
   const { data: requests, isLoading } = useQuery({
-    queryKey: ["presetRequests", filters],
+    queryKey: ["presetRequests", type],
     queryFn: async () => {
-      const response = await fetch("/api/presetRequests");
-      if (!response.ok) throw new Error("Failed to fetch requests");
+      const response = await fetch(`/api/presetRequests?type=${type}`);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error("[DEBUG] API Error:", errorData);
+        throw new Error("Failed to fetch requests");
+      }
       return response.json();
     },
   });
@@ -33,7 +36,7 @@ export function PresetRequestGrid({ filters }: PresetRequestGridProps) {
   if (!requests?.length) {
     return (
       <div className="text-center py-10 text-muted-foreground">
-        No preset requests found
+        No {type} requests found
       </div>
     );
   }
@@ -44,7 +47,7 @@ export function PresetRequestGrid({ filters }: PresetRequestGridProps) {
         <PresetRequestCard
           key={request.id}
           request={request}
-          type="requested"
+          type={type === "public" ? "requested" : type}
           showSubmissions={false}
         />
       ))}
