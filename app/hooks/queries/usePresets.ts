@@ -1,27 +1,22 @@
 import { useQuery } from "@tanstack/react-query";
-import { useSearch } from "@/contexts/SearchContext";
-import { queryKeys } from "@/app/constants/queryKeys";
+import { SearchFilters } from "@/types/SearchTypes";
+import { queryKeys } from "@/lib/queries";
 
-export function usePresets(type?: "uploaded" | "downloaded") {
-  const { filters } = useSearch();
-
+export function usePresets(filters: SearchFilters | undefined) {
   const queryString = new URLSearchParams();
 
-  // Add type filter if provided
-  if (type) {
-    queryString.append("type", type);
-  }
-
-  // Add search filters from context
-  Object.entries(filters).forEach(([key, value]) => {
-    if (value !== undefined) {
-      if (Array.isArray(value)) {
-        queryString.append(key, value.join(","));
-      } else {
-        queryString.append(key, String(value));
+  // Add search filters
+  if (filters) {
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined) {
+        if (Array.isArray(value)) {
+          queryString.append(key, value.join(","));
+        } else {
+          queryString.append(key, String(value));
+        }
       }
-    }
-  });
+    });
+  }
 
   return useQuery({
     queryKey: ["presets", queryString.toString()],

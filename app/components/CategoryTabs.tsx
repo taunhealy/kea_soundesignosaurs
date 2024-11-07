@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Tabs, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
 import { SearchFilters } from "@/types/SearchTypes";
 import { ContentType } from "@prisma/client";
+import { useEffect } from "react";
 
 interface CategoryTabsProps {
   selectedContentType: ContentType;
@@ -17,6 +18,20 @@ export function CategoryTabs({
 }: CategoryTabsProps) {
   const searchParams = useSearchParams();
   const category = searchParams?.get("category") || "presets";
+
+  useEffect(() => {
+    // Map category to ContentType
+    const contentTypeMap = {
+      presets: ContentType.PRESETS,
+      packs: ContentType.PACKS,
+      requests: ContentType.REQUESTS,
+    };
+    
+    const newContentType = contentTypeMap[category as keyof typeof contentTypeMap];
+    if (newContentType && newContentType !== selectedContentType) {
+      onSelect(newContentType);
+    }
+  }, [category, selectedContentType, onSelect]);
 
   return (
     <Tabs value={category} className="mb-4">

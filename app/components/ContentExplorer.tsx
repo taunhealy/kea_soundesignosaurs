@@ -4,7 +4,8 @@ import { PresetGrid } from "@/app/components/shared/PresetGrid";
 import { SearchSidebar } from "@/app/components/SearchSidebar";
 import { PresetPackGrid } from "@/app/components/shared/PresetPackGrid";
 import { PresetRequestGrid } from "@/app/components/shared/PresetRequestGrid";
-import { useContent } from "@/app/hooks/queries/useContent";
+import { usePresets } from "@/app/hooks/queries/usePresets";
+import { usePresetPacks } from "@/app/hooks/queries/usePresetPacks";
 import { ContentType } from "@prisma/client";
 import { SearchFilters } from "@/types/SearchTypes";
 import { useState, useEffect } from "react";
@@ -17,20 +18,23 @@ interface ContentExplorerProps {
 
 export function ContentExplorer({ mode, contentType }: ContentExplorerProps) {
   const [filters, setFilters] = useState<SearchFilters>(DEFAULT_FILTERS);
-  const { data: content, isLoading } = useContent(contentType, filters);
+
+  // Use specific hooks based on content type
+  const { data: presets, isLoading: presetsLoading } = usePresets(filters);
+  const { data: packs, isLoading: packsLoading } = usePresetPacks(filters);
 
   const handleFilterChange = (newFilters: Partial<SearchFilters>) => {
-    setFilters((prev) => ({ 
-      ...prev, 
+    setFilters((prev) => ({
+      ...prev,
       ...newFilters,
-      contentType
+      contentType,
     }));
   };
 
   useEffect(() => {
-    setFilters(prev => ({
+    setFilters((prev) => ({
       ...prev,
-      contentType
+      contentType,
     }));
   }, [contentType]);
 
@@ -39,17 +43,17 @@ export function ContentExplorer({ mode, contentType }: ContentExplorerProps) {
       case ContentType.PRESETS:
         return (
           <PresetGrid
-            presets={content}
+            presets={presets}
             viewMode="explore"
-            isLoading={isLoading}
+            isLoading={presetsLoading}
           />
         );
       case ContentType.PACKS:
         return (
           <PresetPackGrid
-            packs={content}
+            packs={packs ?? []}
             type="explore"
-            isLoading={isLoading}
+            isLoading={packsLoading}
           />
         );
       case ContentType.REQUESTS:

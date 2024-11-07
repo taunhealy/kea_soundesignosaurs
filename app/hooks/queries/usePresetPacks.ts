@@ -1,26 +1,28 @@
 import { useQuery } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/queries";
-import { SearchFilters } from "@/types/SearchTypes";
 import { PresetPackWithRelations } from "@/types/presetPack";
+import { SearchFilters } from "@/types/SearchTypes";
 
-export function usePresetPacks(filters: SearchFilters) {
+export function usePresetPacks(filters: SearchFilters | undefined) {
   const queryString = new URLSearchParams();
 
-  Object.entries(filters).forEach(([key, value]) => {
-    if (value !== undefined) {
-      if (Array.isArray(value)) {
-        queryString.append(key, value.join(","));
-      } else {
-        queryString.append(key, String(value));
+  if (filters) {
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined) {
+        if (Array.isArray(value)) {
+          queryString.append(key, value.join(","));
+        } else {
+          queryString.append(key, String(value));
+        }
       }
-    }
-  });
+    });
+  }
 
   return useQuery<PresetPackWithRelations[]>({
-    queryKey: queryKeys.packs.list(queryString.toString()),
+    queryKey: ["packs", queryString.toString()],
     queryFn: async () => {
       const response = await fetch(
-        `/api/presetPacks?${queryString.toString()}`
+        `/api/search?${queryString.toString()}&type=packs`
       );
       if (!response.ok) {
         throw new Error("Failed to fetch preset packs");

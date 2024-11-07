@@ -10,7 +10,6 @@ export default function HomePage() {
   const [selectedContentType, setSelectedContentType] = useState<ContentType>(
     ContentType.PRESETS
   );
-  const { filters, setFilters } = useSearch();
 
   const handleContentTypeChange = (newContentType: ContentType) => {
     setSelectedContentType(newContentType);
@@ -23,10 +22,7 @@ export default function HomePage() {
           selectedContentType={selectedContentType}
           onSelect={handleContentTypeChange}
         />
-        <ContentExplorer 
-          mode="explore" 
-          contentType={selectedContentType} 
-        />
+        <ContentExplorer mode="explore" contentType={selectedContentType} />
       </div>
     </div>
   );
