@@ -21,6 +21,7 @@ import { useState, useCallback, useEffect } from "react";
 import { toast } from "react-toastify";
 import { useQueryClient } from "@tanstack/react-query";
 import { addToCart } from "@/app/store/features/cartSlice";
+import { ContentViewMode } from "@/types/enums";
 
 interface PresetPackCardProps {
   pack: {
@@ -40,13 +41,12 @@ interface PresetPackCardProps {
       profileImage?: string;
     };
   };
-  userStatus?: "UPLOADED" | "DOWNLOADED" | "NONE";
-  type?: "uploaded" | "downloaded" | "explore";
+  contentViewMode: ContentViewMode;
 }
 
 export function PresetPackCard({
   pack,
-  userStatus = "NONE",
+  contentViewMode,
 }: PresetPackCardProps) {
   const [activePreset, setActivePreset] = useState<string | null>(null);
   const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
@@ -140,7 +140,7 @@ export function PresetPackCard({
 
   return (
     <Card className="relative group overflow-hidden hover:shadow-lg transition-all duration-300 animate-in fade-in-0">
-      {userStatus === "UPLOADED" && (
+      {contentViewMode === ContentViewMode.UPLOADED && (
         <div className="absolute top-2 right-2 z-10">
           <ItemActionButtons
             itemId={pack.id}

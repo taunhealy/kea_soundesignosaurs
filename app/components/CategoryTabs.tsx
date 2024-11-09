@@ -3,48 +3,72 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Tabs, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
-import { SearchFilters } from "@/types/SearchTypes";
 import { ContentType } from "@prisma/client";
-import { useEffect } from "react";
+import { BoardView, ContentViewMode, RequestViewMode } from "@/types/enums";
 
 interface CategoryTabsProps {
   selectedContentType: ContentType;
   onSelect: (contentType: ContentType) => void;
+  boardView: BoardView;
 }
+
+interface TabItem {
+  value: ContentType;
+  label: string;
+  defaultView: ContentViewMode | RequestViewMode;
+}
+
+const TAB_ITEMS: TabItem[] = [
+  {
+    value: ContentType.PRESETS,
+    label: "Presets",
+    defaultView: ContentViewMode.EXPLORE,
+  },
+  {
+    value: ContentType.PACKS,
+    label: "Packs",
+    defaultView: ContentViewMode.EXPLORE,
+  },
+  {
+    value: ContentType.REQUESTS,
+    label: "Requests",
+    defaultView: RequestViewMode.PUBLIC,
+  },
+];
 
 export function CategoryTabs({
   selectedContentType,
   onSelect,
+  boardView,
 }: CategoryTabsProps) {
   const searchParams = useSearchParams();
-  const category = searchParams?.get("category") || "presets";
+  const currentView = searchParams?.get("view");
+  const basePath = boardView === BoardView.DASHBOARD ? "/dashboard" : "";
 
-  useEffect(() => {
-    // Map category to ContentType
-    const contentTypeMap = {
-      presets: ContentType.PRESETS,
-      packs: ContentType.PACKS,
-      requests: ContentType.REQUESTS,
-    };
-    
-    const newContentType = contentTypeMap[category as keyof typeof contentTypeMap];
-    if (newContentType && newContentType !== selectedContentType) {
-      onSelect(newContentType);
+  const getDefaultView = (contentType: ContentType): string => {
+    if (boardView === BoardView.DASHBOARD) {
+      return contentType === ContentType.REQUESTS
+        ? RequestViewMode.REQUESTED
+        : ContentViewMode.UPLOADED;
     }
-  }, [category, selectedContentType, onSelect]);
+    const tab = TAB_ITEMS.find((item) => item.value === contentType);
+    return tab?.defaultView || ContentViewMode.EXPLORE;
+  };
+
+  const getTabHref = (contentType: ContentType): string => {
+    const view = currentView || getDefaultView(contentType);
+    const path = `${basePath}/${contentType.toLowerCase()}`;
+    return `${path}?view=${view}`;
+  };
 
   return (
-    <Tabs value={category} className="mb-4">
+    <Tabs value={selectedContentType.toLowerCase()} className="mb-4">
       <TabsList>
-        <TabsTrigger value="presets" asChild>
-          <Link href="/?category=presets">Presets</Link>
-        </TabsTrigger>
-        <TabsTrigger value="packs" asChild>
-          <Link href="/?category=packs">Packs</Link>
-        </TabsTrigger>
-        <TabsTrigger value="requests" asChild>
-          <Link href="/?category=requests">Requests</Link>
-        </TabsTrigger>
+        {TAB_ITEMS.map((tab) => (
+          <TabsTrigger key={tab.value} value={tab.value.toLowerCase()} asChild>
+            <Link href={getTabHref(tab.value)}>{tab.label}</Link>
+          </TabsTrigger>
+        ))}
       </TabsList>
     </Tabs>
   );

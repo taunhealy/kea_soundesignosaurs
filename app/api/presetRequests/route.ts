@@ -4,14 +4,30 @@ import prisma from "@/lib/prisma";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const type = searchParams.get("type");
+  const view = searchParams.get("view");
   const userId = searchParams.get("userId");
+  const status = searchParams.get("status");
 
   console.log("[DEBUG] PresetRequests API called");
-  console.log("[DEBUG] Search Params:", { type, userId });
+  console.log("[DEBUG] Search Params:", { view, userId, status });
 
   try {
+    let whereClause: any = {};
+
+    // Handle view modes
+    if (view === "requested" && userId) {
+      whereClause.userId = userId;
+    } else if (view === "assisted" && userId) {
+      whereClause.soundDesignerId = userId;
+    }
+
+    // Add status filter
+    if (status) {
+      whereClause.status = status.toUpperCase();
+    }
+
     let requests = await prisma.presetRequest.findMany({
+      where: whereClause,
       include: {
         genre: true,
         soundDesigner: {
@@ -20,6 +36,9 @@ export async function GET(request: Request) {
           },
         },
         submissions: true,
+      },
+      orderBy: {
+        createdAt: "desc",
       },
     });
 

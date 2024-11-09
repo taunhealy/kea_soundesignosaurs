@@ -10,22 +10,18 @@ export async function GET(request: Request) {
   const type = searchParams.get("type");
   const { userId } = await auth();
 
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   try {
     const skip = (page - 1) * ITEMS_PER_PAGE;
-    const whereClause =
-      type === "downloaded"
-        ? {
-            downloads: {
-              some: {
-                userId,
-              },
-            },
-          }
-        : { userId };
+    let whereClause = {};
+
+    // Only apply user filters if in dashboard mode
+    if (type && userId) {
+      whereClause = type === "downloaded" 
+        ? { downloads: { some: { userId } } }
+        : type === "uploaded" 
+          ? { userId }
+          : {};
+    }
 
     const [presets, totalCount] = await Promise.all([
       prisma.presetUpload.findMany({
@@ -42,20 +38,14 @@ export async function GET(request: Request) {
         },
         skip,
         take: ITEMS_PER_PAGE,
-        orderBy: {
-          createdAt: "desc",
-        },
+        orderBy: { createdAt: "desc" },
       }),
-      prisma.presetUpload.count({
-        where: whereClause,
-      }),
+      prisma.presetUpload.count({ where: whereClause }),
     ]);
-
-    const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
 
     return NextResponse.json({
       presets,
-      totalPages,
+      totalPages: Math.ceil(totalCount / ITEMS_PER_PAGE),
       currentPage: page,
       totalCount,
     });

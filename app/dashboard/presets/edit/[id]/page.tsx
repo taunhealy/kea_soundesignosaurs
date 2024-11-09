@@ -19,7 +19,7 @@ export default function EditPresetPage() {
         const response = await fetch(`/api/presetUpload/${presetId}`);
         if (response.status === 404) {
           toast.error("Preset not found");
-          router.push("/dashboard/presets");
+          router.push("/dashboard?category=presets");
           return null;
         }
         if (!response.ok) {
@@ -29,7 +29,7 @@ export default function EditPresetPage() {
       } catch (error) {
         console.error("Error fetching preset:", error);
         toast.error("Error loading preset");
-        router.push("/dashboard/presets");
+        router.push("/dashboard?category=presets");
         return null;
       }
     },

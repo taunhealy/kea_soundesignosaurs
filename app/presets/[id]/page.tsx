@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useContent } from "@/app/hooks/queries/useContent";
 import { Button } from "@/app/components/ui/button";
 import { PlayIcon, PauseIcon } from "lucide-react";
 import {
@@ -9,17 +9,7 @@ import {
 } from "@/app/hooks/useAudioPlayer";
 
 export default function PresetPage({ params }: { params: { id: string } }) {
-  const { data: preset, isLoading } = useQuery({
-    queryKey: ["preset", params.id],
-    queryFn: async () => {
-      const response = await fetch(`/api/presetUpload/${params.id}`);
-      if (!response.ok) {
-        if (response.status === 404) return null;
-        throw new Error("Failed to fetch preset");
-      }
-      return response.json();
-    },
-  });
+  const { data: preset, isLoading } = usePresetDetails(params.id);
 
   const audioOptions: UseAudioPlayerOptions = {
     volume: 1.0,

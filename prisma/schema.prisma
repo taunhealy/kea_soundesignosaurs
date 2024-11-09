@@ -94,6 +94,9 @@ model VST {
   type      VstType
   presets   PresetUpload[]
   // ... other fields
+  
+  // Add this line to create the reverse relation
+  submissions PresetSubmission[]
 }
 
 model PresetPackUpload {
@@ -191,6 +194,10 @@ model PresetSubmission {
   presetFileUrl   String?
   guide           String?
   tags            String[]
+  presetType      PresetType    @default(LEAD)
+  vstType         VstType       @default(SERUM)
+  price           Float?
+  priceType       PriceType     @default(FREE)
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
   
@@ -199,9 +206,12 @@ model PresetSubmission {
   presetRequest   PresetRequest @relation(fields: [presetRequestId], references: [id])
   userId          String
   soundDesigner   SoundDesigner @relation(fields: [userId], references: [userId])
+  vst             VST?          @relation(fields: [vstId], references: [id], onDelete: SetNull)
+  vstId           String?
 
   @@index([presetRequestId])
   @@index([userId])
+  @@index([vstId])
 }
 
 // Shopping Models
@@ -370,9 +380,7 @@ enum GenreType {
 
 enum RequestStatus {
   OPEN
-  IN_PROGRESS
-  COMPLETED
-  CANCELLED
+  SATISFIED
 }
 
 enum ContentType {

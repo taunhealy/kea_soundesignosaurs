@@ -5,8 +5,11 @@ import {
 } from "@/app/store/features/cartSlice";
 import { ShoppingCartIcon, HeartIcon } from "lucide-react";
 import Link from "next/link";
+import { UserButton, useAuth } from "@clerk/nextjs";
+import { Button } from "./ui/button";
 
 export function CartIndicator() {
+  const { isSignedIn } = useAuth();
   const cartItems = useAppSelector(selectCartItems);
   const wishlistItems = useAppSelector(selectWishlistItems);
 
@@ -28,6 +31,15 @@ export function CartIndicator() {
           </span>
         )}
       </Link>
+      <div className="flex items-center gap-4">
+        {isSignedIn ? (
+          <UserButton afterSignOutUrl="/" />
+        ) : (
+          <Link href="/sign-in">
+            <Button>Sign In</Button>
+          </Link>
+        )}
+      </div>
     </div>
   );
 }

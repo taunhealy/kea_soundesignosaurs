@@ -1,29 +1,58 @@
-export interface RequestSubmission {
-  id: string;
-  userId: string;
-  username: string;
-  title: string;
-  soundPreviewUrl?: string;
-  presetFileUrl?: string;
-  guide?: string;
-  timestamp: string;
-}
+import { RequestStatus, RequestViewMode } from "@/types/enums";
 
-export interface PresetRequest {
+// Base type from Prisma
+export type PresetRequestBase = {
   id: string;
-  userId: string;
   title: string;
-  youtubeLink: string;
-  timestamp: string;
-  genre: {
+  youtubeLink: string | null;
+  enquiryDetails: string;
+  status: RequestStatus;
+  tags: string[];
+  createdAt: Date;
+  updatedAt: Date;
+  userId: string;
+  genreId: string | null;
+};
+
+// Extended type with relations
+export type PresetRequestWithRelations = PresetRequestBase & {
+  genre?: {
     id: string;
     name: string;
   };
-  genreId: string;
-  status: "OPEN" | "ASSISTED" | "SATISFIED";
-  soundDesigner: {
+  soundDesigner?: {
+    id: string;
     username: string;
   };
-  enquiryDetails: string;
   submissions?: RequestSubmission[];
+};
+
+// Type for the card component
+export interface PresetRequestCardProps {
+  request: PresetRequestWithRelations;
+  showSubmissions?: boolean;
+  requestViewMode: RequestViewMode;
+}
+
+// Type for submissions
+export interface RequestSubmission {
+  id: string;
+  title: string;
+  guide?: string;
+  soundPreviewUrl?: string;
+  presetFileUrl?: string;
+  userId: string;
+  username: string;
+  timestamp: string;
+  genreId?: string;
+  genre?: {
+    id: string;
+    name: string;
+  };
+  vstId?: string;
+  vst?: {
+    id: string;
+    name: string;
+  };
+  presetType?: string;
 }

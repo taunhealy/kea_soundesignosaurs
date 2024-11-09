@@ -22,19 +22,12 @@ import {
   TrashIcon,
 } from "lucide-react";
 import { Badge } from "../ui/badge";
-import { RequestSubmission, PresetRequest } from "@/types/PresetRequestTypes";
+import {
+  RequestSubmission,
+  PresetRequestCardProps,
+} from "@/types/PresetRequestTypes";
 import { AudioPlayer } from "@/app/components/AudioPlayer";
-
-interface PresetRequestCardProps {
-  request: PresetRequest & {
-    genre?: {
-      id: string;
-      name: string;
-    };
-  };
-  showSubmissions?: boolean;
-  type: "requested" | "assisted";
-}
+import { RequestViewMode } from "@/types/enums";
 
 function getYouTubeVideoId(url: string) {
   const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
@@ -45,7 +38,7 @@ function getYouTubeVideoId(url: string) {
 export function PresetRequestCard({
   request,
   showSubmissions = false,
-  type,
+  requestViewMode,
 }: PresetRequestCardProps) {
   const [mounted, setMounted] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -156,6 +149,9 @@ export function PresetRequestCard({
     genreId: request.genreId,
   });
 
+  // Only show edit/delete buttons for user's own requests
+  const showActions = requestViewMode === RequestViewMode.REQUESTED;
+
   if (!mounted) {
     return null;
   }
@@ -164,40 +160,31 @@ export function PresetRequestCard({
     <Card onClick={(e) => e.preventDefault()}>
       <CardHeader className="space-y-4">
         <div className="flex items-start justify-between">
-          <Badge
-            variant={
-              request.status === "OPEN"
-                ? "default"
-                : request.status === "ASSISTED"
-                ? "secondary"
-                : "outline"
-            }
-            className="mb-2"
-          >
-            {request.status}
-          </Badge>
-          <div className="flex gap-2">
-            <Button
-              onClick={(e) => {
-                e.stopPropagation();
-                router.push(`/dashboard/presetRequest/edit/${request.id}`);
-              }}
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-            >
-              <EditIcon className="h-4 w-4" />
-            </Button>
-            <Button
-              onClick={handleDelete}
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 hover:bg-destructive hover:text-destructive-foreground"
-              disabled={isDeleting}
-            >
-              <TrashIcon className="h-4 w-4" />
-            </Button>
-          </div>
+          <Badge>{request.status}</Badge>
+          {showActions && (
+            <div className="flex gap-2">
+              <Button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  router.push(`/dashboard/presetRequest/edit/${request.id}`);
+                }}
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+              >
+                <EditIcon className="h-4 w-4" />
+              </Button>
+              <Button
+                onClick={handleDelete}
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 hover:bg-destructive hover:text-destructive-foreground"
+                disabled={isDeleting}
+              >
+                <TrashIcon className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
         </div>
         <div>
           <CardTitle className="text-2xl">{request.title}</CardTitle>
@@ -231,22 +218,24 @@ export function PresetRequestCard({
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    window.open(request.youtubeLink, "_blank");
+                    if (request.youtubeLink) {
+                      window.open(request.youtubeLink, "_blank");
+                    }
                   }}
                   className="relative aspect-video w-full overflow-hidden rounded-lg hover:opacity-90 transition-opacity"
                 >
                   <img
-                    src={`https://img.youtube.com/vi/${getYouTubeVideoId(
-                      request.youtubeLink
-                    )}/maxresdefault.jpg`}
+                    src={`https://img.youtube.com/vi/${
+                      getYouTubeVideoId(request.youtubeLink || "") || ""
+                    }/maxresdefault.jpg`}
                     alt="YouTube thumbnail"
                     className="w-full h-full object-cover"
                     onError={(e) => {
                       (
                         e.target as HTMLImageElement
-                      ).src = `https://img.youtube.com/vi/${getYouTubeVideoId(
-                        request.youtubeLink
-                      )}/mqdefault.jpg`;
+                      ).src = `https://img.youtube.com/vi/${
+                        getYouTubeVideoId(request.youtubeLink || "") || ""
+                      }/mqdefault.jpg`;
                     }}
                   />
                   <div className="absolute inset-0 bg-black/20 flex items-center justify-center">

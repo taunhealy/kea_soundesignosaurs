@@ -1,7 +1,8 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { PresetDownload, PresetUpload, PriceType } from "@prisma/client";
+import { PresetUpload, PriceType, VST } from "@prisma/client";
+import { ContentViewMode } from "@/types/enums";
 import { ItemActionButtons } from "./ItemActionButtons";
 import { useRouter } from "next/navigation";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
@@ -11,34 +12,34 @@ import { Button } from "./ui/button";
 import { PlayIcon, PauseIcon } from "lucide-react";
 import { AudioPlayer } from "./AudioPlayer";
 import { useEffect } from "react";
+
 interface PresetCardProps {
   preset: PresetUpload & {
-    soundDesigner?: { username: string | null } | null;
+    vst?: VST | null;
+    soundDesigner?: { username: string } | null;
     genre?: { name: string } | null;
-    vst?: { name: string } | null;
-    soundPreviewUrl?: string;
   };
-  variant?: string;
+  contentViewMode: ContentViewMode;
+  variant?: "default" | "compact";
   currentUserId?: string | null;
-  type?: "uploaded" | "downloaded" | "explore";
-  initialAudio?: HTMLAudioElement | null;
 }
 
 export function PresetCard({
   preset,
   variant,
   currentUserId,
-  type,
+  contentViewMode,
 }: PresetCardProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
 
-  const { isPlaying, activeTrack, audioElement, play, pause, cleanup } = useAudioPlayer({
-    onError: (error) => {
-      console.error("Audio playback error:", error);
-      toast.error("Failed to play audio");
-    },
-  });
+  const { isPlaying, activeTrack, audioElement, play, pause, cleanup } =
+    useAudioPlayer({
+      onError: (error) => {
+        console.error("Audio playback error:", error);
+        toast.error("Failed to play audio");
+      },
+    });
 
   useEffect(() => {
     return () => {
@@ -116,15 +117,15 @@ export function PresetCard({
           itemId={preset.id}
           type="preset"
           itemStatus={
-            type === "uploaded"
+            contentViewMode === "uploaded"
               ? "uploaded"
-              : type === "downloaded"
+              : contentViewMode === "downloaded"
               ? "downloaded"
               : null
           }
           downloadUrl={preset.presetFileUrl ?? undefined}
           title={preset.title}
-          onDelete={type === "uploaded" ? handleDelete : undefined}
+          onDelete={contentViewMode === "uploaded" ? handleDelete : undefined}
         />
       </div>
       <CardHeader className="border-b p-4">

@@ -9,6 +9,7 @@ import { SearchFilters } from "@/types/SearchTypes";
 import { useDebounce } from "@/app/hooks/useDebounce";
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { ContentType, BoardView } from "@/types/enums";
 
 const PRESET_TYPES = Object.values(PresetType);
 const PRICE_TYPES = Object.values(PriceType);
@@ -16,12 +17,16 @@ const VST_TYPES = Object.values(VstType);
 
 interface SearchSidebarProps {
   filters: SearchFilters;
-  onSubmit: (newFilters: Partial<SearchFilters>) => void;
+  updateFilters: (filters: SearchFilters) => void;
+  contentType: ContentType;
+  boardView: BoardView;
 }
 
 export const SearchSidebar: React.FC<SearchSidebarProps> = ({
   filters,
-  onSubmit,
+  updateFilters,
+  contentType,
+  boardView,
 }) => {
   const { data: genres } = useGenres();
   const [searchTerm, setSearchTerm] = useState(filters.searchTerm || "");
@@ -30,7 +35,7 @@ export const SearchSidebar: React.FC<SearchSidebarProps> = ({
 
   const filterMutation = useMutation({
     mutationFn: (newFilters: Partial<SearchFilters>) => {
-      onSubmit(newFilters);
+      updateFilters(newFilters);
       return Promise.resolve();
     },
     onSuccess: () => {
@@ -83,7 +88,7 @@ export const SearchSidebar: React.FC<SearchSidebarProps> = ({
           <div key={priceType} className="flex items-center">
             <Checkbox
               id={`price-${priceType}`}
-              checked={filters.priceTypes.includes(priceType)}
+              checked={filters.priceTypes?.includes(priceType)}
               onCheckedChange={(checked) =>
                 handleFilterChange("priceTypes", priceType, checked as boolean)
               }
@@ -102,7 +107,7 @@ export const SearchSidebar: React.FC<SearchSidebarProps> = ({
           <div key={presetType} className="flex items-center">
             <Checkbox
               id={`preset-${presetType}`}
-              checked={filters.presetTypes.includes(presetType)}
+              checked={filters.presetTypes?.includes(presetType)}
               onCheckedChange={(checked) =>
                 handleFilterChange(
                   "presetTypes",
@@ -125,7 +130,7 @@ export const SearchSidebar: React.FC<SearchSidebarProps> = ({
           <div key={vstType} className="flex items-center">
             <Checkbox
               id={`vst-${vstType}`}
-              checked={filters.vstTypes.includes(vstType)}
+              checked={filters.vstTypes?.includes(vstType)}
               onCheckedChange={(checked) =>
                 handleFilterChange("vstTypes", vstType, checked as boolean)
               }
@@ -144,7 +149,7 @@ export const SearchSidebar: React.FC<SearchSidebarProps> = ({
           <div key={genre.id} className="flex items-center">
             <Checkbox
               id={`genre-${genre.id}`}
-              checked={filters.genres.includes(genre.id)}
+              checked={filters.genres?.includes(genre.id)}
               onCheckedChange={(checked) =>
                 handleFilterChange("genres", genre.id, checked as boolean)
               }

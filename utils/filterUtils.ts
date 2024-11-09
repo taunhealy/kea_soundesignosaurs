@@ -1,11 +1,11 @@
 import { SearchFilters } from "@/types/SearchTypes";
-import { UserStatus } from "@/types/enums";
+import { ContentViewMode } from "@/types/enums";
 import { ContentType } from "@prisma/client";
 
 export const DEFAULT_FILTERS: SearchFilters = {
   searchTerm: "",
   contentType: ContentType.PRESETS,
-  userStatus: UserStatus.NONE,
+  viewMode: ContentViewMode.EXPLORE,
   priceTypes: [],
   genres: [],
   vstTypes: [],

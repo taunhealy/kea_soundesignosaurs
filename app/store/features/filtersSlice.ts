@@ -1,7 +1,7 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { SearchFilters } from "@/types/SearchTypes";
 import { ContentType } from "@prisma/client";
-import { UserStatus } from "@/types/enums";
+import { ContentViewMode } from "@/types/enums";
 
 const initialState: SearchFilters = {
   searchTerm: "",
@@ -15,7 +15,7 @@ const initialState: SearchFilters = {
   page: 1,
   pageSize: 20,
   contentType: ContentType.PRESETS,
-  userStatus: UserStatus.UPLOADED,
+  viewMode: ContentViewMode.EXPLORE,
   sortBy: "",
   sortOrder: "asc",
 };

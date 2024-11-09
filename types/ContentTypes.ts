@@ -1,8 +1,8 @@
 import { ContentType } from "@prisma/client";
 import { SearchFilters } from "./SearchTypes";
-import { UserStatus } from "./enums";
+import { ContentViewMode } from "./enums";
 export interface ContentListingParams {
-  userStatus: UserStatus;
+  viewMode: ContentViewMode;
   contentType: ContentType;
   filters?: SearchFilters;
 }

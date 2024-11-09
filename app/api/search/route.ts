@@ -172,6 +172,10 @@ export async function GET(request: Request) {
           createdAt: "desc",
         },
       });
+
+      console.log("whereClause:", whereClause);
+      console.log("Number of presets found:", presets.length);
+
       return NextResponse.json(presets);
     }
   } catch (error) {
