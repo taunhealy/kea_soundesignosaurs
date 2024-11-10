@@ -1,10 +1,11 @@
 import { Button } from "@/app/components/ui/button";
 import { Download } from "lucide-react";
 import { toast } from "react-toastify";
+import JSZip from "jszip";
 
 interface DownloadButtonProps {
   itemId: string;
-  itemType: "preset";
+  itemType: "preset" | "pack";
   downloadUrl?: string;
 }
 
@@ -15,8 +16,9 @@ export function DownloadButton({
 }: DownloadButtonProps) {
   const handleDownload = async () => {
     try {
-      // First get the secure download URL from our API
-      const response = await fetch(`/api/downloads/preset/${itemId}`);
+      // Use existing API routes
+      const endpoint = `/api/downloads/${itemType}/${itemId}`;
+      const response = await fetch(endpoint);
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -26,21 +28,38 @@ export function DownloadButton({
       const data = await response.json();
       console.log("Download response:", data);
 
-      if (!data.downloadUrl) {
-        throw new Error("No download URL available");
+      if (itemType === 'preset') {
+        // Single preset download
+        const link = document.createElement("a");
+        link.href = data.downloadUrl;
+        link.download = data.filename || `preset-${itemId}.preset`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } else {
+        // Pack download - create zip file
+        const zip = new JSZip();
+        
+        // Add each preset to the zip
+        for (const preset of data.presets) {
+          const presetResponse = await fetch(preset.url);
+          const presetBlob = await presetResponse.blob();
+          zip.file(`${preset.title}.preset`, presetBlob);
+        }
+        
+        // Generate and download zip file
+        const zipBlob = await zip.generateAsync({ type: "blob" });
+        const zipUrl = URL.createObjectURL(zipBlob);
+        const link = document.createElement("a");
+        link.href = zipUrl;
+        link.download = `${data.packTitle || `pack-${itemId}`}.zip`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(zipUrl);
       }
 
-      // Create download link
-      const link = document.createElement("a");
-      link.href = data.downloadUrl;
-      link.download = data.filename || `${itemType}-${itemId}.preset`; // Use filename from API if available
-
-      // Trigger download
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
-      toast.success("Download started");
+      toast.success(`${itemType === 'preset' ? 'Preset' : 'Pack'} download started`);
     } catch (error) {
       console.error("Download error:", error);
       toast.error(error instanceof Error ? error.message : "Download failed");

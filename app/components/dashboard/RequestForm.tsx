@@ -36,6 +36,7 @@ export function RequestForm({ initialData, requestId }: RequestFormProps) {
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm<RequestFormData>({
     resolver: zodResolver(requestSchema),
@@ -69,7 +70,7 @@ export function RequestForm({ initialData, requestId }: RequestFormProps) {
       queryClient.invalidateQueries({ queryKey: ["requests"] });
       queryClient.invalidateQueries({ queryKey: ["request", requestId] });
       toast.success("Request saved successfully");
-      router.push("/dashboard/presetRequests");
+      router.push("/dashboard/requests");
     },
     onError: (error) => {
       console.error("Error saving request:", error);
@@ -79,6 +80,11 @@ export function RequestForm({ initialData, requestId }: RequestFormProps) {
 
   const onSubmit = (data: RequestFormData) => {
     mutation.mutate(data);
+  };
+
+  const handleGenreChange = (value: string) => {
+    setSelectedGenre(value);
+    setValue("genre", value);
   };
 
   return (
@@ -100,10 +106,7 @@ export function RequestForm({ initialData, requestId }: RequestFormProps) {
 
       <div>
         <label className="block text-sm font-medium mb-2">Genre</label>
-        <GenreCombobox
-          value={selectedGenre}
-          onChange={(value) => setSelectedGenre(value)}
-        />
+        <GenreCombobox value={selectedGenre} onChange={handleGenreChange} />
         {errors.genre && (
           <p className="text-red-500 text-sm mt-1">{errors.genre.message}</p>
         )}

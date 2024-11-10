@@ -8,6 +8,7 @@ const presetPackSchema = z.object({
   description: z.string().optional(),
   price: z.number().min(5),
   presetIds: z.array(z.string()).min(1),
+  genre: z.string().min(1, "Genre is required"),
 });
 
 export async function POST(request: Request) {
@@ -38,6 +39,7 @@ export async function POST(request: Request) {
         title: validated.title,
         description: validated.description,
         price: validated.price,
+        genreId: validated.genre,
         soundDesignerId: soundDesigner.id,
         presets: {
           create: validated.presetIds.map((presetId) => ({
@@ -82,7 +84,7 @@ export async function GET(request: Request) {
     const userStatus = searchParams.get("userStatus");
 
     const where = {
-      ...(userStatus === "UPLOADED" 
+      ...(userStatus === "UPLOADED"
         ? {
             soundDesigner: {
               userId: userId,

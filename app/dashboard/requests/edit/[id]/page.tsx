@@ -26,7 +26,7 @@ export default function EditPresetRequestPage({ params }: PageProps) {
 
   return (
     <div className="container mx-auto p-6">
-      <PresetRequestCard request={initialData} type="requested" />
+      <PresetRequestCard request={initialData} />
       <div className="mt-6">
         <RequestForm initialData={initialData} requestId={params.id} />
       </div>

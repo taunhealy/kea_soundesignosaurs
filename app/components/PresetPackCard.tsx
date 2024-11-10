@@ -33,6 +33,7 @@ interface PresetPackCardProps {
       preset: {
         id: string;
         title: string;
+        price: number;
         soundPreviewUrl?: string;
       };
     }[];
@@ -52,6 +53,10 @@ export function PresetPackCard({
   const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const queryClient = useQueryClient();
+
+  const totalPresetsPrice = pack.presets.reduce((sum, item) => sum + item.preset.price, 0);
+  const savings = totalPresetsPrice - pack.price;
+  const savingsPercentage = Math.round((savings / totalPresetsPrice) * 100);
 
   const cleanupAudio = useCallback(() => {
     if (audio) {
@@ -159,12 +164,17 @@ export function PresetPackCard({
       </CardHeader>
 
       <CardContent className="flex-1 flex flex-col">
-        <PriceChangeDisplay
-          currentPrice={pack.price}
-          size="lg"
-          className="mb-4"
-          itemType="pack"
-        />
+        <div className="flex flex-col gap-2 mb-4">
+          <div className="flex items-baseline gap-2">
+            <span className="text-2xl font-bold">${pack.price}</span>
+            <span className="text-lg line-through text-muted-foreground">
+              ${totalPresetsPrice}
+            </span>
+          </div>
+          <div className="text-sm text-green-600">
+            Save {savingsPercentage}% (${savings.toFixed(2)})
+          </div>
+        </div>
 
         {pack.description && (
           <p className="text-sm text-muted-foreground mb-4">

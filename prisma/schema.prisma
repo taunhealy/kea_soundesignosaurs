@@ -109,6 +109,8 @@ model PresetPackUpload {
   tags            String[]
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
+  genre           Genre?         @relation(fields: [genreId], references: [id], onDelete: SetNull)
+  genreId         String?
   
   // Relations
   soundDesigner   SoundDesigner @relation(fields: [soundDesignerId], references: [id], onDelete: Cascade)
@@ -290,6 +292,7 @@ model Genre {
   
   presets        PresetUpload[]
   presetRequests PresetRequest[]
+  presetPacks    PresetPackUpload[]
 }
 
 model PriceHistory {

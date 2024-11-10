@@ -17,10 +17,12 @@ export default function PresetsPage() {
   const initialFilters: SearchFilters = {
     ...DEFAULT_FILTERS,
     q: searchParams.get("searchTerm") || "",
-    preset: (searchParams.get("presetTypes")?.split(",") as PresetType[]) || [],
+    presetTypes:
+      (searchParams.get("presetTypes")?.split(",") as PresetType[]) || [],
     genres: searchParams.get("genres")?.split(",") || [],
-    vst: searchParams.get("vstTypes")?.split(",") || [],
-    price: (searchParams.get("priceTypes")?.split(",") as PriceType[]) || [],
+    vstTypes: searchParams.get("vstTypes")?.split(",") || [],
+    priceTypes:
+      (searchParams.get("priceTypes")?.split(",") as PriceType[]) || [],
     p: parseInt(searchParams.get("page") || "1"),
     type: ContentType.PRESETS,
     view:

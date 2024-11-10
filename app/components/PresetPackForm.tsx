@@ -17,7 +17,7 @@ interface PresetPackFormProps {
     title: string;
     description?: string;
     price: number;
-    presets: { preset: { id: string } }[];
+    presets: { preset: { id: string; price: number; title: string } }[];
   };
   packId?: string;
 }
@@ -26,19 +26,22 @@ const presetPackSchema = z.object({
   title: z
     .string()
     .min(1, "Title is required")
-    .transform(str => str.charAt(0).toUpperCase() + str.slice(1))
-    .refine(val => val.charAt(0) === val.charAt(0).toUpperCase(), {
+    .transform((str) => str.charAt(0).toUpperCase() + str.slice(1))
+    .refine((val) => val.charAt(0) === val.charAt(0).toUpperCase(), {
       message: "Title must start with a capital letter",
     }),
   description: z
     .string()
     .optional()
-    .transform(str => str ? str.charAt(0).toUpperCase() + str.slice(1) : str)
-    .refine(val => !val || val.charAt(0) === val.charAt(0).toUpperCase(), {
+    .transform((str) =>
+      str ? str.charAt(0).toUpperCase() + str.slice(1) : str
+    )
+    .refine((val) => !val || val.charAt(0) === val.charAt(0).toUpperCase(), {
       message: "Description must start with a capital letter",
     }),
   price: z.number().min(5, "Price must be at least $5"),
-  presetIds: z.array(z.string())
+  presetIds: z
+    .array(z.string())
     .min(5, "Pack must contain at least 5 presets")
     .max(9, "Pack cannot contain more than 9 presets"),
 });
@@ -50,24 +53,42 @@ export function PresetPackForm({ initialData, packId }: PresetPackFormProps) {
   const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Fetch user presets
+  const [selectedPresets, setSelectedPresets] = useState<
+    Array<{
+      id: string;
+      price: number;
+      title: string;
+    }>
+  >(
+    initialData?.presets.map((p) => ({
+      id: p.preset.id,
+      price: p.preset.price,
+      title: p.preset.title,
+    })) || []
+  );
+
+  // Calculate total price of individual presets
+  const totalPresetsPrice = selectedPresets.reduce(
+    (sum, preset) => sum + preset.price,
+    0
+  );
+
+  // Query to get user's uploaded presets
   const { data: userPresets } = useQuery({
-    queryKey: ["presets", "uploaded"],
+    queryKey: ["userPresets"],
     queryFn: async () => {
-      const response = await fetch("/api/presets?type=uploaded");
+      const response = await fetch("/api/presets/uploaded");
       if (!response.ok) throw new Error("Failed to fetch presets");
       return response.json();
     },
   });
 
-  // Transform presets into options
-  const presetOptions = useMemo(() => {
-    if (!userPresets) return [];
-    return userPresets.map((preset: any) => ({
+  const presetOptions =
+    userPresets?.map((preset: any) => ({
       value: preset.id,
-      label: preset.title || "Untitled Preset",
-    }));
-  }, [userPresets]);
+      label: preset.title,
+      price: preset.price,
+    })) || [];
 
   const {
     control,
@@ -157,47 +178,38 @@ export function PresetPackForm({ initialData, packId }: PresetPackFormProps) {
         )}
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="price">Price (USD)</Label>
-        <Input
-          type="number"
-          step="0.01"
-          min="5"
-          {...register("price", { valueAsNumber: true })}
-          id="price"
+      <div className="space-y-4">
+        <Label>Select Your Presets</Label>
+        <MultiSelect
+          options={presetOptions}
+          value={selectedPresets.map((p) => p.id)}
+          onChange={(ids) => {
+            const newPresets = ids.map((id) => {
+              const preset = presetOptions.find((p) => p.value === id);
+              return {
+                id,
+                price: preset.price,
+                title: preset.label,
+              };
+            });
+            setSelectedPresets(newPresets);
+          }}
         />
-        {errors.price && (
-          <p className="text-sm text-red-500">{errors.price.message}</p>
-        )}
-      </div>
 
-      <div className="space-y-2">
-        <Label>Select Presets</Label>
-        {presetOptions.length === 0 ? (
-          <div className="text-sm text-muted-foreground">
-            No presets available. Please upload some presets first.
-          </div>
-        ) : (
-          <Controller
-            name="presetIds"
-            control={control}
-            render={({ field }) => {
-              return (
-                <MultiSelect
-                  options={presetOptions}
-                  value={field.value}
-                  onChange={(newValue) => {
-                    field.onChange(newValue);
-                  }}
-                  placeholder="Select presets..."
-                />
-              );
-            }}
-          />
-        )}
-        {errors.presetIds && (
-          <p className="text-sm text-red-500">{errors.presetIds.message}</p>
-        )}
+        <div className="text-sm text-muted-foreground">
+          Total value of individual presets: ${totalPresetsPrice}
+        </div>
+
+        <div>
+          <Label>
+            Set Pack Price (min $5, recommended: $
+            {Math.max(5, Math.floor(totalPresetsPrice * 0.8))})
+          </Label>
+          <Input type="number" min={5} step={0.01} {...register("price")} />
+          {errors.price && (
+            <p className="text-sm text-red-500">{errors.price.message}</p>
+          )}
+        </div>
       </div>
 
       <Button type="submit" disabled={isSubmitting}>
