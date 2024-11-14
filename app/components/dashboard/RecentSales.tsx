@@ -1,4 +1,6 @@
-import prisma from "@/lib/db";
+"use client";
+
+import { useQuery } from "@tanstack/react-query";
 import {
   Avatar,
   AvatarFallback,
@@ -11,48 +13,62 @@ import {
   CardTitle,
 } from "@/app/components/ui/card";
 
-async function getData() {
-  const data = await prisma.order.findMany({
-    select: {
-      amount: true,
-      id: true,
-      User: {
-        select: {
-          firstName: true,
-          profileImage: true,
-          email: true,
-        },
-      },
+type OrderData = {
+  id: string;
+  amount: number;
+  sound_designer: {
+    firstName: string;
+    profileImage: string | null;
+    email: string;
+  };
+};
+
+export function RecentSales() {
+  const { data, isLoading } = useQuery({
+    queryKey: ["recentSales"],
+    queryFn: async () => {
+      const response = await fetch("/api/sales/recent");
+      if (!response.ok) {
+        throw new Error("Failed to fetch recent sales");
+      }
+      return response.json();
     },
-    orderBy: {
-      createdAt: "desc",
-    },
-    take: 7,
   });
 
-  return data;
-}
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent sales</CardTitle>
+        </CardHeader>
+        <CardContent>Loading...</CardContent>
+      </Card>
+    );
+  }
 
-export async function RecentSales() {
-  const data = await getData();
   return (
     <Card>
       <CardHeader>
         <CardTitle>Recent sales</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-8">
-        {data.map((item) => (
+        {data?.map((item: OrderData) => (
           <div className="flex items-center gap-4" key={item.id}>
             <Avatar className="hidden sm:flex h-9 w-9">
-              <AvatarImage src={item.User?.profileImage} alt="Avatar Image" />
+              <AvatarImage
+                src={item.sound_designer.profileImage ?? ""}
+                alt="Avatar Image"
+              />
               <AvatarFallback>
-                {item.User?.firstName.slice(0, 3)}
+                {item.sound_designer.firstName.slice(0, 3)}
               </AvatarFallback>
             </Avatar>
             <div className="grid gap-1">
-              <p className="text-sm font-medium">{item.User?.firstName}</p>
+              <p className="text-sm font-medium">
+                {item.sound_designer.firstName}
+              </p>
               <p className="text-sm text-muted-foreground">
-                {item.User?.email}
+                {item.sound_designer.email}
               </p>
             </div>
             <p className="ml-auto font-medium">

@@ -1,30 +1,21 @@
-import { auth } from "@clerk/nextjs/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
 import prisma from "@/lib/prisma";
-import { currentUser } from "@clerk/nextjs/server";
 
 export async function POST(req: Request) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    // Get the user's email from Clerk
-    const user = await currentUser();
-    if (!user?.emailAddresses?.[0]?.emailAddress) {
-      return NextResponse.json(
-        { error: "No email address found" },
-        { status: 400 }
-      );
     }
 
     // Get cart items from the database
     const cart = await prisma.cart.findUnique({
       where: {
         userId_type: {
-          userId,
+          userId: session.user.id, // Use session user ID directly
           type: "CART",
         },
       },
@@ -54,8 +45,8 @@ export async function POST(req: Request) {
             name: product.title,
             description: product.description || undefined,
             metadata: {
-              presetId: product.id
-            }
+              presetId: product.id,
+            },
           },
           unit_amount: Math.round(Number(product.price) * 100), // Convert to cents
         },
@@ -63,20 +54,20 @@ export async function POST(req: Request) {
       };
     });
 
-    // Create Stripe checkout session with proper email
-    const session = await stripe.checkout.sessions.create({
-      customer_email: user.emailAddresses[0].emailAddress, // Use actual email instead of userId
+    // Create Stripe checkout session
+    const stripeSession = await stripe.checkout.sessions.create({
+      customer_email: session.user.email || undefined, // Use email from session
       line_items: lineItems,
       mode: "payment",
       success_url: `${process.env.NEXT_PUBLIC_APP_URL}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/cart`,
       metadata: {
         cartId: cart.id,
-        userId,
+        userId: session.user.id, // Use session user ID
       },
     });
 
-    return NextResponse.json({ url: session.url });
+    return NextResponse.json({ url: stripeSession.url });
   } catch (error) {
     console.error("Checkout error:", error);
     return NextResponse.json(

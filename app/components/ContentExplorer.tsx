@@ -4,7 +4,7 @@ import { PresetGrid } from "@/app/components/shared/PresetGrid";
 import { SearchSidebar } from "@/app/components/SearchSidebar";
 import { PresetPackGrid } from "@/app/components/shared/PresetPackGrid";
 import { PresetRequestGrid } from "@/app/components/shared/PresetRequestGrid";
-import { ContentType, RequestStatus } from "@prisma/client";
+import { ITEM_TYPES, ContentType } from "@/types/common";
 import {
   ContentViewMode,
   isContentViewMode,
@@ -14,7 +14,6 @@ import {
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ContentExplorerTabState } from "@/types/props";
-import { BoardView } from "@/types/enums";
 import { useSearchState } from "@/app/hooks/useSearchState";
 import { useContent } from "@/app/hooks/queries/useContent";
 import { SearchFilters } from "@/types/SearchTypes";
@@ -34,17 +33,27 @@ import { CreateRequestButton } from "@/app/components/buttons/CreateRequestButto
 
 interface ContentExplorerProps {
   contentType: ContentType;
-  boardView: BoardView;
   initialFilters: SearchFilters;
   status?: string;
 }
 
 export function ContentExplorer({
   contentType,
-  boardView,
   initialFilters,
-  status,
 }: ContentExplorerProps) {
+  const { data, isLoading } = useContent({
+    contentType,
+    filters: initialFilters,
+    view: initialFilters.view,
+    status: initialFilters.status,
+  });
+
+  const items = data || [];
+
+  console.log("[DEBUG] ContentExplorer view:", initialFilters.view);
+  console.log("[DEBUG] ContentExplorer items count:", items.length);
+  console.log("[DEBUG] ContentExplorer items:", items);
+
   const { filters, updateFilters } = useSearchState();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -53,20 +62,12 @@ export function ContentExplorer({
   const [state, setState] = useState<
     Omit<ContentExplorerTabState, "contentType">
   >(() => {
-    const initialState = getInitialState(boardView, contentType, view);
+    const initialState = getInitialState(contentType, view);
     return {
       activeTab: initialState.activeTab,
       viewMode: initialState.viewMode,
       status: initialState.status,
     };
-  });
-
-  const { items, isLoading } = useContent({
-    contentType,
-    boardView,
-    filters,
-    view: state.viewMode,
-    status: state.status,
   });
 
   const renderRequestTabs = () => {
@@ -78,16 +79,13 @@ export function ContentExplorer({
             setState((prev) => ({ ...prev, viewMode: value }));
             const params = new URLSearchParams(searchParams);
             params.set("view", value);
-            router.push(`${getBasePath()}/requests?${params.toString()}`);
+            router.push(`/requests?${params.toString()}`);
           }}
         >
           <TabsList className="mb-4">
             <TabsTrigger value={RequestViewMode.PUBLIC}>All</TabsTrigger>
             <TabsTrigger value={RequestViewMode.REQUESTED}>
               My Requests
-            </TabsTrigger>
-            <TabsTrigger value={RequestViewMode.ASSISTED}>
-              Assisting
             </TabsTrigger>
           </TabsList>
         </Tabs>
@@ -100,29 +98,23 @@ export function ContentExplorer({
             const currentView = params.get("view") || state.viewMode;
             params.set("view", currentView);
             params.set("status", value);
-            router.push(`${getBasePath()}/requests?${params.toString()}`);
+            router.push(`/requests?${params.toString()}`);
           }}
         >
           <TabsList className="mb-4">
-            <TabsTrigger value={RequestStatus.OPEN}>Open</TabsTrigger>
-            <TabsTrigger value={RequestStatus.COMPLETED}>Completed</TabsTrigger>
+            <TabsTrigger value={PrismaRequestStatus.OPEN}>Open</TabsTrigger>
+            <TabsTrigger value={PrismaRequestStatus.SATISFIED}>
+              Satisfied
+            </TabsTrigger>
           </TabsList>
         </Tabs>
 
         <PresetRequestGrid
-          requests={filterRequests(items, state.viewMode)}
-          requestStatus={state.status as RequestStatus}
+          requests={items}
           requestViewMode={state.viewMode as RequestViewMode}
           isLoading={isLoading}
         />
       </div>
-    );
-  };
-
-  const filterRequests = (requests: any[], viewMode: string) => {
-    if (!requests) return [];
-    return requests.filter(
-      (req) => viewMode === RequestViewMode.PUBLIC || req.viewMode === viewMode
     );
   };
 
@@ -133,58 +125,56 @@ export function ContentExplorer({
           defaultValue={state.viewMode}
           onValueChange={(value) => {
             setState((prev) => ({ ...prev, viewMode: value }));
-            const params = new URLSearchParams(searchParams);
+            const params = new URLSearchParams();
             params.set("view", value);
-            router.push(
-              `${getBasePath()}/${contentType.toLowerCase()}?${params.toString()}`
-            );
+            router.push(`/${contentType.toLowerCase()}?${params.toString()}`);
           }}
         >
           <TabsList className="mb-4">
             <TabsTrigger value={ContentViewMode.EXPLORE}>All</TabsTrigger>
-            <TabsTrigger value={ContentViewMode.UPLOADED}>
-              My Uploads
-            </TabsTrigger>
-            <TabsTrigger value={ContentViewMode.DOWNLOADED}>
-              Downloaded
-            </TabsTrigger>
+            <TabsTrigger value={ContentViewMode.UPLOADED}>My Uploads</TabsTrigger>
+            <TabsTrigger value={ContentViewMode.DOWNLOADED}>Downloaded</TabsTrigger>
           </TabsList>
         </Tabs>
 
-        {contentType === ContentType.PRESETS ? (
-          <PresetGrid
-            presets={items}
-            contentViewMode={state.viewMode as ContentViewMode}
-            isLoading={isLoading}
-          />
-        ) : (
-          <PresetPackGrid
-            packs={items}
-            contentViewMode={state.viewMode as ContentViewMode}
-            isLoading={isLoading}
-          />
-        )}
+        {renderContentGrid()}
       </div>
     );
   };
 
+  const renderContentGrid = () => {
+    if (contentType === ITEM_TYPES.PRESET) {
+      return (
+        <PresetGrid
+          presets={items}
+          contentViewMode={state.viewMode as ContentViewMode}
+          isLoading={isLoading}
+        />
+      );
+    }
+    return (
+      <PresetPackGrid
+        packs={items}
+        contentViewMode={state.viewMode as ContentViewMode}
+        isLoading={isLoading}
+      />
+    );
+  };
+
   const renderContent = () => {
-    if (contentType === ContentType.REQUESTS) {
+    if (contentType === ITEM_TYPES.REQUEST) {
       return renderRequestTabs();
     }
     return renderContentTabs();
   };
 
-  const getBasePath = () =>
-    boardView === BoardView.DASHBOARD ? "/dashboard" : "";
-
   const renderCreateButton = () => {
     switch (contentType) {
-      case ContentType.PRESETS:
+      case ITEM_TYPES.PRESET:
         return <CreatePresetButton />;
-      case ContentType.PACKS:
+      case ITEM_TYPES.PACK:
         return <CreatePackButton />;
-      case ContentType.REQUESTS:
+      case ITEM_TYPES.REQUEST:
         return <CreateRequestButton />;
       default:
         return null;
@@ -199,7 +189,6 @@ export function ContentExplorer({
             filters={filters}
             updateFilters={updateFilters}
             contentType={contentType}
-            boardView={boardView}
           />
         </aside>
         <main className="flex-1 min-w-[640px]">
@@ -207,15 +196,9 @@ export function ContentExplorer({
             selectedContentType={contentType}
             onSelect={(type) => {
               const params = new URLSearchParams(searchParams);
-              const defaultView =
-                boardView === BoardView.DASHBOARD
-                  ? ContentViewMode.UPLOADED
-                  : ContentViewMode.EXPLORE;
-              router.push(
-                `${getBasePath()}/${type.toLowerCase()}?view=${defaultView}`
-              );
+              const defaultView = ContentViewMode.UPLOADED;
+              router.push(`/${type.toLowerCase()}?view=${defaultView}`);
             }}
-            boardView={boardView}
           />
           <div className="flex justify-between items-center mb-6">
             <div className="flex justify-between items-center w-full">
@@ -231,13 +214,12 @@ export function ContentExplorer({
 }
 
 const getInitialState = (
-  boardView: BoardView,
   contentType: ContentType,
   viewParam: string | null
 ): Omit<ContentExplorerTabState, "contentType"> => {
   const view = viewParam || "";
 
-  if (contentType === ContentType.REQUESTS) {
+  if (contentType === ITEM_TYPES.REQUEST) {
     return {
       activeTab: isRequestViewMode(view)
         ? (view as RequestViewMode)
@@ -245,7 +227,7 @@ const getInitialState = (
       viewMode: isRequestViewMode(view)
         ? (view as RequestViewMode)
         : RequestViewMode.PUBLIC,
-      status: RequestStatus.OPEN,
+      status: PrismaRequestStatus.OPEN,
     };
   }
 
@@ -256,6 +238,15 @@ const getInitialState = (
     viewMode: isContentViewMode(view)
       ? (view as ContentViewMode)
       : ContentViewMode.EXPLORE,
-    status: RequestStatus.OPEN,
+    status: PrismaRequestStatus.OPEN,
   };
+};
+
+const filterRequests = (
+  requests: any[],
+  currentUserId: string,
+  viewMode: string
+) => {
+  if (!requests) return [];
+  return requests;
 };

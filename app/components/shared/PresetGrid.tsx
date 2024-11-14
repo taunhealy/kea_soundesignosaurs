@@ -33,7 +33,7 @@ export function PresetGrid({
   }
 
   return (
-    <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+    <div className="flex flex-col gap-4">
       {presets.map((preset) => (
         <PresetCard
           key={preset.id}
@@ -46,7 +46,7 @@ export function PresetGrid({
 }
 
 const LoadingSkeleton = () => (
-  <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+  <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-2">
     {[...Array(6)].map((_, i) => (
       <Skeleton key={i} className="h-[400px] w-full" />
     ))}

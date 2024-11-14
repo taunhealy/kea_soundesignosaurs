@@ -19,14 +19,12 @@ interface SearchSidebarProps {
   filters: SearchFilters;
   updateFilters: (filters: SearchFilters) => void;
   contentType: ContentType;
-  boardView: BoardView;
 }
 
 export const SearchSidebar: React.FC<SearchSidebarProps> = ({
   filters,
   updateFilters,
   contentType,
-  boardView,
 }) => {
   const { data: genres } = useGenres();
   const [searchTerm, setSearchTerm] = useState(filters.searchTerm || "");

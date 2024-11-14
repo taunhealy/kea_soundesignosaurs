@@ -2,10 +2,11 @@ import { Button } from "@/app/components/ui/button";
 import { Download } from "lucide-react";
 import { toast } from "react-toastify";
 import JSZip from "jszip";
+import { ItemType } from "@/types/actions";
 
 interface DownloadButtonProps {
   itemId: string;
-  itemType: "preset" | "pack";
+  itemType: ItemType;
   downloadUrl?: string;
 }
 

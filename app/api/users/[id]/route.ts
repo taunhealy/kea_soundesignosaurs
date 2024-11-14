@@ -6,7 +6,8 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const user = await clerkClient.users.getUser(params.id);
+    const clerk = await clerkClient();
+    const user = await clerk.users.getUser(params.id);
     return NextResponse.json(user);
   } catch (error) {
     return NextResponse.json(

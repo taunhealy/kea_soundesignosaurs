@@ -1,37 +1,31 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 import { z } from "zod";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 const presetPackSchema = z.object({
   title: z.string().min(1),
   description: z.string().optional(),
   price: z.number().min(5),
-  presetIds: z.array(z.string()).min(1),
+  priceType: z.enum(["FREE", "PREMIUM"]).default("PREMIUM"),
+  presetIds: z
+    .array(z.string())
+    .length(5, "Pack must contain exactly 5 presets"),
   genre: z.string().min(1, "Genre is required"),
+  vstId: z.string().optional(),
+  tags: z.array(z.string()).optional().default([]),
 });
 
 export async function POST(request: Request) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const data = await request.json();
     const validated = presetPackSchema.parse(data);
-
-    // Get the sound designer
-    const soundDesigner = await prisma.soundDesigner.findUnique({
-      where: { userId },
-    });
-
-    if (!soundDesigner) {
-      return NextResponse.json(
-        { error: "Sound designer profile not found" },
-        { status: 404 }
-      );
-    }
 
     // Create the preset pack with connections
     const pack = await prisma.presetPackUpload.create({
@@ -39,8 +33,11 @@ export async function POST(request: Request) {
         title: validated.title,
         description: validated.description,
         price: validated.price,
+        priceType: validated.priceType,
         genreId: validated.genre,
-        soundDesignerId: soundDesigner.id,
+        vstId: validated.vstId,
+        tags: validated.tags,
+        userId: session.user.id,
         presets: {
           create: validated.presetIds.map((presetId) => ({
             presetId,
@@ -54,10 +51,10 @@ export async function POST(request: Request) {
             preset: true,
           },
         },
-        soundDesigner: {
+        user: {
           select: {
             username: true,
-            profileImage: true,
+            image: true,
           },
         },
       },
@@ -75,8 +72,8 @@ export async function POST(request: Request) {
 
 export async function GET(request: Request) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -86,15 +83,13 @@ export async function GET(request: Request) {
     const where = {
       ...(userStatus === "UPLOADED"
         ? {
-            soundDesigner: {
-              userId: userId,
-            },
+            userId: session.user.id,
           }
         : userStatus === "DOWNLOADED"
         ? {
             downloads: {
               some: {
-                userId: userId,
+                userId: session.user.id,
               },
             },
           }
@@ -110,25 +105,25 @@ export async function GET(request: Request) {
               include: {
                 genre: true,
                 vst: true,
-                soundDesigner: {
+                user: {
                   select: {
                     username: true,
-                    profileImage: true,
+                    image: true,
                   },
                 },
               },
             },
           },
         },
-        soundDesigner: {
+        user: {
           select: {
             username: true,
-            profileImage: true,
+            image: true,
           },
         },
         downloads: {
           where: {
-            userId: userId,
+            userId: session.user.id,
           },
         },
       },

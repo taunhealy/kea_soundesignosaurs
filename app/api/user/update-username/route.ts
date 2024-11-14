@@ -1,13 +1,12 @@
-import { auth, clerkClient } from "@clerk/nextjs/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import prisma from "@/lib/prisma";
 
 export async function PATCH(request: Request) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
@@ -22,38 +21,11 @@ export async function PATCH(request: Request) {
       );
     }
 
-    try {
-      const clerk = await clerkClient();
-
-      // First, get the current user to check their username
-      const user = await clerk.users.getUser(userId);
-
-      // If the user already has a username, first remove it
-      if (user.username) {
-        await clerk.users.updateUser(userId, {
-          username: undefined,
-        });
-      }
-
-      // Then set the new username
-      await clerk.users.updateUser(userId, {
-        username: username,
-      });
-
-      // Update in your database
-      await prisma.soundDesigner.update({
-        where: { userId },
-        data: { username },
-      });
-    } catch (clerkError: any) {
-      console.error("Clerk error:", clerkError);
-      return NextResponse.json(
-        {
-          message: clerkError.errors?.[0]?.message || "Username update failed",
-        },
-        { status: 422 }
-      );
-    }
+    // Update in database
+    await prisma.user.update({
+      where: { id: session.user.id },
+      data: { username },
+    });
 
     return NextResponse.json({ message: "Username updated successfully" });
   } catch (error) {

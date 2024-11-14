@@ -31,7 +31,7 @@ export type PresetRequestWithRelations = PresetRequestBase & {
 export interface PresetRequestCardProps {
   request: PresetRequestWithRelations;
   showSubmissions?: boolean;
-  requestViewMode: RequestViewMode;
+  currentUserId?: string;
 }
 
 // Type for submissions

@@ -13,7 +13,7 @@ export async function GET(request: Request) {
     const results = await prisma.presetSubmission.findMany({
       include: {
         presetRequest: true,
-        soundDesigner: true,
+        user: true,
       },
     });
 

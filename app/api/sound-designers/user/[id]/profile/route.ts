@@ -6,17 +6,23 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const soundDesigner = await prisma.soundDesigner.findUnique({
-      where: { userId: params.id },
-      include: {
+    const user = await prisma.user.findUnique({
+      where: { id: params.id },
+      select: {
+        id: true,
+        name: true,
+        username: true,
+        email: true,
+        image: true,
+        websiteUrl: true,
         presets: {
           include: {
             genre: true,
             vst: true,
-            soundDesigner: {
+            user: {
               select: {
                 username: true,
-                profileImage: true,
+                image: true,
               },
             },
           },
@@ -24,14 +30,14 @@ export async function GET(
       },
     });
 
-    if (!soundDesigner) {
+    if (!user) {
       return NextResponse.json(
-        { error: "Sound designer not found" },
+        { error: "User not found" },
         { status: 404 }
       );
     }
 
-    return NextResponse.json(soundDesigner);
+    return NextResponse.json(user);
   } catch (error) {
     console.error("Error fetching sound designer profile:", error);
     return NextResponse.json(

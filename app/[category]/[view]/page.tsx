@@ -1,27 +1,26 @@
 "use client";
 
 import { ContentExplorer } from "@/app/components/ContentExplorer";
-import { BoardView } from "@/types/enums";
-import { ContentType } from "@prisma/client";
+import { ITEM_TYPES } from "@/types/common";
 import { useParams, notFound } from "next/navigation";
 
-export default function CategoryPage() {
-  const params = useParams();
-  const category = params?.category as string;
+type CategoryParams = {
+  category: string;
+  view: string;
+};
 
-  // Simple category mapping
+export default function CategoryPage() {
+  const params = useParams<CategoryParams>();
+  const category = params.category;
+
+  // Simple category mapping using ITEM_TYPES
   const contentType = {
-    presets: ContentType.PRESETS,
-    packs: ContentType.PACKS,
-    requests: ContentType.REQUESTS,
+    presets: ITEM_TYPES.PRESET,
+    packs: ITEM_TYPES.PACK,
+    requests: ITEM_TYPES.REQUEST,
   }[category];
 
   if (!contentType) notFound();
 
-  return (
-    <ContentExplorer
-      contentType={contentType}
-      boardView={BoardView.PUBLIC}
-    />
-  );
+  return <ContentExplorer contentType={contentType} initialFilters={{}} />;
 }

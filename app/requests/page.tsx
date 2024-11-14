@@ -2,7 +2,6 @@
 
 import { ContentExplorer } from "@/app/components/ContentExplorer";
 import { ContentType } from "@prisma/client";
-import { BoardView } from "@/types/enums";
 import { useSearchParams } from "next/navigation";
 import { DEFAULT_FILTERS } from "@/utils/filterUtils";
 import { SearchFilters } from "@/types/SearchTypes";
@@ -27,7 +26,6 @@ export default function RequestsPage() {
   return (
     <ContentExplorer
       contentType={ContentType.REQUESTS}
-      boardView={BoardView.PUBLIC}
       initialFilters={initialFilters}
     />
   );

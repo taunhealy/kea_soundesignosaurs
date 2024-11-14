@@ -1,13 +1,11 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { auth } from "@clerk/nextjs/server";
-import { isAdmin } from "@/lib/auth";
-
+import { authOptions, isAdmin } from "@/lib/auth";
+import { getServerSession } from "next-auth";
+import { VstType } from "@prisma/client";
 export async function GET() {
-  const { userId } = await auth();
-
-  // Add your admin check here
-  if (!userId || !(await isAdmin(userId))) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id || !(await isAdmin(session.user.id))) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -25,9 +23,8 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const { userId } = await auth();
-
-  if (!userId || !(await isAdmin(userId))) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id || !(await isAdmin(session.user.id))) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -35,9 +32,9 @@ export async function POST(request: Request) {
     const { name } = await request.json();
     // Convert the name to uppercase for enum consistency
     const vstName = name.toUpperCase();
-    
+
     const vst = await prisma.vST.create({
-      data: { name: vstName },
+      data: { name: vstName, type: VstType.VITAL },
     });
     return NextResponse.json(vst);
   } catch (error) {

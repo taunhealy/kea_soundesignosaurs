@@ -22,6 +22,8 @@ import { toast } from "react-toastify";
 import { useQueryClient } from "@tanstack/react-query";
 import { addToCart } from "@/app/store/features/cartSlice";
 import { ContentViewMode } from "@/types/enums";
+import { useItemActions } from "@/app/hooks/useItemActions";
+import { ItemType } from "@prisma/client";
 
 interface PresetPackCardProps {
   pack: {
@@ -45,16 +47,16 @@ interface PresetPackCardProps {
   contentViewMode: ContentViewMode;
 }
 
-export function PresetPackCard({
-  pack,
-  contentViewMode,
-}: PresetPackCardProps) {
+export function PresetPackCard({ pack, contentViewMode }: PresetPackCardProps) {
   const [activePreset, setActivePreset] = useState<string | null>(null);
   const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const queryClient = useQueryClient();
 
-  const totalPresetsPrice = pack.presets.reduce((sum, item) => sum + item.preset.price, 0);
+  const totalPresetsPrice = pack.presets.reduce(
+    (sum, item) => sum + item.preset.price,
+    0
+  );
   const savings = totalPresetsPrice - pack.price;
   const savingsPercentage = Math.round((savings / totalPresetsPrice) * 100);
 
@@ -116,17 +118,11 @@ export function PresetPackCard({
     [audio, isPlaying, cleanupAudio, activePreset]
   );
 
-  const handleDelete = async () => {
-    const response = await fetch(`/api/presetPacks/${pack.id}`, {
-      method: "DELETE",
-    });
-
-    if (!response.ok) {
-      throw new Error("Failed to delete preset pack");
-    }
-
-    await queryClient.invalidateQueries({ queryKey: ["presetPacks"] });
-  };
+  const { isDeleting, handleDelete, handleEdit } = useItemActions({
+    itemId: pack.id,
+    itemType: ITEM_TYPES.PACK,
+    contentViewMode,
+  });
 
   const handleAddToCart = async () => {
     try {
@@ -141,21 +137,21 @@ export function PresetPackCard({
     }
   };
 
-  const displayedPresets = pack.presets?.slice(0, 5) || [];
+  const displayedPresets = pack.presets || [];
 
   return (
     <Card className="relative group overflow-hidden hover:shadow-lg transition-all duration-300 animate-in fade-in-0">
-      {contentViewMode === ContentViewMode.UPLOADED && (
-        <div className="absolute top-2 right-2 z-10">
-          <ItemActionButtons
-            itemId={pack.id}
-            price={pack.price}
-            type="pack"
-            itemStatus="uploaded"
-            onDelete={handleDelete}
-          />
-        </div>
-      )}
+      <div className="absolute top-2 right-2 z-10">
+        <ItemActionButtons
+          itemType={ItemType.PACK}
+          contentViewMode={contentViewMode}
+          isDeleting={isDeleting}
+          onDelete={handleDelete}
+          onEdit={handleEdit}
+          onAddToCart={handleAddToCart}
+          onAddToWishlist={handleAddToWishlist}
+        />
+      </div>
 
       <CardHeader>
         <div className="flex justify-between items-start">

@@ -4,12 +4,11 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Tabs, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
 import { ContentType } from "@prisma/client";
-import { BoardView, ContentViewMode, RequestViewMode } from "@/types/enums";
+import { ContentViewMode, RequestViewMode } from "@/types/enums";
 
 interface CategoryTabsProps {
   selectedContentType: ContentType;
   onSelect: (contentType: ContentType) => void;
-  boardView: BoardView;
 }
 
 interface TabItem {
@@ -39,26 +38,19 @@ const TAB_ITEMS: TabItem[] = [
 export function CategoryTabs({
   selectedContentType,
   onSelect,
-  boardView,
 }: CategoryTabsProps) {
   const searchParams = useSearchParams();
   const currentView = searchParams?.get("view");
-  const basePath = boardView === BoardView.DASHBOARD ? "/dashboard" : "";
 
   const getDefaultView = (contentType: ContentType): string => {
-    if (boardView === BoardView.DASHBOARD) {
-      return contentType === ContentType.REQUESTS
-        ? RequestViewMode.REQUESTED
-        : ContentViewMode.UPLOADED;
-    }
-    const tab = TAB_ITEMS.find((item) => item.value === contentType);
-    return tab?.defaultView || ContentViewMode.EXPLORE;
+    return contentType === ContentType.REQUESTS
+      ? RequestViewMode.REQUESTED
+      : ContentViewMode.UPLOADED;
   };
 
   const getTabHref = (contentType: ContentType): string => {
     const view = currentView || getDefaultView(contentType);
-    const path = `${basePath}/${contentType.toLowerCase()}`;
-    return `${path}?view=${view}`;
+    return `/${contentType.toLowerCase()}?view=${view}`;
   };
 
   return (

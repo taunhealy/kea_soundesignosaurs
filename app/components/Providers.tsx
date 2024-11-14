@@ -6,6 +6,7 @@ import ErrorBoundary from "@/app/components/ErrorBoundary";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import dynamic from "next/dynamic";
 import { useState } from "react";
+import { SessionProvider } from "next-auth/react";
 
 const ReactQueryDevtools = dynamic(
   () =>
@@ -21,13 +22,13 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient());
 
   return (
-    <ReactQueryProvider>
-      <SearchProvider>
-        <ErrorBoundary>{children}</ErrorBoundary>
-        <QueryClientProvider client={queryClient}>
+    <SessionProvider>
+      <QueryClientProvider client={queryClient}>
+        <SearchProvider>
+          <ErrorBoundary>{children}</ErrorBoundary>
           <ReactQueryDevtools initialIsOpen={false} />
-        </QueryClientProvider>
-      </SearchProvider>
-    </ReactQueryProvider>
+        </SearchProvider>
+      </QueryClientProvider>
+    </SessionProvider>
   );
 }

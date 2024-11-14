@@ -2,7 +2,7 @@
 
 import { useParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { PresetPackForm } from "@/app/components/PresetPackForm";
+import { PresetPackForm } from "@/app/components/dashboard/PresetPackForm";
 import Link from "next/link";
 import { Button } from "@/app/components/ui/button";
 

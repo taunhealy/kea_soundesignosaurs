@@ -1,6 +1,6 @@
 "use client";
 
-import { PresetRequestCard } from "@/app/components/dashboard/PresetRequestCard";
+import { PresetRequestCard } from "@/app/components/PresetRequestCard";
 import { Skeleton } from "@/app/components/ui/skeleton";
 import { RequestStatus, RequestViewMode } from "@/types/enums";
 import { PresetRequestWithRelations } from "@/types/PresetRequestTypes";
@@ -10,7 +10,6 @@ import { PlusIcon } from "lucide-react"; // Import PlusIcon or any other icon yo
 
 interface PresetRequestGridProps {
   requests?: PresetRequestWithRelations[];
-  requestStatus: RequestStatus;
   isLoading: boolean;
   requestViewMode: RequestViewMode;
 }
@@ -18,7 +17,6 @@ interface PresetRequestGridProps {
 export function PresetRequestGrid({
   requests,
   requestViewMode,
-  requestStatus,
   isLoading,
 }: PresetRequestGridProps) {
   if (isLoading) {
@@ -36,7 +34,6 @@ export function PresetRequestGrid({
           key={request.id}
           request={request}
           showSubmissions={false}
-          requestViewMode={requestViewMode}
         />
       ))}
     </div>
@@ -53,17 +50,18 @@ const LoadingSkeleton = () => (
 
 function EmptyState({ requestViewMode }: { requestViewMode: RequestViewMode }) {
   return (
-    <div className="flex flex-col items-start justify-start p-8 text-center space-y-4">
+    <div className="text-center py-10">
       <p className="text-muted-foreground">
         {requestViewMode === RequestViewMode.REQUESTED
           ? "You haven't requested any presets yet"
-          : requestViewMode === RequestViewMode.ASSISTED
-          ? "You haven't assisted with any requests yet"
           : "No requests found"}
       </p>
       {requestViewMode === RequestViewMode.REQUESTED && (
-        <Link href="/requests/create">
-          <span className="h-4 w-4 mr-2 text-blue-500">Create Request</span>
+        <Link href="/requests/create" className="mt-4 inline-block">
+          <Button>
+            <PlusIcon className="h-4 w-4 mr-2" />
+            Create Request
+          </Button>
         </Link>
       )}
     </div>

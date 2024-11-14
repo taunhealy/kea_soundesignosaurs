@@ -5,139 +5,82 @@ import {
   ShoppingCartIcon,
   HeartIcon,
   TrashIcon,
-  DownloadIcon,
   EditIcon,
+  Loader2Icon,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "react-hot-toast";
-import { useState } from "react";
-import { DownloadButton } from "@/app/components/shared/DownloadButton";
-
-interface ItemActionButtonsProps {
-  itemId: string;
-  price?: number;
-  type: "preset" | "pack";
-  onDelete?: () => Promise<void>;
-  downloadUrl?: string;
-  itemStatus: "uploaded" | "downloaded" | null;
-  itemType?: "preset" | "pack";
-  title?: string;
-  showDownloadOnly?: boolean;
-}
+import { ContentViewMode } from "@/types/enums";
+import { useItemActions } from "@/app/hooks/useItemActions";
+import { ItemActionButtonsProps } from "@/types/actions";
+import { DownloadButton } from "./shared/DownloadButton";
 
 export function ItemActionButtons({
   itemId,
-  type,
-  itemStatus,
-  downloadUrl,
-  onDelete,
+  itemType,
+  contentViewMode,
+  showDownload,
+  price,
+  isOwner = false,
 }: ItemActionButtonsProps) {
-  const router = useRouter();
-  const queryClient = useQueryClient();
-  const [isDeleting, setIsDeleting] = useState(false);
-
-  const addToCartMutation = useMutation({
-    mutationFn: async () => {
-      const response = await fetch("/api/cart/CART", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          [type === "pack" ? "packId" : "presetId"]: itemId,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response
-          .json()
-          .catch(() => ({ error: "Failed to add to cart" }));
-        throw new Error(errorData.error || "Failed to add to cart");
-      }
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["cart"] });
-      toast.success("Added to cart");
-    },
-    onError: (error) => {
-      toast.error(
-        error instanceof Error ? error.message : "Failed to add to cart"
-      );
-    },
+  const {
+    isDeleting,
+    isAddingToCart,
+    isAddingToWishlist,
+    handleDelete,
+    handleEdit,
+    handleAddToCart,
+    handleAddToWishlist,
+  } = useItemActions({
+    itemId,
+    itemType,
+    contentViewMode,
   });
 
-  const addToWishlistMutation = useMutation({
-    mutationFn: async () => {
-      const response = await fetch("/api/cart/WISHLIST", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          [type === "pack" ? "packId" : "presetId"]: itemId,
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        if (response.status === 409) {
-          toast.error(error.error);
-          return null;
-        }
-        throw new Error(error.error);
-      }
-      return response.json();
-    },
-    onSuccess: (data) => {
-      if (data) {
-        queryClient.invalidateQueries({ queryKey: ["wishlist"] });
-        toast.success("Added to wishlist");
-      }
-    },
-    onError: (error) => {
-      toast.error(
-        error instanceof Error ? error.message : "Failed to add to wishlist"
-      );
-    },
-  });
-
-  const handleDelete = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!onDelete) return;
-
-    setIsDeleting(true);
-    try {
-      await onDelete();
-      toast.success("Item deleted successfully");
-    } catch (error) {
-      toast.error("Failed to delete item");
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
-  const handleEdit = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    router.push(`/dashboard/${type}s/edit/${itemId}`);
-  };
-
-  // If it's a downloaded item, show download and delete buttons
-  if (itemStatus === "downloaded") {
+  if (showDownload) {
     return (
-      <>
-        <DownloadButton
-          itemId={itemId}
-          itemType="preset"
-          downloadUrl={downloadUrl}
+      <div className="flex gap-2">
+        <DownloadButton 
+          itemId={itemId} 
+          itemType={itemType} 
         />
-      </>
+        {!price && (  // Only show action buttons for free items
+          <div className="flex gap-2">
+            <Button
+              onClick={() => handleAddToCart()}
+              variant="secondary"
+              size="icon"
+              className="h-8 w-8 bg-white/90 hover:bg-white shadow-sm"
+              disabled={isAddingToCart}
+            >
+              {isAddingToCart ? (
+                <Loader2Icon className="h-4 w-4 animate-spin" />
+              ) : (
+                <ShoppingCartIcon className="h-4 w-4" />
+              )}
+            </Button>
+            <Button
+              onClick={() => handleAddToWishlist()}
+              variant="secondary"
+              size="icon"
+              className="h-8 w-8 bg-white/90 hover:bg-white shadow-sm"
+              disabled={isAddingToWishlist}
+            >
+              {isAddingToWishlist ? (
+                <Loader2Icon className="h-4 w-4 animate-spin" />
+              ) : (
+                <HeartIcon className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
+        )}
+      </div>
     );
   }
 
-  // If it's an uploaded item, show edit, delete, and download buttons
-  if (itemStatus === "uploaded") {
+  if (contentViewMode === ContentViewMode.UPLOADED) {
     return (
-      <>
+      <div className="flex gap-2">
         <Button
-          onClick={handleEdit}
+          onClick={() => handleEdit()}
           variant="ghost"
           size="icon"
           className="h-8 w-8 bg-white/90 hover:bg-white shadow-sm"
@@ -145,47 +88,50 @@ export function ItemActionButtons({
           <EditIcon className="h-4 w-4" />
         </Button>
         <Button
-          onClick={handleDelete}
+          onClick={() => handleDelete()}
           variant="ghost"
           size="icon"
           className="h-8 w-8 bg-white/90 hover:bg-white shadow-sm"
+          disabled={isDeleting}
         >
-          <TrashIcon className="h-4 w-4" />
+          {isDeleting ? (
+            <Loader2Icon className="h-4 w-4 animate-spin" />
+          ) : (
+            <TrashIcon className="h-4 w-4" />
+          )}
         </Button>
-        <DownloadButton
-          itemId={itemId}
-          itemType="preset"
-          downloadUrl={downloadUrl}
-        />
-      </>
+      </div>
     );
   }
 
-  // Default case: show cart and wishlist buttons
   return (
-    <>
+    <div className="flex gap-2">
       <Button
-        onClick={(e) => {
-          e.stopPropagation();
-          addToCartMutation.mutate();
-        }}
+        onClick={() => handleAddToCart()}
         variant="secondary"
         size="icon"
-        className="h-8 w-8 bg-white/90 hover:bg-white shadow-sm interactive-element"
+        className="h-8 w-8 bg-white/90 hover:bg-white shadow-sm"
+        disabled={isAddingToCart}
       >
-        <ShoppingCartIcon className="h-4 w-4" />
+        {isAddingToCart ? (
+          <Loader2Icon className="h-4 w-4 animate-spin" />
+        ) : (
+          <ShoppingCartIcon className="h-4 w-4" />
+        )}
       </Button>
       <Button
-        onClick={(e) => {
-          e.stopPropagation();
-          addToWishlistMutation.mutate();
-        }}
+        onClick={() => handleAddToWishlist()}
         variant="secondary"
         size="icon"
-        className="h-8 w-8 bg-white/90 hover:bg-white shadow-sm interactive-element"
+        className="h-8 w-8 bg-white/90 hover:bg-white shadow-sm"
+        disabled={isAddingToWishlist}
       >
-        <HeartIcon className="h-4 w-4" />
+        {isAddingToWishlist ? (
+          <Loader2Icon className="h-4 w-4 animate-spin" />
+        ) : (
+          <HeartIcon className="h-4 w-4" />
+        )}
       </Button>
-    </>
+    </div>
   );
 }

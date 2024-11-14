@@ -1,7 +1,13 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { PresetUpload, PriceType, VST } from "@prisma/client";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "./ui/card";
+import { PresetUpload, PriceType, VST, ItemType } from "@prisma/client";
 import { ContentViewMode } from "@/types/enums";
 import { ItemActionButtons } from "./ItemActionButtons";
 import { useRouter } from "next/navigation";
@@ -12,23 +18,26 @@ import { Button } from "./ui/button";
 import { PlayIcon, PauseIcon } from "lucide-react";
 import { AudioPlayer } from "./AudioPlayer";
 import { useEffect } from "react";
+import { useItemActions } from "@/app/hooks/useItemActions";
+import { getYouTubeThumbnail } from "@/utils/youtube";
+import { Badge } from "./ui/badge";
 
 interface PresetCardProps {
   preset: PresetUpload & {
     vst?: VST | null;
-    soundDesigner?: { username: string } | null;
+    user?: { username: string } | null;
     genre?: { name: string } | null;
   };
   contentViewMode: ContentViewMode;
   variant?: "default" | "compact";
-  currentUserId?: string | null;
+  isOwner?: boolean;
 }
 
 export function PresetCard({
   preset,
   variant,
-  currentUserId,
   contentViewMode,
+  isOwner = false,
 }: PresetCardProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -66,7 +75,7 @@ export function PresetCard({
 
   const deleteMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch(`/api/presetUpload/${preset.id}`, {
+      const response = await fetch(`/api/presets/${preset.id}`, {
         method: "DELETE",
       });
 
@@ -95,14 +104,6 @@ export function PresetCard({
     },
   });
 
-  const handleDelete = async () => {
-    try {
-      await deleteMutation.mutateAsync();
-    } catch (error) {
-      // Error is handled in the mutation callbacks
-    }
-  };
-
   console.log("Preset data:", preset);
   console.log("VST data:", preset.vst);
   if (!preset) return null;
@@ -110,79 +111,66 @@ export function PresetCard({
   const displayPrice =
     preset.priceType === PriceType.FREE ? "Free" : `$${preset.price}`;
 
+  const { handleDelete, handleEdit } = useItemActions({
+    itemId: preset.id,
+    itemType: ItemType.PRESET,
+    contentViewMode,
+  });
+
+  const thumbnailUrl = preset.referenceTrackUrl
+    ? getYouTubeThumbnail(preset.referenceTrackUrl)
+    : null;
+
   return (
-    <Card className="w-full relative group overflow-hidden hover:shadow-lg transition-all duration-300 rounded-lg border">
-      <div className="absolute top-2 right-2 z-10 flex gap-2">
-        <ItemActionButtons
-          itemId={preset.id}
-          type="preset"
-          itemStatus={
-            contentViewMode === "uploaded"
-              ? "uploaded"
-              : contentViewMode === "downloaded"
-              ? "downloaded"
-              : null
-          }
-          downloadUrl={preset.presetFileUrl ?? undefined}
-          title={preset.title}
-          onDelete={contentViewMode === "uploaded" ? handleDelete : undefined}
-        />
-      </div>
-      <CardHeader className="border-b p-4">
-        <CardTitle className="text-lg font-semibold mb-2">
-          {preset.title}
-        </CardTitle>
-        <div className="flex items-end justify-between text-sm text-muted-foreground">
-          <span>{displayPrice}</span>
+    <Card className="w-full flex flex-row gap-4 p-4">
+      <div className="flex-1 space-y-4">
+        <div>
+          <CardTitle>{preset.title}</CardTitle>
+          <CardDescription>
+            By {preset.user?.username || "Anonymous"}
+          </CardDescription>
         </div>
-      </CardHeader>
-      <CardContent className="p-4 space-y-4">
-        {preset.soundPreviewUrl && (
-          <AudioPlayer
-            trackId={preset.id}
-            url={preset.soundPreviewUrl}
-            onError={(error) => {
-              console.error("Audio playback error:", error);
-              toast.error("Failed to play audio");
+
+        <div className="space-y-2">
+          <p>{preset.description}</p>
+          <div className="flex gap-2">
+            <Badge>{preset.genre?.name}</Badge>
+            <Badge>{preset.vst?.name}</Badge>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          {preset.soundPreviewUrl && (
+            <AudioPlayer trackId={preset.id} url={preset.soundPreviewUrl} />
+          )}
+          <ItemActionButtons
+            itemId={preset.id}
+            itemType={ItemType.PRESET}
+            contentViewMode={contentViewMode}
+            showDownload={isOwner}
+            price={preset.price || undefined}
+          />
+        </div>
+      </div>
+
+      {thumbnailUrl && (
+        <div className="w-[240px] aspect-video relative rounded-lg overflow-hidden">
+          <img
+            src={thumbnailUrl}
+            alt="Reference track thumbnail"
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              const fallbackUrl = getYouTubeThumbnail(
+                preset.referenceTrackUrl,
+                "mq"
+              );
+              if (fallbackUrl) {
+                (e.target as HTMLImageElement).src = fallbackUrl;
+              }
             }}
           />
-        )}
-
-        <div className="space-y-1 text-sm text-muted-foreground">
-          <div>
-            Designer:{" "}
-            <span className="font-medium">
-              {preset.soundDesigner?.username || "Anonymous"}
-            </span>
-          </div>
-          <div>
-            File:{" "}
-            <span className="font-medium">
-              {preset.originalFileName ||
-                preset.presetFileUrl?.split("/").pop() ||
-                "Unnamed"}
-            </span>
-          </div>
-          <div>
-            Type:{" "}
-            <span className="font-medium">
-              {preset.presetType || "Uncategorized"}
-            </span>
-          </div>
-          <div>
-            Genre:{" "}
-            <span className="font-medium">
-              {preset.genre?.name || "Unknown"}
-            </span>
-          </div>
-          <div>
-            VST:{" "}
-            <span className="font-medium">
-              {preset.vst?.name || preset.vstId || "N/A"}
-            </span>
-          </div>
         </div>
-      </CardContent>
+      )}
     </Card>
   );
 }

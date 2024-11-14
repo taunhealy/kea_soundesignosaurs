@@ -2,7 +2,7 @@ import { Check, Plus, Minus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { Input } from "./input";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { ScrollArea } from "@/app/components/ui/scroll-area";
 
 interface Option {
   value: string;

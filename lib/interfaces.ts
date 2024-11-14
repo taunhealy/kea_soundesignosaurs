@@ -1,58 +1,6 @@
-import { Preset } from "@/types/PresetTypes";
+import { PresetUpload } from "@prisma/client";
 
-export interface CartItem {
-  id: string;
-  name: string;
-  price: number;
-  imageString: string;
-  quantity: number;
-  creator: string;
-  priceAlert?: boolean;
-  priceHistory?: {
-    price: number;
-    timestamp: string;
-  }[];
-  priceChange?: {
-    oldPrice: number;
-    percentageChange: number;
-  };
-}
 
-export interface Cart {
-  userId: string;
-  items: CartItem[];
-  priceChanges?: {
-    presetId: string;
-    oldPrice: number;
-    newPrice: number;
-    percentageChange: number;
-  }[];
-}
-
-export interface CartState {
-  cart: {
-    items: CartItem[];
-    status: "idle" | "loading" | "failed";
-    error: string | null;
-  };
-  savedForLater: {
-    items: CartItem[];
-    status: "idle" | "loading" | "failed";
-    error: string | null;
-  };
-  wishlist: {
-    items: CartItem[];
-    status: "idle" | "loading" | "failed";
-    error: string | null;
-    priceAlerts: boolean;
-  };
-}
-
-export interface WishlistItem extends CartItem {
-  presetId: string;
-}
-
-export type CartStateKey = "cart" | "savedForLater" | "wishlist";
 
 export type PresetWithRelations = {
   id: string;
@@ -70,7 +18,7 @@ export interface PresetPack {
   description?: string;
   price?: number;
   soundPreviewUrl?: string;
-  presets: Preset[];
+  presets: PresetUpload[];
   soundDesigner?: {
     id: string;
     username: string;
@@ -78,5 +26,3 @@ export interface PresetPack {
   };
   tags?: string[];
 }
-
-export type CartType = "CART" | "SAVED_FOR_LATER" | "WISHLIST";

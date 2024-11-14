@@ -7,6 +7,7 @@ import { ShoppingCartIcon, HeartIcon } from "lucide-react";
 import { useCart } from "@/app/hooks/useCart";
 import { useWishlist } from "@/app/hooks/useWishlist";
 import { toast } from "react-hot-toast";
+import { ContentViewMode } from "@/types/enums";
 
 export default function PackPage({ params }: { params: { id: string } }) {
   const { addToCart } = useCart();
@@ -46,7 +47,7 @@ export default function PackPage({ params }: { params: { id: string } }) {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-4xl mx-auto">
-        <PresetPackCard pack={pack} />
+        <PresetPackCard pack={pack} contentViewMode={ContentViewMode.EXPLORE} />
         <div className="flex gap-2 mt-4">
           <Button
             onClick={handleAddToCart}

@@ -7,6 +7,7 @@ export type PresetPackWithRelations = {
     preset: {
       id: string;
       title: string;
+      price: number;
       soundPreviewUrl: string | undefined;
     };
   }[];

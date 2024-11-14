@@ -13,26 +13,31 @@ export default function PresetsPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  // Parse URL params into filters
+  // Clean up URL if it contains 'type' parameter
+  if (searchParams.has('type')) {
+    const newParams = new URLSearchParams(searchParams);
+    const view = newParams.get('type') === 'downloaded' ? ContentViewMode.DOWNLOADED : ContentViewMode.UPLOADED;
+    newParams.delete('type');
+    newParams.set('view', view);
+    router.replace(`/presets?${newParams.toString()}`);
+    return null; // Return null to prevent flash of content
+  }
+
   const initialFilters: SearchFilters = {
     ...DEFAULT_FILTERS,
     q: searchParams.get("searchTerm") || "",
-    presetTypes:
-      (searchParams.get("presetTypes")?.split(",") as PresetType[]) || [],
+    presetTypes: (searchParams.get("presetTypes")?.split(",") as PresetType[]) || [],
     genres: searchParams.get("genres")?.split(",") || [],
     vstTypes: searchParams.get("vstTypes")?.split(",") || [],
-    priceTypes:
-      (searchParams.get("priceTypes")?.split(",") as PriceType[]) || [],
+    priceTypes: (searchParams.get("priceTypes")?.split(",") as PriceType[]) || [],
     p: parseInt(searchParams.get("page") || "1"),
     type: ContentType.PRESETS,
-    view:
-      (searchParams.get("view") as ContentViewMode) || ContentViewMode.EXPLORE,
+    view: (searchParams.get("view") as ContentViewMode) || ContentViewMode.EXPLORE,
   };
 
   return (
     <ContentExplorer
       contentType={ContentType.PRESETS}
-      boardView={BoardView.PUBLIC}
       initialFilters={initialFilters}
     />
   );

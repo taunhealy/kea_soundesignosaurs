@@ -1,12 +1,12 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useClerk } from "@clerk/nextjs";
+import { signOut } from "next-auth/react";
 import { UsernameSettings } from "@/app/components/settings/UsernameSettings";
 import { Button } from "@/app/components/ui/button";
+import { toast } from "react-hot-toast";
 
 export default function SettingsPage() {
-  const { signOut } = useClerk();
   const router = useRouter();
 
   const deleteAccount = async () => {
@@ -27,10 +27,10 @@ export default function SettingsPage() {
         throw new Error("Failed to delete account");
       }
 
-      await signOut();
-      router.push("/");
+      await signOut({ callbackUrl: "/" });
     } catch (error) {
       console.error("Error deleting account:", error);
+      toast.error("Failed to delete account");
     }
   };
 

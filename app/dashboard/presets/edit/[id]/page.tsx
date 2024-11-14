@@ -2,10 +2,10 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { PresetForm } from "@/app/components/PresetForm";
+import { PresetForm } from "@/app/components/dashboard/PresetForm";
 import Link from "next/link";
 import { Button } from "@/app/components/ui/button";
-import { toast } from "react-toastify";
+import { toast } from "react-hot-toast";
 
 export default function EditPresetPage() {
   const params = useParams();
@@ -16,7 +16,7 @@ export default function EditPresetPage() {
     queryKey: ["preset", presetId],
     queryFn: async () => {
       try {
-        const response = await fetch(`/api/presetUpload/${presetId}`);
+        const response = await fetch(`/api/presets/${presetId}`);
         if (response.status === 404) {
           toast.error("Preset not found");
           router.push("/dashboard?category=presets");
@@ -33,15 +33,15 @@ export default function EditPresetPage() {
         return null;
       }
     },
-    retry: false // Don't retry on failure
+    retry: false,
   });
 
   if (isLoading) return <div>Loading...</div>;
-  if (!presetData) return null; // Will redirect due to the queryFn
+  if (!presetData) return null;
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
-      <Link href="/dashboard/presets">
+      <Link href="/dashboard?category=presets">
         <Button variant="outline">← Back to Presets</Button>
       </Link>
       <h1 className="text-2xl font-bold my-4">Edit Preset</h1>

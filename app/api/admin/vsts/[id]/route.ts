@@ -1,14 +1,15 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { auth } from "@clerk/nextjs/server";
-import { isAdmin } from "@/lib/auth";
+import { getServerSession } from "next-auth";
+import { authOptions, isAdmin } from "@/lib/auth";
+
 export async function DELETE(
   request: Request,
   { params }: { params: { id: string } }
 ) {
-  const { userId } = await auth();
+  const session = await getServerSession(authOptions);
 
-  if (!userId || !(await isAdmin(userId))) {
+  if (!session?.user?.id || !(await isAdmin(session.user.id))) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

@@ -1,6 +1,6 @@
 import { useAppDispatch } from "../store/hooks";
 import { addToCart as addToCartAction } from "@/app/store/features/cartSlice";
-import { CartType } from "@prisma/client";
+import type { CartType } from "@/types/cart";
 import { toast } from "react-hot-toast";
 
 export function useCart() {
@@ -15,7 +15,7 @@ export function useCart() {
       const result = await dispatch(
         addToCartAction({
           itemId,
-          type: "CART" as CartType,
+          type: "cart" as CartType,
           itemType,
         })
       ).unwrap();

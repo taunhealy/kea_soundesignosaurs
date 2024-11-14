@@ -1,15 +1,21 @@
-import { auth } from "@clerk/nextjs/server";
+import { authOptions } from "@/lib/auth";
+import prisma from "@/lib/prisma";
+import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 
 export async function DELETE() {
   try {
-    const { userId } = await auth();
+    const session = await getServerSession(authOptions);
 
-    if (!userId) {
+    if (!session?.user?.id) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    // Your delete user logic here
+    await prisma.user.delete({
+      where: {
+        id: session.user.id,
+      },
+    });
 
     return new NextResponse("User deleted successfully", { status: 200 });
   } catch (error) {

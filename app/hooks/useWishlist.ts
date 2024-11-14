@@ -1,5 +1,5 @@
 import { useAppDispatch } from "@/app/store/hooks";
-import { addToWishlist as addToWishlistAction } from "@/app/store/features/cartSlice";
+import { addToCart } from "@/app/store/features/cartSlice";
 
 export function useWishlist() {
   const dispatch = useAppDispatch();
@@ -11,7 +11,7 @@ export function useWishlist() {
     itemId: string;
     itemType: "PRESET" | "PACK";
   }) => {
-    return dispatch(addToWishlistAction({ itemId, itemType })).unwrap();
+    return dispatch(addToCart({ itemId, type: "wishlist", itemType })).unwrap();
   };
 
   return { mutateAsync };

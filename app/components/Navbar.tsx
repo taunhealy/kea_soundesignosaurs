@@ -1,22 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { UserButton, useAuth } from "@clerk/nextjs";
-import { Button } from "./ui/button";
-import { ShoppingCart } from "lucide-react";
-import { memo } from "react";
-import dynamic from 'next/dynamic'
 import { CartIndicator } from "./CartIndicator";
-
-const DynamicNavbar = dynamic(() => import('./NavbarContent'), {
-  ssr: false
-})
 
 export default function Navbar() {
   return (
-    <>
-      <DynamicNavbar />
-     
-    </>
+    <div className="flex items-center justify-between p-9">
+      <Link href="/" className="font-bold">
+        Ripple
+      </Link>
+      <Link href="/dashboard" className="font-bold">
+        Dashboard
+      </Link>
+      <CartIndicator />
+    </div>
   );
 }

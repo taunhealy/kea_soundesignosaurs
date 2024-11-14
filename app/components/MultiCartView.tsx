@@ -2,12 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { useAppDispatch, useAppSelector } from "@/app/store/hooks";
-import { CartType } from "@prisma/client";
+import { Cart } from "@prisma/client";
 import {
   fetchCartItems,
   moveItem,
   selectCartItems,
-  selectSavedItems,
   selectWishlistItems,
   deleteCartItem,
 } from "@/app/store/features/cartSlice";
@@ -18,15 +17,18 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/app/components/ui/tabs";
-import { CartItem } from "@/lib/interfaces";
+import type { CartItem } from "@/types/cart";
 import { Trash, MoveRight } from "lucide-react";
 import { toast } from "react-hot-toast";
+import { useRouter, useSearchParams } from "next/navigation";
 import { PriceChangeDisplay } from "./PriceChangeDisplay";
+import { CART_TYPES, type CartType } from "@/types/cart";
+import { ItemType } from "@prisma/client";
 
 interface CartItemComponentProps {
   item: CartItem;
-  currentList: "CART" | "SAVED_FOR_LATER" | "WISHLIST";
-  onMove: (to: "CART" | "SAVED_FOR_LATER" | "WISHLIST") => void;
+  currentList: CartType;
+  onMove: (to: CartType) => void;
   onDelete?: (id: string) => void;
   isLoading: boolean;
 }
@@ -49,11 +51,10 @@ function CartItemComponent({
         }
       : null;
 
-  const moveOptions = {
-    CART: ["SAVED_FOR_LATER", "WISHLIST"],
-    SAVED_FOR_LATER: ["CART", "WISHLIST"],
-    WISHLIST: ["CART", "SAVED_FOR_LATER"],
-  };
+  const moveOptions: Record<CartType, CartType[]> = {
+    cart: ["wishlist"],
+    wishlist: ["cart"],
+  } as const;
 
   return (
     <li className="flex items-center justify-between p-4 bg-card rounded-lg shadow">
@@ -87,9 +88,7 @@ function CartItemComponent({
             key={option}
             variant="outline"
             size="sm"
-            onClick={() =>
-              onMove(option as "CART" | "SAVED_FOR_LATER" | "WISHLIST")
-            }
+            onClick={() => onMove(option as CartType)}
             disabled={isLoading}
           >
             <MoveRight className="w-4 h-4 mr-2" />
@@ -114,49 +113,50 @@ function CartItemComponent({
 export function MultiCartView() {
   const dispatch = useAppDispatch();
   const cartItems = useAppSelector(selectCartItems);
-  const savedItems = useAppSelector(selectSavedItems);
   const wishlistItems = useAppSelector(selectWishlistItems);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const type = searchParams.get("type") || "cart"; // Default to "cart" if no type is specified
 
   useEffect(() => {
     dispatch(fetchCartItems("cart"));
-    dispatch(fetchCartItems("savedForLater"));
     dispatch(fetchCartItems("wishlist"));
   }, [dispatch]);
 
   const handleMoveItem = async (
     itemId: string,
-    from: "CART" | "SAVED_FOR_LATER" | "WISHLIST",
-    to: "CART" | "SAVED_FOR_LATER" | "WISHLIST"
+    from: CartType,
+    to: CartType
   ) => {
     try {
       await dispatch(
         moveItem({
           itemId,
-          from: from.toUpperCase() as CartType,
-          to: to.toUpperCase() as CartType,
+          from: from.toLowerCase() as "cart" | "wishlist",
+          to: to.toLowerCase() as "cart" | "wishlist",
         })
       ).unwrap();
-      toast.success(`Item moved to ${to.toLowerCase().replace("_", " ")}`);
+      toast.success(`Item moved to ${to.toLowerCase()}`);
     } catch (error) {
-      toast.error("Failed to move item");
+      console.error("Move error:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to move item"
+      );
     }
   };
 
   const handleDelete = async (
     itemId: string,
-    type: "CART" | "SAVED_FOR_LATER" | "WISHLIST"
+    type: CartType,
+    itemType: ContentType
   ) => {
     if (!confirm("Are you sure you want to remove this item?")) return;
 
     try {
       setDeletingId(itemId);
-      await dispatch(deleteCartItem({ itemId, type })).unwrap();
-      await dispatch(
-        fetchCartItems(
-          type.toLowerCase() as "cart" | "savedForLater" | "wishlist"
-        )
-      );
+      await dispatch(deleteCartItem({ itemId, type, itemType })).unwrap();
+      await dispatch(fetchCartItems(type.toLowerCase() as "cart" | "wishlist"));
       toast.success("Item removed");
     } catch (error) {
       toast.error("Failed to remove item");
@@ -165,11 +165,18 @@ export function MultiCartView() {
     }
   };
 
+  const handleTabChange = (value: string) => {
+    router.push(`/cart?type=${value}`);
+  };
+
   return (
-    <Tabs defaultValue="cart" className="w-full max-w-4xl mx-auto">
+    <Tabs
+      defaultValue={type}
+      className="w-full max-w-4xl mx-auto"
+      onValueChange={handleTabChange}
+    >
       <TabsList className="grid w-full grid-cols-3">
         <TabsTrigger value="cart">Cart ({cartItems.length})</TabsTrigger>
-        <TabsTrigger value="saved">Saved ({savedItems.length})</TabsTrigger>
         <TabsTrigger value="wishlist">
           Wishlist ({wishlistItems.length})
         </TabsTrigger>
@@ -181,24 +188,9 @@ export function MultiCartView() {
             <CartItemComponent
               key={item.id}
               item={item}
-              currentList="CART"
-              onMove={(to) => handleMoveItem(item.id, "CART", to)}
-              onDelete={(id) => handleDelete(id, "CART")}
-              isLoading={false}
-            />
-          ))}
-        </ul>
-      </TabsContent>
-
-      <TabsContent value="saved">
-        <ul className="space-y-4">
-          {savedItems.map((item: CartItem) => (
-            <CartItemComponent
-              key={item.id}
-              item={item}
-              currentList="SAVED_FOR_LATER"
-              onMove={(to) => handleMoveItem(item.id, "SAVED_FOR_LATER", to)}
-              onDelete={(id) => handleDelete(id, "SAVED_FOR_LATER")}
+              currentList="cart"
+              onMove={(to) => handleMoveItem(item.id, "cart", to)}
+              onDelete={(id) => handleDelete(id, "cart", item.itemType)}
               isLoading={false}
             />
           ))}
@@ -211,9 +203,9 @@ export function MultiCartView() {
             <CartItemComponent
               key={item.id}
               item={item}
-              currentList="WISHLIST"
-              onMove={(to) => handleMoveItem(item.id, "WISHLIST", to)}
-              onDelete={(id) => handleDelete(id, "WISHLIST")}
+              currentList="wishlist"
+              onMove={(to) => handleMoveItem(item.id, "wishlist", to)}
+              onDelete={(id) => handleDelete(id, "wishlist", item.itemType)}
               isLoading={deletingId === item.id}
             />
           ))}

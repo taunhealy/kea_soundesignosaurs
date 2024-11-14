@@ -2,12 +2,13 @@
 
 import { useParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { PresetRequestCard } from "@/app/components/dashboard/PresetRequestCard";
-import { RequestViewMode } from "@/types/enums";
+import { PresetRequestCard } from "@/app/components/PresetRequestCard";
+import { useSession } from "next-auth/react";
 
 export default function RequestPage() {
   const params = useParams();
   const id = params?.id as string;
+  const { data: session } = useSession();
 
   const {
     data: request,
@@ -16,7 +17,7 @@ export default function RequestPage() {
   } = useQuery({
     queryKey: ["request", id],
     queryFn: async () => {
-      const response = await fetch(`/api/presetRequest/${id}`);
+      const response = await fetch(`/api/presetRequests/${id}`);
       if (!response.ok) {
         throw new Error("Failed to fetch request");
       }
@@ -30,11 +31,7 @@ export default function RequestPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <PresetRequestCard
-        request={request}
-        showSubmissions={true}
-        requestViewMode={RequestViewMode.PUBLIC}
-      />
+      <PresetRequestCard request={request} currentUserId={session?.user?.id} />
     </div>
   );
 }

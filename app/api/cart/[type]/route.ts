@@ -1,26 +1,23 @@
-import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { CartItemType, CartType } from "@prisma/client";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
 
 export async function GET(
   request: Request,
   { params }: { params: { type: string } }
 ) {
-  const { userId } = await auth();
-  const cartType = params.type;
-
-  if (!userId) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
-    const cart = await prisma.cart.findUnique({
+    const cart = await prisma.cart.findFirst({
       where: {
-        userId_type: {
-          userId,
-          type: cartType.toUpperCase() as CartType,
-        },
+        userId: session.user.id,
+        type: params.type.toUpperCase() as CartType,
       },
       include: {
         items: {
@@ -37,7 +34,7 @@ export async function GET(
                     timestamp: "desc",
                   },
                 },
-                soundDesigner: {
+                user: {
                   select: {
                     username: true,
                   },
@@ -51,7 +48,7 @@ export async function GET(
                     timestamp: "desc",
                   },
                 },
-                soundDesigner: {
+                user: {
                   select: {
                     username: true,
                   },
@@ -63,11 +60,8 @@ export async function GET(
       },
     });
 
-    console.log("Cart query result:", JSON.stringify(cart, null, 2));
-
     const items =
       cart?.items.map((item) => {
-        // Combine all price histories
         const allPriceHistory = [
           ...(item.priceHistory ?? []),
           ...(item.preset?.priceHistory ?? []),
@@ -82,7 +76,6 @@ export async function GET(
             timestamp: history.timestamp.toISOString(),
           }));
 
-        // Get the last two entries from the combined history
         const [current, previous] = allPriceHistory;
 
         const priceChange =
@@ -102,21 +95,17 @@ export async function GET(
             item.preset?.soundPreviewUrl ?? item.pack?.soundPreviewUrl ?? "",
           quantity: item.quantity,
           creator:
-            item.preset?.soundDesigner?.username ??
-            item.pack?.soundDesigner?.username ??
-            "",
+            item.preset?.user?.username ?? item.pack?.user?.username ?? "",
           priceHistory: allPriceHistory,
           priceChange,
         };
       }) || [];
 
-    console.log("Server-side cart items:", JSON.stringify(items, null, 2));
-
     return NextResponse.json(items);
   } catch (error) {
-    console.error(`Error fetching ${cartType}:`, error);
+    console.error("Cart error:", error);
     return NextResponse.json(
-      { error: `Failed to fetch ${cartType}` },
+      { error: `Failed to fetch ${params.type}` },
       { status: 500 }
     );
   }
@@ -127,7 +116,8 @@ export async function PUT(
   { params }: { params: { type: string } }
 ) {
   try {
-    const { userId } = await auth();
+    const session = await getServerSession(authOptions);
+    const userId = session?.user?.id;
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -135,27 +125,49 @@ export async function PUT(
     const { itemId, from, to } = await request.json();
 
     const result = await prisma.$transaction(async (tx) => {
-      // Get or create destination cart
+      // Find the item in the source cart
+      const item = await tx.cartItem.findFirst({
+        where: {
+          id: itemId,
+          cart: {
+            userId: userId,
+            type: from.toUpperCase() as CartType
+          },
+        },
+      });
+
+      if (!item) {
+        throw new Error("Item not found or unauthorized");
+      }
+
+      // Create or find destination cart using the compound unique constraint
       const destCart = await tx.cart.upsert({
         where: {
-          userId_type: { userId, type: to },
+          userId_type: {  // Use the compound unique constraint
+            userId: userId,
+            type: to.toUpperCase() as CartType,
+          },
         },
-        create: { userId, type: to },
+        create: { 
+          userId: userId, 
+          type: to.toUpperCase() as CartType 
+        },
         update: {},
       });
 
-      // Move the item
-      const movedItem = await tx.cartItem.update({
+      // Move the item to the destination cart
+      return await tx.cartItem.update({
         where: { id: itemId },
         data: { cartId: destCart.id },
       });
-
-      return movedItem;
     });
 
     return NextResponse.json({ success: true, item: result });
   } catch (error) {
     console.error("Error moving item:", error);
+    if (error instanceof Error) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
     return NextResponse.json({ error: "Failed to move item" }, { status: 500 });
   }
 }
@@ -165,14 +177,15 @@ export async function POST(
   { params }: { params: { type: string } }
 ) {
   try {
-    const { userId } = await auth();
+    const session = await getServerSession(authOptions);
+    const userId = session?.user?.id;
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const cartType = params.type.toUpperCase();
     // Validate cart type
-    if (!["CART", "SAVED_FOR_LATER", "WISHLIST"].includes(cartType)) {
+    if (!["CART", "WISHLIST"].includes(cartType)) {
       return NextResponse.json({ error: "Invalid cart type" }, { status: 400 });
     }
 
@@ -191,7 +204,7 @@ export async function POST(
     const existingCartItem = await prisma.cartItem.findFirst({
       where: {
         cart: {
-          userId,
+          userId: userId,
           type: cartType as CartType,
         },
         ...(itemType === "PRESET" ? { presetId: itemId } : { packId: itemId }),
@@ -210,7 +223,7 @@ export async function POST(
       const cart = await tx.cart.upsert({
         where: {
           userId_type: {
-            userId,
+            userId: userId,
             type: cartType as CartType,
           },
         },
@@ -289,7 +302,8 @@ export async function DELETE(
   { params }: { params: { type: string } }
 ) {
   try {
-    const { userId } = await auth();
+    const session = await getServerSession(authOptions);
+    const userId = session?.user?.id;
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -309,7 +323,7 @@ export async function DELETE(
         where: {
           id: itemId,
           cart: {
-            userId,
+            userId: userId,
             type: params.type.toUpperCase() as CartType,
           },
         },
@@ -325,3 +339,4 @@ export async function DELETE(
     );
   }
 }
+

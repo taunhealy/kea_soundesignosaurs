@@ -11,11 +11,53 @@ export async function GET(request: Request) {
   const presetTypes =
     searchParams.get("presetTypes")?.split(",").filter(Boolean) || [];
   const type = searchParams.get("type");
+  const status = searchParams.get("status");
+  const view = searchParams.get("view");
+  const userId = searchParams.get("userId");
+
+  console.log("[DEBUG] Search params:", {
+    type,
+    view,
+    userId,
+    status,
+    presetTypes,
+  });
 
   try {
     const whereClause: any = {
       AND: [],
     };
+
+    // Add view-based filtering for requests
+    if (type === "requests" && userId) {
+      // First get the soundDesigner for the user
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+      });
+
+      if (!user) {
+        // If no soundDesigner found, return empty results
+        return NextResponse.json([]);
+      }
+
+      if (view === "assisted") {
+        whereClause.AND.push({
+          submissions: {
+            some: {
+              user: {
+                id: userId,
+              },
+            },
+          },
+        });
+      } else if (view === "requested") {
+        whereClause.AND.push({
+          user: {
+            id: userId,
+          },
+        });
+      }
+    }
 
     // Add presetType filter
     if (presetTypes.length > 0) {
@@ -34,7 +76,7 @@ export async function GET(request: Request) {
       }
     }
 
-    // Modify search term filter to include preset titles
+    // Add search term filter
     if (searchTerm.trim()) {
       if (type === "packs") {
         whereClause.AND.push({
@@ -106,10 +148,20 @@ export async function GET(request: Request) {
       }
     }
 
+    // Add status filter
+    if (status) {
+      whereClause.AND.push({ status: status.toUpperCase() });
+    }
+
     // Remove AND array if empty
     if (whereClause.AND.length === 0) {
       delete whereClause.AND;
     }
+
+    console.log(
+      "[DEBUG] Final where clause:",
+      JSON.stringify(whereClause, null, 2)
+    );
 
     if (type === "packs") {
       const packs = await prisma.presetPackUpload.findMany({
@@ -125,10 +177,10 @@ export async function GET(request: Request) {
               },
             },
           },
-          soundDesigner: {
+          user: {
             select: {
               username: true,
-              profileImage: true,
+              image: true,
             },
           },
         },
@@ -138,31 +190,37 @@ export async function GET(request: Request) {
       });
       return NextResponse.json(packs);
     } else if (type === "requests") {
+      console.log("Fetching requests with params:", searchParams.toString());
       const requests = await prisma.presetRequest.findMany({
         where: whereClause,
         include: {
           genre: true,
-          soundDesigner: {
+          user: {
             select: {
               username: true,
-              profileImage: true,
+              image: true,
             },
           },
-          submissions: true,
+          submissions: {
+            include: {
+              user: true,
+            },
+          },
         },
         orderBy: {
           createdAt: "desc",
         },
       });
+      console.log("Found requests:", requests.length);
       return NextResponse.json(requests);
     } else {
       const presets = await prisma.presetUpload.findMany({
         where: whereClause,
         include: {
-          soundDesigner: {
+          user: {
             select: {
               username: true,
-              profileImage: true,
+              image: true,
             },
           },
           genre: true,
@@ -179,7 +237,7 @@ export async function GET(request: Request) {
       return NextResponse.json(presets);
     }
   } catch (error) {
-    console.error("Error fetching content:", error);
+    console.error("Search API error:", error);
     return NextResponse.json(
       { error: "Failed to fetch content" },
       { status: 500 }

@@ -1,12 +1,26 @@
-import { clerkMiddleware } from "@clerk/nextjs/server";
+import { NextFetchEvent, NextResponse } from "next/server";
+import { NextRequestWithAuth, withAuth } from "next-auth/middleware";
+import { NextRequest } from "next/server";
 
-export default clerkMiddleware();
+// Create a standalone middleware function
+export default function middleware(req: NextRequest) {
+  // Define public routes that don't need auth
+  const publicPaths = [
+    "/api/uploadthing",
+    "/api/auth",
+    "/auth/signin",
+    "/auth/error"
+  ];
+
+  if (publicPaths.some(path => req.nextUrl.pathname.startsWith(path))) {
+    return NextResponse.next();
+  }
+
+  return withAuth(req as NextRequestWithAuth, {} as NextFetchEvent);
+}
 
 export const config = {
   matcher: [
-    // Skip Next.js internals and all static files, unless found in search params
-    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
-    // Always run for API routes
-    "/(api|trpc)(.*)",
+    "/((?!_next/static|_next/image|favicon.ico).*)",
   ],
 };

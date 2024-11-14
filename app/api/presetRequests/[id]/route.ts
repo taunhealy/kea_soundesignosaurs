@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 
 export async function GET(
@@ -10,7 +11,7 @@ export async function GET(
     const requestThread = await prisma.presetRequest.findUnique({
       where: { id: params.id },
       include: {
-        soundDesigner: {
+        user: {
           select: {
             username: true,
           },
@@ -39,8 +40,8 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -53,7 +54,7 @@ export async function PATCH(
       include: { genre: true },
     });
 
-    if (!existingThread || existingThread.userId !== userId) {
+    if (!existingThread || existingThread.userId !== session.user.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
@@ -69,7 +70,7 @@ export async function PATCH(
       },
       include: {
         genre: true,
-        soundDesigner: {
+        user: {
           select: {
             username: true,
           },
@@ -93,8 +94,8 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -104,7 +105,7 @@ export async function DELETE(
       select: { userId: true },
     });
 
-    if (!presetRequest || presetRequest.userId !== userId) {
+    if (!presetRequest || presetRequest.userId !== session.user.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 

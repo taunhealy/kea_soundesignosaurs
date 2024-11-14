@@ -1,34 +1,28 @@
 "use client";
 
-import { SignUp } from "@clerk/nextjs";
+import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useUser } from "@clerk/nextjs";
+import { useSession } from "next-auth/react";
 import { useEffect } from "react";
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { isLoaded, isSignedIn } = useUser();
+  const { data: session, status } = useSession();
 
   useEffect(() => {
-    if (isLoaded && isSignedIn) {
+    if (status === "authenticated") {
       router.push("/dashboard");
     }
-  }, [isLoaded, isSignedIn, router]);
+  }, [status, router]);
 
   return (
     <div className="flex items-center justify-center min-h-screen">
-      <SignUp
-        path="/register"
-        routing="path"
-        signInUrl="/sign-in"
-        redirectUrl="/dashboard"
-        appearance={{
-          elements: {
-            rootBox: "mx-auto w-full max-w-lg",
-            card: "shadow-none",
-          },
-        }}
-      />
+      <button
+        onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
+        className="rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
+      >
+        Sign in with Google
+      </button>
     </div>
   );
 }

@@ -1,6 +1,15 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { isSystemGenre, SystemGenres } from "@/types/enums";
+
+enum GenreType {
+  SYSTEM = "SYSTEM",
+  CUSTOM = "CUSTOM",
+}
+
+// Add this helper function at the top
+function isSystemGenre(name: string): boolean {
+  return Object.values(GenreType).includes(name as GenreType);
+}
 
 export async function POST(request: Request) {
   try {
@@ -22,7 +31,7 @@ export async function POST(request: Request) {
     const genre = await prisma.genre.create({
       data: {
         name,
-        type: isSystem ? name : "CUSTOM",
+        type: isSystem ? (name as GenreType) : GenreType.CUSTOM,
         isSystem,
       },
     });

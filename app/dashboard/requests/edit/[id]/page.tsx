@@ -1,35 +1,51 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { PresetRequestCard } from "@/app/components/dashboard/PresetRequestCard";
 import { RequestForm } from "@/app/components/dashboard/RequestForm";
+import Link from "next/link";
+import { Button } from "@/app/components/ui/button";
+import { useParams, useRouter } from "next/navigation";
+import { toast } from "react-hot-toast";
 
-interface PageProps {
-  params: {
-    id: string;
-  };
-}
+export default function EditRequestPage() {
+  const params = useParams();
+  const router = useRouter();
+  const requestId = params?.id as string;
 
-export default function EditPresetRequestPage({ params }: PageProps) {
-  const { data: initialData, isLoading } = useQuery({
-    queryKey: ["presetRequest", params.id],
+  const { data: requestData, isLoading } = useQuery({
+    queryKey: ["presetRequest", requestId],
     queryFn: async () => {
-      const response = await fetch(`/api/presetRequest/${params.id}`);
-      if (!response.ok) throw new Error("Failed to fetch preset request");
-      return response.json();
+      try {
+        const response = await fetch(`/api/presetRequests/${requestId}`);
+        if (response.status === 404) {
+          toast.error("Request not found");
+          router.push("/dashboard/requests");
+          return null;
+        }
+        if (!response.ok) {
+          throw new Error("Failed to fetch request");
+        }
+        return response.json();
+      } catch (error) {
+        console.error("Error fetching request:", error);
+        toast.error("Error loading request");
+        router.push("/dashboard/requests");
+        return null;
+      }
     },
+    retry: false,
   });
 
-  if (isLoading || !initialData) {
-    return <div>Loading...</div>;
-  }
+  if (isLoading) return <div>Loading...</div>;
+  if (!requestData) return null;
 
   return (
-    <div className="container mx-auto p-6">
-      <PresetRequestCard request={initialData} />
-      <div className="mt-6">
-        <RequestForm initialData={initialData} requestId={params.id} />
-      </div>
+    <div className="max-w-4xl mx-auto px-4 py-8">
+      <Link href="/dashboard/requests">
+        <Button variant="outline">← Back to Requests</Button>
+      </Link>
+      <h1 className="text-2xl font-bold my-4">Edit Request</h1>
+      <RequestForm initialData={requestData} requestId={requestId} />
     </div>
   );
 }

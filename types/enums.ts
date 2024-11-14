@@ -11,6 +11,12 @@ export enum ContentViewMode {
   DOWNLOADED = "downloaded",
 }
 
+export enum ItemStatus {
+  UPLOADED = "uploaded",
+  DOWNLOADED = "downloaded",
+  PUBLIC = "public",
+}
+
 export enum RequestStatus {
   OPEN = "open",
   COMPLETED = "completed",

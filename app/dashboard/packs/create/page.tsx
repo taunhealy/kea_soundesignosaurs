@@ -1,6 +1,6 @@
 "use client";
 
-import { PresetPackForm } from "@/app/components/PresetPackForm";
+import { PresetPackForm } from "@/app/components/dashboard/PresetPackForm";
 import Link from "next/link";
 import { Button } from "@/app/components/ui/button";
 

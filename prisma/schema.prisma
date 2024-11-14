@@ -13,21 +13,32 @@ datasource db {
 
 
 // Core User Model
-model SoundDesigner {
+model User {
   id                String             @id @default(cuid())
-  userId            String             @unique
-  name              String
+  name              String?
   username          String?            @unique
-  email             String
-  profileImage      String?
+  email             String             @unique
+  emailVerified     DateTime?
+  image             String?            @unique
   websiteUrl        String?
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
+
+  // NextAuth required relations
+  accounts          Account[]
+  sessions          Session[]
+
+  // Your application relations
   presets           PresetUpload[]
   tutorials         Tutorial[]
   presetRequests    PresetRequest[]
   presetSubmissions PresetSubmission[]
   presetPacks       PresetPackUpload[]
+  orders            Order[]
+  presetDownloads   PresetDownload[]
+  presetPackDownloads PresetPackDownload[]
+  wishlist            Wishlist[]
+  cart                Cart[]
 }
 
 
@@ -48,18 +59,21 @@ model PresetUpload {
   guide           String?
   tags            String[]
   quantity        Int              @default(1)
-  contentType     ContentType      @default(PRESETS)
+  itemType        ItemType         @default(PRESET)
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
+  referenceTrackUrl String?
   
   genre           Genre?           @relation(fields: [genreId], references: [id], onDelete: SetNull)
   genreId         String?
-  soundDesigner   SoundDesigner?   @relation(fields: [soundDesignerId], references: [id], onDelete: SetNull)
-  soundDesignerId String?
-  presetRequest   PresetRequest?   @relation(fields: [presetRequestId], references: [id], onDelete: SetNull)
-  presetRequestId String?
+  user              User              @relation(fields: [userId], references: [id])
   vst             VST?             @relation(fields: [vstId], references: [id], onDelete: SetNull)
   vstId           String?
+
+  presetRequestId String?
+  presetRequest   PresetRequest?   @relation(fields: [presetRequestId], references: [id], onDelete: SetNull)
+  wishlistItems   WishlistItem[]
+
   
   // Child relations
   priceHistory    PriceHistory[]
@@ -68,7 +82,6 @@ model PresetUpload {
   downloads       PresetDownload[]
 
   @@index([genreId])
-  @@index([soundDesignerId])
   @@index([vstId])
   @@index([createdAt])
 }
@@ -90,17 +103,19 @@ enum PresetType {
 
 model VST {
   id        String      @id @default(cuid())
-  name      String
+  name      String      @unique
   type      VstType
-  presets   PresetUpload[]
   // ... other fields
   
   // Add this line to create the reverse relation
   submissions PresetSubmission[]
+  presetPacks PresetPackUpload[]
+  presetUploads PresetUpload[]
 }
 
 model PresetPackUpload {
   id              String         @id @default(cuid())
+  userId          String
   title           String         @db.VarChar(255)
   description     String?        @db.Text
   priceType       PriceType     @default(FREE)
@@ -111,10 +126,13 @@ model PresetPackUpload {
   updatedAt       DateTime       @updatedAt
   genre           Genre?         @relation(fields: [genreId], references: [id], onDelete: SetNull)
   genreId         String?
+  wishlistItems   WishlistItem[]
+
   
   // Relations
-  soundDesigner   SoundDesigner @relation(fields: [soundDesignerId], references: [id], onDelete: Cascade)
-  soundDesignerId String
+  user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vst             VST?             @relation(fields: [vstId], references: [id], onDelete: SetNull)
+  vstId           String?
   
   // Child relations
   priceHistory    PriceHistory[]
@@ -122,33 +140,43 @@ model PresetPackUpload {
   cartItems       CartItem[]
   downloads       PresetPackDownload[]
 
-  @@index([soundDesignerId])
+  @@index([genreId])
+  @@index([vstId])
   @@index([createdAt])
 }
 
 
-// Download Tracking Models
+// Download Tracking Models (enhanced with price info)
 model PresetDownload {
   id        String   @id @default(cuid())
   userId    String
-  presetId  String
-  preset    PresetUpload @relation(fields: [presetId], references: [id])
+  amount    Float    
+  stripeSessionId String? @unique 
   createdAt DateTime @default(now())
+  
+  preset    PresetUpload @relation(fields: [presetId], references: [id])
+  presetId  String
+  user      User     @relation(fields: [userId], references: [id])
 
-  // Add a constraint to prevent self-downloads
   @@unique([userId, presetId])
+  @@index([userId])
+  @@index([createdAt])
 }
 
 model PresetPackDownload {
-  id        String     @id @default(cuid())
+  id        String   @id @default(cuid())
   userId    String
+  amount    Float      
+  stripeSessionId String? @unique 
   createdAt DateTime   @default(now())
   
   pack      PresetPackUpload @relation(fields: [packId], references: [id])
   packId    String
+  user      User     @relation(fields: [userId], references: [id])
 
   @@index([userId])
   @@index([packId])
+  @@index([createdAt])
 }
 
 model Tutorial {
@@ -160,8 +188,8 @@ model Tutorial {
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
   
-  soundDesigner   SoundDesigner @relation(fields: [soundDesignerId], references: [id])
-  soundDesignerId String
+  user            User              @relation(fields: [userId], references: [id])
+  userId          String
 }
 
 // Request/Submission Models
@@ -177,9 +205,9 @@ model PresetRequest {
   
   // Relations
   userId         String
-  soundDesigner  SoundDesigner      @relation(fields: [userId], references: [userId])
   genre          Genre?             @relation(fields: [genreId], references: [id], onDelete: SetNull)
   genreId        String?
+  user           User               @relation(fields: [userId], references: [id])
   
   // Child relations
   submissions    PresetSubmission[]
@@ -207,7 +235,7 @@ model PresetSubmission {
   presetRequestId String
   presetRequest   PresetRequest @relation(fields: [presetRequestId], references: [id])
   userId          String
-  soundDesigner   SoundDesigner @relation(fields: [userId], references: [userId])
+  user            User          @relation(fields: [userId], references: [id])
   vst             VST?          @relation(fields: [vstId], references: [id], onDelete: SetNull)
   vstId           String?
 
@@ -220,13 +248,50 @@ model PresetSubmission {
 model Cart {
   id        String     @id @default(cuid())
   userId    String
-  type      CartType
+  type      CartType   @default(CART)
+  items     CartItem[]
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
-  items     CartItem[]
+  user      User       @relation(fields: [userId], references: [id])
 
   @@unique([userId, type])
 }
+
+
+model Wishlist {
+  id           String         @id @default(cuid())
+  userId       String
+  items        WishlistItem[]
+  priceAlerts  Boolean       @default(false)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  user         User          @relation(fields: [userId], references: [id])
+
+  @@unique([userId])
+}
+
+
+model WishlistItem {
+  id           String          @id @default(cuid())
+  itemType     CartItemType
+  quantity     Int            @default(1)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  
+  // Relations
+  wishlist     Wishlist       @relation(fields: [wishlistId], references: [id])
+  wishlistId   String
+  preset       PresetUpload?  @relation(fields: [presetId], references: [id])
+  presetId     String?
+  pack         PresetPackUpload? @relation(fields: [packId], references: [id])
+  packId       String?
+
+  @@unique([wishlistId, presetId, packId])
+  @@index([wishlistId])
+  @@index([presetId])
+  @@index([packId])
+}
+
 
 model CartItem {
   id           String          @id @default(cuid())
@@ -253,13 +318,18 @@ model CartItem {
 }
 
 model Order {
-  id        String      @id @default(cuid())
-  userId    String
-  amount    Float
-  status    String
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
-  items     OrderItem[]
+  id                String      @id @default(cuid())
+  userId            String
+  amount            Float
+  status            String
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  items             OrderItem[]
+  user              User        @relation(fields: [userId], references: [id])
+  stripeSessionId   String?     @unique
+  stripePaymentIntentId String? @unique
+
+  @@index([userId])
 }
 
 model OrderItem {
@@ -339,12 +409,6 @@ model Notification {
 // Enums
 
 
-enum CartType {
-  CART
-  SAVED_FOR_LATER
-  WISHLIST
-}
-
 enum CartItemType {
   PRESET
   PACK
@@ -352,33 +416,8 @@ enum CartItemType {
 
 
 enum GenreType {
-  ELECTRONIC
-  HIP_HOP
-  ROCK
-  METAL
-  HARDWAVE
-  WAVE
-  PHONK
-  FUTURE_BASS
-  COLOR_BASS
-  HOUSE
-  TECHNO
-  TRANCE
-  DUBSTEP
-  DRUM_AND_BASS
-  DRILL
-  AMAPIANO
-  TRAP
-  AMBIENT
-  SYNTHWAVE
-  EXPERIMENTAL
-  IDM
-  BREAKBEAT
-  GLITCH_HOP
-  DOWNTEMPO
-  LO_FI
-  CUSTOM
   SYSTEM
+  CUSTOM
 }
 
 enum RequestStatus {
@@ -386,9 +425,53 @@ enum RequestStatus {
   SATISFIED
 }
 
-enum ContentType {
-  PRESETS
-  PACKS
-  REQUESTS
+
+// Add these models to your schema.prisma
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
 }
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+enum CartType {
+  CART
+  WISHLIST
+}
+
+enum ItemType {
+  PRESET
+  PACK
+  REQUEST
+}
+
+
 
