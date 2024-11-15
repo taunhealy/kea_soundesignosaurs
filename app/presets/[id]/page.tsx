@@ -1,22 +1,41 @@
 "use client";
 
-import { useContent } from "@/app/hooks/queries/useContent";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/app/components/ui/button";
 import { PlayIcon, PauseIcon } from "lucide-react";
-import {
-  useAudioPlayer,
-  UseAudioPlayerOptions,
-} from "@/app/hooks/useAudioPlayer";
+import { useAudioPlayer } from "@/app/hooks/useAudioPlayer";
+
+interface Preset {
+  id: string;
+  soundPreviewUrl?: string;
+  title: string;
+  description: string;
+  presetFileUrl?: string;
+  isFree: boolean;
+  price?: number;
+  genre?: { name: string };
+  vst?: { name: string };
+  presetType: string;
+  spotifyLink?: string;
+}
 
 export default function PresetPage({ params }: { params: { id: string } }) {
-  const { data: preset, isLoading } = usePresetDetails(params.id);
+  // Fetch preset data using React Query
+  const { data: preset, isLoading, error } = useQuery<Preset>({
+    queryKey: ['preset', params.id],
+    queryFn: async () => {
+      const response = await fetch(`/api/presets/${params.id}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch preset');
+      }
+      return response.json();
+    }
+  });
 
-  const audioOptions: UseAudioPlayerOptions = {
-    volume: 1.0,
-    onEnd: () => console.log("Audio playback ended"),
-    onError: (error) => console.error("Audio playback error:", error),
-    onPlay: () => console.log("Started playing"),
-    onPause: () => console.log("Paused playing"),
+  const audioOptions = {
+    onError: (error: Error) => {
+      console.error('Audio playback error:', error);
+    }
   };
 
   const { isPlaying, activeTrack, play, pause } = useAudioPlayer(audioOptions);
@@ -32,6 +51,7 @@ export default function PresetPage({ params }: { params: { id: string } }) {
   };
 
   if (isLoading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error instanceof Error ? error.message : 'Failed to load preset'}</div>;
   if (!preset) return <div>Preset not found</div>;
 
   return (

@@ -1,13 +1,13 @@
 import { createContext, useContext, useState, ReactNode } from "react";
 import { SearchFilters } from "@/types/SearchTypes";
 import { toggleArrayFilter } from "@/utils/filterUtils";
-import { ContentType } from "@prisma/client";
+import { ItemType } from "@prisma/client";
 import { ContentViewMode } from "@/types/enums";
 
 const DEFAULT_FILTERS: SearchFilters = {
   searchTerm: "",
-  contentType: ContentType.PRESETS,
-  viewMode: ContentViewMode.EXPLORE,
+  itemType: ItemType.PRESET,
+  view: ContentViewMode.EXPLORE,
   priceTypes: [],
   genres: [],
   vstTypes: [],
@@ -17,8 +17,8 @@ const DEFAULT_FILTERS: SearchFilters = {
   page: 1,
   pageSize: 20,
   categories: [],
-  sortBy: "createdAt",
-  sortOrder: "desc",
+  sort: "createdAt",
+  order: "desc",
 };
 
 interface SearchContextType {

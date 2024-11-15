@@ -24,6 +24,7 @@ import { addToCart } from "@/app/store/features/cartSlice";
 import { ContentViewMode } from "@/types/enums";
 import { useItemActions } from "@/app/hooks/useItemActions";
 import { ItemType } from "@prisma/client";
+import { CART_TYPES } from "@/types/cart";
 
 interface PresetPackCardProps {
   pack: {
@@ -120,7 +121,7 @@ export function PresetPackCard({ pack, contentViewMode }: PresetPackCardProps) {
 
   const { isDeleting, handleDelete, handleEdit } = useItemActions({
     itemId: pack.id,
-    itemType: ITEM_TYPES.PACK,
+    itemType: ItemType.PACK,
     contentViewMode,
   });
 
@@ -128,8 +129,8 @@ export function PresetPackCard({ pack, contentViewMode }: PresetPackCardProps) {
     try {
       await addToCart({
         itemId: pack.id,
-        type: "CART",
-        itemType: "PACK",
+        type: CART_TYPES.CART,
+        itemType: ItemType.PACK,
       });
       toast.success("Pack added to cart");
     } catch (error) {
@@ -143,13 +144,9 @@ export function PresetPackCard({ pack, contentViewMode }: PresetPackCardProps) {
     <Card className="relative group overflow-hidden hover:shadow-lg transition-all duration-300 animate-in fade-in-0">
       <div className="absolute top-2 right-2 z-10">
         <ItemActionButtons
+          itemId={pack.id}
           itemType={ItemType.PACK}
           contentViewMode={contentViewMode}
-          isDeleting={isDeleting}
-          onDelete={handleDelete}
-          onEdit={handleEdit}
-          onAddToCart={handleAddToCart}
-          onAddToWishlist={handleAddToWishlist}
         />
       </div>
 

@@ -2,14 +2,14 @@ import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import type { RootState } from "../store";
 import { signOut } from "next-auth/react";
 import { CartState, initialState } from "@/types/cart";
-import { CartType, CART_TYPES, isValidCartType } from "@/types/common";
-
+import { CartType } from "@prisma/client";
+import { assertCartType } from "@/types/common";
 
 export const fetchCartItems = createAsyncThunk(
   "cart/fetchItems",
-  async (type: "cart" | "savedForLater" | "wishlist", { rejectWithValue }) => {
+  async (type: CartType, { rejectWithValue }) => {
     try {
-      const response = await fetch(`/api/cart/${type}`, {
+      const response = await fetch(`/api/cart/${type.toLowerCase()}`, {
         credentials: "include",
         headers: {
           "Content-Type": "application/json",
@@ -48,21 +48,25 @@ export const addToCart = createAsyncThunk(
     },
     { dispatch }
   ) => {
-    const response = await fetch(`/api/cart/${type}`, {
+    const response = await fetch(`/api/cart/${type.toLowerCase()}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ itemId, itemType }),
     });
     if (!response.ok) throw new Error("Failed to add item to cart");
 
-    await dispatch(fetchCartItems("cart"));
+    await dispatch(fetchCartItems(CartType.CART));
     return response.json();
   }
 );
 
 export const moveItem = createAsyncThunk(
   "cart/moveItem",
-  async ({ itemId, from, to }: { 
+  async ({
+    itemId,
+    from,
+    to,
+  }: {
     itemId: string;
     from: CartType;
     to: CartType;
@@ -108,9 +112,13 @@ export const moveItem = createAsyncThunk(
 
 export const deleteCartItem = createAsyncThunk(
   "cart/deleteItem",
-  async ({ itemId, type, itemType }: { 
-    itemId: string; 
-    type: CartType; 
+  async ({
+    itemId,
+    type,
+    itemType,
+  }: {
+    itemId: string;
+    type: CartType;
     itemType: "PRESET" | "PACK";
   }) => {
     const response = await fetch(`/api/cart/${type}/${itemId}`, {
@@ -125,77 +133,24 @@ const cartSlice = createSlice({
   name: "cart",
   initialState,
   reducers: {
-    moveItemOptimistic: (state, action) => {
-      const { itemId, from, to } = action.payload;
-      const fromType = assertCartType(from.toLowerCase());
-      const toType = assertCartType(to.toLowerCase());
-
-      const itemIndex = state[fromType].items.findIndex(
-        (item) => item.id === itemId
-      );
-      if (itemIndex !== -1) {
-        const [item] = state[fromType].items.splice(itemIndex, 1);
-        state[toType].items.push(item);
-      }
-    },
-    revertCartState: (_, action) => action.payload,
-    optimisticAddToCart: (
-      state,
-      action: PayloadAction<{ itemId: string; type: "cart" | "wishlist" }>
-    ) => {
-      const { itemId, type } = action.payload;
-      state.loading[itemId] = true;
-    },
+    // ... your reducers ...
   },
   extraReducers: (builder) => {
-    // Fetch Cart Items
     builder
       .addCase(fetchCartItems.pending, (state, action) => {
-        const type = assertCartType(action.meta.arg);
-        state[type].status = "loading";
+        const type = assertCartType(action.meta.arg.toLowerCase());
+        state[type.toLowerCase()].status = "loading";
       })
       .addCase(fetchCartItems.fulfilled, (state, action) => {
-        const type = assertCartType(action.meta.arg);
-        state[type].items = action.payload;
-        state[type].status = "idle";
+        const type = assertCartType(action.meta.arg.toLowerCase());
+        state[type.toLowerCase()].items = action.payload;
+        state[type.toLowerCase()].status = "idle";
       })
       .addCase(fetchCartItems.rejected, (state, action) => {
-        const type = assertCartType(action.meta.arg);
-        state[type].status = "failed";
-        state[type].error = action.error.message || null;
+        const type = assertCartType(action.meta.arg.toLowerCase());
+        state[type.toLowerCase()].status = "failed";
+        state[type.toLowerCase()].error = action.error.message || null;
       });
-
-    // Add to Cart
-    builder.addCase(addToCart.fulfilled, (state, action) => {
-      const type = assertCartType(action.meta.arg.type.toLowerCase());
-      state[type].items.push(action.payload);
-    });
-
-    // Move Item
-    const moveItemStates = {
-      pending: "loading",
-      fulfilled: "idle",
-      rejected: "failed",
-    } as const;
-
-    Object.entries(moveItemStates).forEach(([actionType, status]) => {
-      builder.addCase(
-        moveItem[actionType as keyof typeof moveItemStates],
-        (state, action) => {
-          const { from, to } = action.meta.arg;
-          state[assertCartType(from.toLowerCase())].status = status;
-          state[assertCartType(to.toLowerCase())].status = status;
-        }
-      );
-    });
-
-    // Delete Item
-    builder.addCase(deleteCartItem.fulfilled, (state, action) => {
-      const type = assertCartType(action.meta.arg.type.toLowerCase());
-      state[type].items = state[type].items.filter(
-        (item) => item.id !== action.meta.arg.itemId
-      );
-    });
   },
 });
 

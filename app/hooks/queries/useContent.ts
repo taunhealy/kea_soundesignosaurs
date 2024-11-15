@@ -1,16 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
-import { ContentType } from "@prisma/client";
+import { ItemType } from "@prisma/client";
 import { SearchFilters } from "@/types/SearchTypes";
 
 interface UseContentProps {
-  contentType: ContentType;
+  itemType: ItemType;
   filters: SearchFilters;
   view?: string | null;
   status?: string | null;
 }
 
 export function useContent({
-  contentType,
+  itemType,
   filters,
   view,
   status,
@@ -22,20 +22,25 @@ export function useContent({
   };
 
   return useQuery({
-    queryKey: [{ contentType, filters, view, status }],
+    queryKey: [{ itemType, filters, view, status }],
     queryFn: async () => {
-      const searchParams = new URLSearchParams({
-        contentType,
-        ...Object.fromEntries(
-          Object.entries(filters).filter(
-            ([_, value]) =>
-              value !== null && value !== undefined && value !== ""
-          )
-        ),
-        ...(view && { view }),
-        ...(status && { status }),
-        type: contentType.toLowerCase(),
+      const searchParams = new URLSearchParams();
+      
+      searchParams.set('itemType', itemType.toLowerCase());
+      
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== null && value !== undefined && value !== "") {
+          if (key === 'searchTerm') {
+            searchParams.set('q', value);
+          } else {
+            searchParams.set(key, value.toString());
+          }
+        }
       });
+
+      if (view) searchParams.set('view', view);
+      if (status) searchParams.set('status', status);
+
       return fetchContent(`/api/search?${searchParams}`);
     },
     select: (data) => (Array.isArray(data) ? data : []),

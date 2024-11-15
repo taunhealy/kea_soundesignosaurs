@@ -2,7 +2,7 @@ import { Button } from "@/app/components/ui/button";
 import { Download } from "lucide-react";
 import { toast } from "react-toastify";
 import JSZip from "jszip";
-import { ItemType } from "@/types/actions";
+import { ItemType } from "@prisma/client";
 
 interface DownloadButtonProps {
   itemId: string;
@@ -29,7 +29,7 @@ export function DownloadButton({
       const data = await response.json();
       console.log("Download response:", data);
 
-      if (itemType === 'preset') {
+      if (itemType === ItemType.PRESET) {
         // Single preset download
         const link = document.createElement("a");
         link.href = data.downloadUrl;
@@ -40,14 +40,14 @@ export function DownloadButton({
       } else {
         // Pack download - create zip file
         const zip = new JSZip();
-        
+
         // Add each preset to the zip
         for (const preset of data.presets) {
           const presetResponse = await fetch(preset.url);
           const presetBlob = await presetResponse.blob();
           zip.file(`${preset.title}.preset`, presetBlob);
         }
-        
+
         // Generate and download zip file
         const zipBlob = await zip.generateAsync({ type: "blob" });
         const zipUrl = URL.createObjectURL(zipBlob);
@@ -60,7 +60,9 @@ export function DownloadButton({
         URL.revokeObjectURL(zipUrl);
       }
 
-      toast.success(`${itemType === 'preset' ? 'Preset' : 'Pack'} download started`);
+      toast.success(
+        `${itemType === ItemType.PRESET ? "Preset" : "Pack"} download started`
+      );
     } catch (error) {
       console.error("Download error:", error);
       toast.error(error instanceof Error ? error.message : "Download failed");

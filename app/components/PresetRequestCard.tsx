@@ -31,6 +31,7 @@ import { SubmitPresetButton } from "./buttons/SubmitPresetButton";
 import { useItemActions } from "@/app/hooks/useItemActions";
 import { ItemActionButtons } from "@/app/components/ItemActionButtons";
 import { getYouTubeThumbnail } from "@/utils/youtube";
+import { ItemType } from "@prisma/client";
 
 export function PresetRequestCard({
   request,
@@ -108,10 +109,10 @@ export function PresetRequestCard({
   );
 
   const { isDeleting: itemActionsIsDeleting, handleDelete, handleEdit } = useItemActions({
-    itemId: request.id,
-    type: "request",
-    contentViewMode
-  });
+      itemId: request.id,
+      itemType: ItemType.REQUEST,
+      contentViewMode,
+    });
 
   console.log("PresetRequest Data:", {
     request,
@@ -133,7 +134,7 @@ export function PresetRequestCard({
           <Badge>{request.status}</Badge>
           {showActions && (
             <ItemActionButtons
-              itemType="request"
+              itemType={ItemType.REQUEST}
               contentViewMode={contentViewMode}
               isDeleting={itemActionsIsDeleting}
               onDelete={handleDelete}

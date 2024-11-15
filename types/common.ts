@@ -1,9 +1,14 @@
-// Content Types
+import { CartType } from "@prisma/client";
 
-// Cart Types
-export const CART_TYPES = {
-  CART: "cart",
-  WISHLIST: "wishlist",
-} as const;
+// Helper functions for type checking
+export function isValidCartType(type: string): type is CartType {
+  return ["CART", "WISHLIST"].includes(type.toUpperCase() as CartType);
+}
 
-export type CartType = (typeof CART_TYPES)[keyof typeof CART_TYPES];
+export function assertCartType(type: string): CartType {
+  const upperType = type.toUpperCase() as CartType;
+  if (!isValidCartType(upperType)) {
+    throw new Error(`Invalid cart type: ${type}`);
+  }
+  return upperType;
+}

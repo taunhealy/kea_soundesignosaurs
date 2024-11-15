@@ -1,10 +1,3 @@
-import { ContentType } from "@prisma/client";
-
-export enum BoardView {
-  PUBLIC = "public",
-  DASHBOARD = "dashboard",
-}
-
 export enum ContentViewMode {
   EXPLORE = "explore",
   UPLOADED = "uploaded",
@@ -35,6 +28,3 @@ export const isContentViewMode = (value: string): value is ContentViewMode => {
 export const isRequestViewMode = (value: string): value is RequestViewMode => {
   return Object.values(RequestViewMode).includes(value as RequestViewMode);
 };
-
-// Re-export Prisma enums for convenience
-export { ContentType };

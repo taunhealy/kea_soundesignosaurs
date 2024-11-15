@@ -3,58 +3,58 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Tabs, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
-import { ContentType } from "@prisma/client";
+import { ItemType } from "@prisma/client";
 import { ContentViewMode, RequestViewMode } from "@/types/enums";
 
 interface CategoryTabsProps {
-  selectedContentType: ContentType;
-  onSelect: (contentType: ContentType) => void;
+  selectedItemType: ItemType;
+  onSelect: (itemType: ItemType) => void;
 }
 
 interface TabItem {
-  value: ContentType;
+  value: ItemType;
   label: string;
   defaultView: ContentViewMode | RequestViewMode;
 }
 
 const TAB_ITEMS: TabItem[] = [
   {
-    value: ContentType.PRESETS,
+    value: ItemType.PRESET,
     label: "Presets",
     defaultView: ContentViewMode.EXPLORE,
   },
   {
-    value: ContentType.PACKS,
+    value: ItemType.PACK,
     label: "Packs",
     defaultView: ContentViewMode.EXPLORE,
   },
   {
-    value: ContentType.REQUESTS,
+    value: ItemType.REQUEST,
     label: "Requests",
     defaultView: RequestViewMode.PUBLIC,
   },
 ];
 
 export function CategoryTabs({
-  selectedContentType,
+  selectedItemType,
   onSelect,
 }: CategoryTabsProps) {
   const searchParams = useSearchParams();
   const currentView = searchParams?.get("view");
 
-  const getDefaultView = (contentType: ContentType): string => {
-    return contentType === ContentType.REQUESTS
+  const getDefaultView = (itemType: ItemType): string => {
+    return itemType === ItemType.REQUEST
       ? RequestViewMode.REQUESTED
       : ContentViewMode.UPLOADED;
   };
 
-  const getTabHref = (contentType: ContentType): string => {
-    const view = currentView || getDefaultView(contentType);
-    return `/${contentType.toLowerCase()}?view=${view}`;
+  const getTabHref = (itemType: ItemType): string => {
+    const view = currentView || getDefaultView(itemType);
+    return `/${itemType.toLowerCase()}?view=${view}`;
   };
 
   return (
-    <Tabs value={selectedContentType.toLowerCase()} className="mb-4">
+    <Tabs value={selectedItemType.toLowerCase()} className="mb-4">
       <TabsList>
         {TAB_ITEMS.map((tab) => (
           <TabsTrigger key={tab.value} value={tab.value.toLowerCase()} asChild>

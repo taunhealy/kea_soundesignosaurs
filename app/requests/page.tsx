@@ -1,7 +1,7 @@
 "use client";
 
 import { ContentExplorer } from "@/app/components/ContentExplorer";
-import { ContentType } from "@prisma/client";
+import { ItemType } from "@prisma/client";
 import { useSearchParams } from "next/navigation";
 import { DEFAULT_FILTERS } from "@/utils/filterUtils";
 import { SearchFilters } from "@/types/SearchTypes";
@@ -14,18 +14,18 @@ export default function RequestsPage() {
   // Parse URL params into filters
   const initialFilters: SearchFilters = {
     ...DEFAULT_FILTERS,
-    q: searchParams.get("searchTerm") || "",
+    searchTerm: searchParams.get("searchTerm") || "",
     genres: searchParams.get("genres")?.split(",") || [],
     status: searchParams.get("status") || RequestStatus.OPEN,
-    p: parseInt(searchParams.get("page") || "1"),
-    type: ContentType.REQUESTS,
+    page: parseInt(searchParams.get("page") || "1"),
+    itemType: ItemType.REQUEST,
     view:
       (searchParams.get("view") as RequestViewMode) || RequestViewMode.PUBLIC,
   };
 
   return (
     <ContentExplorer
-      contentType={ContentType.REQUESTS}
+      itemType={ItemType.REQUEST}
       initialFilters={initialFilters}
     />
   );

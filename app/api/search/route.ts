@@ -14,6 +14,7 @@ export async function GET(request: Request) {
   const status = searchParams.get("status");
   const view = searchParams.get("view");
   const userId = searchParams.get("userId");
+  const tags = searchParams.get("tags")?.split(",").filter(Boolean) || [];
 
   console.log("[DEBUG] Search params:", {
     type,
@@ -151,6 +152,15 @@ export async function GET(request: Request) {
     // Add status filter
     if (status) {
       whereClause.AND.push({ status: status.toUpperCase() });
+    }
+
+    // Add tags filter
+    if (tags.length > 0) {
+      whereClause.AND.push({
+        tags: {
+          hasSome: tags
+        }
+      });
     }
 
     // Remove AND array if empty

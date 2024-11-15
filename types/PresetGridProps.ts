@@ -1,4 +1,4 @@
-import { ContentType, PriceType } from "@prisma/client";
+import { ItemType, PriceType } from "@prisma/client";
 
 export interface PresetGridProps {
   presets: any[];
@@ -15,6 +15,6 @@ export interface PresetGridProps {
     showAll: boolean;
     types: string[];
     priceTypes: PriceType[];
-    contentType: ContentType;
+    itemType: ItemType;
   };
 }

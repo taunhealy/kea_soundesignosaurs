@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 
+// Fetch data
 export async function GET(
   request: Request,
   { params }: { params: { id: string } }
@@ -47,6 +48,7 @@ export async function GET(
   }
 }
 
+// Edit data
 export async function PATCH(
   request: Request,
   { params }: { params: { id: string } }
@@ -110,6 +112,7 @@ export async function PATCH(
   }
 }
 
+// Delete data
 export async function DELETE(
   request: Request,
   { params }: { params: { id: string } }

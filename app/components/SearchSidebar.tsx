@@ -7,9 +7,10 @@ import { Input } from "@/app/components/ui/input";
 import { PresetType, PriceType, VstType } from "@prisma/client";
 import { SearchFilters } from "@/types/SearchTypes";
 import { useDebounce } from "@/app/hooks/useDebounce";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { ContentType, BoardView } from "@/types/enums";
+import { ItemType } from "@prisma/client";
+import { MultiSelect } from "./ui/MultiSelect";
 
 const PRESET_TYPES = Object.values(PresetType);
 const PRICE_TYPES = Object.values(PriceType);
@@ -18,13 +19,13 @@ const VST_TYPES = Object.values(VstType);
 interface SearchSidebarProps {
   filters: SearchFilters;
   updateFilters: (filters: SearchFilters) => void;
-  contentType: ContentType;
+  itemType: ItemType;
 }
 
 export const SearchSidebar: React.FC<SearchSidebarProps> = ({
   filters,
   updateFilters,
-  contentType,
+  itemType,
 }) => {
   const { data: genres } = useGenres();
   const [searchTerm, setSearchTerm] = useState(filters.searchTerm || "");
@@ -65,6 +66,32 @@ export const SearchSidebar: React.FC<SearchSidebarProps> = ({
         : [],
     };
     filterMutation.mutate(newFilters);
+  };
+
+  const TagsSection = () => {
+    const [availableTags, setAvailableTags] = useState<string[]>([]);
+
+    useEffect(() => {
+      // Fetch available tags based on the current content type
+      const fetchTags = async () => {
+        const response = await fetch(`/api/tags?type=${itemType}`);
+        const data = await response.json();
+        setAvailableTags(data);
+      };
+      fetchTags();
+    }, [itemType]);
+
+    return (
+      <div className="space-y-2">
+        <h3 className="font-medium">Tags</h3>
+        <MultiSelect
+          options={availableTags.map(tag => ({ value: tag, label: tag }))}
+          value={filters.tags || []}
+          onChange={(value) => handleFilterChange("tags", value, false)}
+          placeholder="Search tags..."
+        />
+      </div>
+    );
   };
 
   return (
@@ -158,6 +185,9 @@ export const SearchSidebar: React.FC<SearchSidebarProps> = ({
           </div>
         ))}
       </div>
+
+      {/* Tags Section */}
+      <TagsSection />
     </div>
   );
 };

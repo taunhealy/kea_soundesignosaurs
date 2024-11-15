@@ -1,23 +1,15 @@
-import {
-  BoardView,
-  ContentType,
-  ContentViewMode,
-  RequestViewMode,
-} from "./enums";
-import { PresetPack } from "@/lib/interfaces";
-import { Preset } from "./algolia-autocomplete";
+import { ContentViewMode, RequestViewMode } from "./enums";
 import { PresetPackWithRelations } from "./presetPack";
 import { PresetRequestWithRelations } from "./PresetRequestTypes";
-import { PresetUpload, VST, Genre, SoundDesigner } from "@prisma/client";
+import { PresetUpload, VST, Genre, User, ItemType } from "@prisma/client";
 
 export interface ContentExplorerProps {
-  contentType: ContentType;
-  boardView: BoardView;
+  itemType: ItemType;
   onViewChange?: (view: string) => void;
 }
 
 export interface ContentExplorerTabState {
-  contentType: ContentType;
+  itemType: ItemType;
   activeTab: ContentViewMode | RequestViewMode;
   viewMode: string;
   status: string;
@@ -27,27 +19,29 @@ export interface PresetGridProps {
   presets?: (PresetUpload & {
     vst?: VST | null;
     genre?: Genre | null;
-    soundDesigner?: SoundDesigner | null;
+    user?: User | null;
   })[];
   contentViewMode: ContentViewMode;
   isLoading: boolean;
   view?: string | null;
+  itemType?: ItemType;
 }
 
 export interface PresetPackGridProps {
   packs?: PresetPackWithRelations[];
   contentViewMode: ContentViewMode;
   isLoading: boolean;
+  itemType?: ItemType;
 }
 
 export interface PresetRequestGridProps {
   requests?: PresetRequestWithRelations[];
   requestViewMode: RequestViewMode;
   isLoading: boolean;
+  itemType?: ItemType;
 }
 
 export interface CategoryTabsProps {
-  selectedContentType: ContentType;
-  onSelect: (contentType: ContentType) => void;
-  boardView: BoardView;
+  selectedItemType: ItemType;
+  onSelect: (itemType: ItemType) => void;
 }

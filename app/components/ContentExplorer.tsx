@@ -4,7 +4,7 @@ import { PresetGrid } from "@/app/components/shared/PresetGrid";
 import { SearchSidebar } from "@/app/components/SearchSidebar";
 import { PresetPackGrid } from "@/app/components/shared/PresetPackGrid";
 import { PresetRequestGrid } from "@/app/components/shared/PresetRequestGrid";
-import { ITEM_TYPES, ContentType } from "@/types/common";
+import { ItemType, RequestStatus } from "@prisma/client";
 import {
   ContentViewMode,
   isContentViewMode,
@@ -32,17 +32,17 @@ import { CreatePackButton } from "@/app/components/buttons/CreatePackButton";
 import { CreateRequestButton } from "@/app/components/buttons/CreateRequestButton";
 
 interface ContentExplorerProps {
-  contentType: ContentType;
+  itemType: ItemType;
   initialFilters: SearchFilters;
   status?: string;
 }
 
 export function ContentExplorer({
-  contentType,
+  itemType,
   initialFilters,
 }: ContentExplorerProps) {
   const { data, isLoading } = useContent({
-    contentType,
+    itemType: itemType,
     filters: initialFilters,
     view: initialFilters.view,
     status: initialFilters.status,
@@ -59,15 +59,13 @@ export function ContentExplorer({
   const searchParams = useSearchParams();
   const view = searchParams.get("view");
 
-  const [state, setState] = useState<
-    Omit<ContentExplorerTabState, "contentType">
-  >(() => {
-    const initialState = getInitialState(contentType, view);
-    return {
-      activeTab: initialState.activeTab,
-      viewMode: initialState.viewMode,
-      status: initialState.status,
-    };
+  const [state, setState] = useState<{
+    activeTab: ContentViewMode | RequestViewMode;
+    viewMode: string;
+    status: string;
+  }>(() => {
+    const initialState = getInitialState(itemType, view);
+    return initialState;
   });
 
   const renderRequestTabs = () => {
@@ -102,10 +100,8 @@ export function ContentExplorer({
           }}
         >
           <TabsList className="mb-4">
-            <TabsTrigger value={PrismaRequestStatus.OPEN}>Open</TabsTrigger>
-            <TabsTrigger value={PrismaRequestStatus.SATISFIED}>
-              Satisfied
-            </TabsTrigger>
+            <TabsTrigger value={RequestStatus.OPEN}>Open</TabsTrigger>
+            <TabsTrigger value={RequestStatus.SATISFIED}>Satisfied</TabsTrigger>
           </TabsList>
         </Tabs>
 
@@ -127,13 +123,17 @@ export function ContentExplorer({
             setState((prev) => ({ ...prev, viewMode: value }));
             const params = new URLSearchParams();
             params.set("view", value);
-            router.push(`/${contentType.toLowerCase()}?${params.toString()}`);
+            router.push(`/${itemType.toLowerCase()}?${params.toString()}`);
           }}
         >
           <TabsList className="mb-4">
             <TabsTrigger value={ContentViewMode.EXPLORE}>All</TabsTrigger>
-            <TabsTrigger value={ContentViewMode.UPLOADED}>My Uploads</TabsTrigger>
-            <TabsTrigger value={ContentViewMode.DOWNLOADED}>Downloaded</TabsTrigger>
+            <TabsTrigger value={ContentViewMode.UPLOADED}>
+              My Uploads
+            </TabsTrigger>
+            <TabsTrigger value={ContentViewMode.DOWNLOADED}>
+              Downloaded
+            </TabsTrigger>
           </TabsList>
         </Tabs>
 
@@ -143,7 +143,7 @@ export function ContentExplorer({
   };
 
   const renderContentGrid = () => {
-    if (contentType === ITEM_TYPES.PRESET) {
+    if (itemType === ItemType.PRESET) {
       return (
         <PresetGrid
           presets={items}
@@ -162,19 +162,19 @@ export function ContentExplorer({
   };
 
   const renderContent = () => {
-    if (contentType === ITEM_TYPES.REQUEST) {
+    if (itemType === ItemType.REQUEST) {
       return renderRequestTabs();
     }
     return renderContentTabs();
   };
 
   const renderCreateButton = () => {
-    switch (contentType) {
-      case ITEM_TYPES.PRESET:
+    switch (itemType) {
+      case ItemType.PRESET:
         return <CreatePresetButton />;
-      case ITEM_TYPES.PACK:
+      case ItemType.PACK:
         return <CreatePackButton />;
-      case ITEM_TYPES.REQUEST:
+      case ItemType.REQUEST:
         return <CreateRequestButton />;
       default:
         return null;
@@ -188,12 +188,12 @@ export function ContentExplorer({
           <SearchSidebar
             filters={filters}
             updateFilters={updateFilters}
-            contentType={contentType}
+            itemType={itemType}
           />
         </aside>
         <main className="flex-1 min-w-[640px]">
           <CategoryTabs
-            selectedContentType={contentType}
+            selectedItemType={itemType}
             onSelect={(type) => {
               const params = new URLSearchParams(searchParams);
               const defaultView = ContentViewMode.UPLOADED;
@@ -214,12 +214,16 @@ export function ContentExplorer({
 }
 
 const getInitialState = (
-  contentType: ContentType,
+  itemType: ItemType,
   viewParam: string | null
-): Omit<ContentExplorerTabState, "contentType"> => {
+): {
+  activeTab: ContentViewMode | RequestViewMode;
+  viewMode: string;
+  status: string;
+} => {
   const view = viewParam || "";
 
-  if (contentType === ITEM_TYPES.REQUEST) {
+  if (itemType === ItemType.REQUEST) {
     return {
       activeTab: isRequestViewMode(view)
         ? (view as RequestViewMode)
@@ -227,7 +231,7 @@ const getInitialState = (
       viewMode: isRequestViewMode(view)
         ? (view as RequestViewMode)
         : RequestViewMode.PUBLIC,
-      status: PrismaRequestStatus.OPEN,
+      status: RequestStatus.OPEN,
     };
   }
 
@@ -238,7 +242,7 @@ const getInitialState = (
     viewMode: isContentViewMode(view)
       ? (view as ContentViewMode)
       : ContentViewMode.EXPLORE,
-    status: PrismaRequestStatus.OPEN,
+    status: RequestStatus.OPEN,
   };
 };
 

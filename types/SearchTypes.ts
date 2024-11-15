@@ -1,22 +1,22 @@
-import { ContentType, PriceType, PresetType, VstType } from "@prisma/client";
+import { ItemType, PriceType, PresetType, VstType } from "@prisma/client";
 import { ContentViewMode, RequestViewMode } from "./enums";
 
 export interface SearchFilters {
-  q?: string;
-  type?: ContentType;
+  searchTerm?: string;
+  itemType?: ItemType;
   view?: ContentViewMode | RequestViewMode;
   priceTypes?: string[];
   genres?: string[];
   vstTypes?: string[];
   presetTypes?: string[];
-  tag?: string[];
-  p?: number;
-  size?: number;
-  cat?: string[];
+  tags?: string[];
+  showAll?: boolean;
+  page?: number;
+  pageSize?: number;
+  categories?: string[];
   sort?: string;
   order?: "asc" | "desc";
   status?: string;
-  searchTerm?: string;
 }
 
 export interface SearchFilterUpdate {

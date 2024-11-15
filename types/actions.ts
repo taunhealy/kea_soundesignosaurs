@@ -21,6 +21,5 @@ export interface ItemActionsState {
   isAddingToCart: boolean;
   isAddingToWishlist: boolean;
   isMovingToCart: boolean;
-  isRemoving: boolean;
   isEditing: boolean;
 }

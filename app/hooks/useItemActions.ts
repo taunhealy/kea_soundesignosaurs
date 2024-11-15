@@ -10,7 +10,8 @@ import {
   optimisticAddToCart,
 } from "@/app/store/features/cartSlice";
 import { CartType } from "@/types/cart";
-import { ItemType, UseItemActionsProps } from "@/types/actions";
+import { UseItemActionsProps } from "@/types/actions";
+import { ItemType } from "@prisma/client";
 
 export function useItemActions({
   itemId,
@@ -29,8 +30,8 @@ export function useItemActions({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          presetId: itemType === "preset" ? itemId : undefined,
-          packId: itemType === "pack" ? itemId : undefined,
+          presetId: itemType === ItemType.PRESET ? itemId : undefined,
+          packId: itemType === ItemType.PACK ? itemId : undefined,
         }),
       });
 
@@ -58,8 +59,8 @@ export function useItemActions({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          presetId: itemType === "preset" ? itemId : undefined,
-          packId: itemType === "pack" ? itemId : undefined,
+          presetId: itemType === ItemType.PRESET ? itemId : undefined,
+          packId: itemType === ItemType.PACK ? itemId : undefined,
         }),
       });
 
@@ -72,7 +73,9 @@ export function useItemActions({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["wishlist"] });
       toast.success(
-        `${itemType.charAt(0).toUpperCase() + itemType.slice(1)} added to wishlist`
+        `${
+          itemType.charAt(0).toUpperCase() + itemType.slice(1)
+        } added to wishlist`
       );
     },
     onError: (error: Error) => {
@@ -96,7 +99,9 @@ export function useItemActions({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`${itemType}s`] });
       toast.success(
-        `${itemType.charAt(0).toUpperCase() + itemType.slice(1)} deleted successfully`
+        `${
+          itemType.charAt(0).toUpperCase() + itemType.slice(1)
+        } deleted successfully`
       );
       if (contentViewMode === ContentViewMode.UPLOADED) {
         router.push(`/dashboard/${itemType}s`);
@@ -163,7 +168,9 @@ export function useItemActions({
     onSuccess: (_, from) => {
       queryClient.invalidateQueries({ queryKey: [from] });
       toast.success(
-        `${itemType.charAt(0).toUpperCase() + itemType.slice(1)} removed from ${from}`
+        `${
+          itemType.charAt(0).toUpperCase() + itemType.slice(1)
+        } removed from ${from}`
       );
     },
     onError: (error: Error) => {
@@ -190,7 +197,7 @@ export function useItemActions({
     }
   };
 
-    const handleMoveToCart = async (from: "wishlist" | "cart") => {
+  const handleMoveToCart = async (from: "wishlist" | "cart") => {
     try {
       await dispatch(
         moveItem({
