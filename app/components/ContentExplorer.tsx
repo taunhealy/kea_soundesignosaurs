@@ -42,6 +42,8 @@ export function ContentExplorer({
   itemType,
   initialFilters,
 }: ContentExplorerProps) {
+  console.log("[DEBUG] ContentExplorer - Initial itemType:", itemType);
+
   const { data, isLoading } = useContent({
     itemType: itemType,
     filters: initialFilters,
@@ -127,15 +129,7 @@ export function ContentExplorer({
     return (
       <div className="space-y-4">
         {isAuthenticated && (
-          <Tabs
-            defaultValue={state.viewMode}
-            onValueChange={(value) => {
-              setState((prev) => ({ ...prev, viewMode: value }));
-              const params = new URLSearchParams();
-              params.set("view", value);
-              router.push(`/${itemType.toLowerCase()}?${params.toString()}`);
-            }}
-          >
+          <Tabs defaultValue={state.viewMode}>
             <TabsList className="mb-4">
               <TabsTrigger value={ContentViewMode.EXPLORE}>All</TabsTrigger>
               <TabsTrigger value={ContentViewMode.UPLOADED}>
@@ -147,7 +141,6 @@ export function ContentExplorer({
             </TabsList>
           </Tabs>
         )}
-
         {renderContentGrid()}
       </div>
     );
@@ -206,9 +199,8 @@ export function ContentExplorer({
           <CategoryTabs
             selectedItemType={itemType}
             onSelect={(type) => {
-              const params = new URLSearchParams(searchParams);
-              const defaultView = ContentViewMode.UPLOADED;
-              router.push(`/${type.toLowerCase()}?view=${defaultView}`);
+              // Let CategoryTabs handle the routing
+              // Remove any duplicate routing logic here
             }}
           />
           <div className="flex justify-between items-center mb-6">
@@ -223,6 +215,11 @@ export function ContentExplorer({
     </div>
   );
 }
+
+const getRoutePrefix = (itemType: ItemType) => {
+  console.log("[DEBUG] Tab clicked with itemType:", itemType);
+  return `${itemType.toLowerCase()}s`;
+};
 
 const getInitialState = (
   itemType: ItemType,

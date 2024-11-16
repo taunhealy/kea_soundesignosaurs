@@ -50,7 +50,7 @@ export function CategoryTabs({
 
   const getTabHref = (itemType: ItemType): string => {
     const view = currentView || getDefaultView(itemType);
-    return `/${itemType.toLowerCase()}?view=${view}`;
+    return `/${itemType.toLowerCase()}s?view=${view}`;
   };
 
   return (
