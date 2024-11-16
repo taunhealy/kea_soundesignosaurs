@@ -3,7 +3,6 @@ import { getServerSession } from "next-auth";
 import prisma from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { z } from "zod";
-import { Prisma } from "@prisma/client";
 
 // Define validation schema
 const presetSchema = z.object({
@@ -19,6 +18,7 @@ const presetSchema = z.object({
   presetFileUrl: z.string().min(1),
   originalFileName: z.string().optional(),
   soundPreviewUrl: z.string().optional(),
+  itemType: z.string().default("PRESET"),
 });
 
 export async function POST(request: Request) {

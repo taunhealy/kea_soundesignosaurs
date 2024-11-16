@@ -30,6 +30,7 @@ import { Button } from "@/app/components/ui/button";
 import { CreatePresetButton } from "@/app/components/buttons/CreatePresetButton";
 import { CreatePackButton } from "@/app/components/buttons/CreatePackButton";
 import { CreateRequestButton } from "@/app/components/buttons/CreateRequestButton";
+import { useSession } from "next-auth/react";
 
 interface ContentExplorerProps {
   itemType: ItemType;
@@ -69,6 +70,9 @@ export function ContentExplorer({
   });
 
   const renderRequestTabs = () => {
+    const { status } = useSession();
+    const isAuthenticated = status === "authenticated";
+
     return (
       <div className="space-y-4">
         <Tabs
@@ -82,9 +86,11 @@ export function ContentExplorer({
         >
           <TabsList className="mb-4">
             <TabsTrigger value={RequestViewMode.PUBLIC}>All</TabsTrigger>
-            <TabsTrigger value={RequestViewMode.REQUESTED}>
-              My Requests
-            </TabsTrigger>
+            {isAuthenticated && (
+              <TabsTrigger value={RequestViewMode.REQUESTED}>
+                My Requests
+              </TabsTrigger>
+            )}
           </TabsList>
         </Tabs>
 
@@ -115,27 +121,32 @@ export function ContentExplorer({
   };
 
   const renderContentTabs = () => {
+    const { status } = useSession();
+    const isAuthenticated = status === "authenticated";
+
     return (
       <div className="space-y-4">
-        <Tabs
-          defaultValue={state.viewMode}
-          onValueChange={(value) => {
-            setState((prev) => ({ ...prev, viewMode: value }));
-            const params = new URLSearchParams();
-            params.set("view", value);
-            router.push(`/${itemType.toLowerCase()}?${params.toString()}`);
-          }}
-        >
-          <TabsList className="mb-4">
-            <TabsTrigger value={ContentViewMode.EXPLORE}>All</TabsTrigger>
-            <TabsTrigger value={ContentViewMode.UPLOADED}>
-              My Uploads
-            </TabsTrigger>
-            <TabsTrigger value={ContentViewMode.DOWNLOADED}>
-              Downloaded
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
+        {isAuthenticated && (
+          <Tabs
+            defaultValue={state.viewMode}
+            onValueChange={(value) => {
+              setState((prev) => ({ ...prev, viewMode: value }));
+              const params = new URLSearchParams();
+              params.set("view", value);
+              router.push(`/${itemType.toLowerCase()}?${params.toString()}`);
+            }}
+          >
+            <TabsList className="mb-4">
+              <TabsTrigger value={ContentViewMode.EXPLORE}>All</TabsTrigger>
+              <TabsTrigger value={ContentViewMode.UPLOADED}>
+                My Uploads
+              </TabsTrigger>
+              <TabsTrigger value={ContentViewMode.DOWNLOADED}>
+                Downloaded
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        )}
 
         {renderContentGrid()}
       </div>
@@ -225,23 +236,15 @@ const getInitialState = (
 
   if (itemType === ItemType.REQUEST) {
     return {
-      activeTab: isRequestViewMode(view)
-        ? (view as RequestViewMode)
-        : RequestViewMode.PUBLIC,
-      viewMode: isRequestViewMode(view)
-        ? (view as RequestViewMode)
-        : RequestViewMode.PUBLIC,
+      activeTab: RequestViewMode.PUBLIC,
+      viewMode: RequestViewMode.PUBLIC,
       status: RequestStatus.OPEN,
     };
   }
 
   return {
-    activeTab: isContentViewMode(view)
-      ? (view as ContentViewMode)
-      : ContentViewMode.EXPLORE,
-    viewMode: isContentViewMode(view)
-      ? (view as ContentViewMode)
-      : ContentViewMode.EXPLORE,
+    activeTab: ContentViewMode.EXPLORE,
+    viewMode: ContentViewMode.EXPLORE,
     status: RequestStatus.OPEN,
   };
 };

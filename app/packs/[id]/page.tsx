@@ -24,7 +24,7 @@ export default function PackPage({ params }: { params: { id: string } }) {
 
   const handleAddToCart = async () => {
     try {
-      await addToCart(pack.id);
+      await addToCart(pack.id, "PACK");
       toast.success("Pack added to cart");
     } catch (error) {
       toast.error("Failed to add pack to cart");

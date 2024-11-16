@@ -1,4 +1,4 @@
-import { ItemType } from "@prisma/client";
+import { CartType, ItemType } from "@prisma/client";
 
 export interface CartState {
   cart: {
@@ -19,13 +19,6 @@ export interface CartState {
 export type CartStatus = "idle" | "loading" | "failed";
 
 export type WishlistStatus = "idle" | "loading" | "failed";
-
-export const CART_TYPES = {
-  CART: "cart",
-  WISHLIST: "wishlist",
-} as const;
-
-export type CartType = (typeof CART_TYPES)[keyof typeof CART_TYPES];
 
 export interface CartItem {
   id: string;
@@ -82,7 +75,7 @@ export interface CartOperation {
   type: CartOperationType;
   from?: CartType;
   to?: CartType;
-  itemType: "PRESET" | "PACK";
+  itemType: ItemType;
 }
 
 export interface CartApiResponse {

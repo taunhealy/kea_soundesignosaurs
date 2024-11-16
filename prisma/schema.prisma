@@ -273,7 +273,7 @@ model Wishlist {
 
 model WishlistItem {
   id           String          @id @default(cuid())
-  itemType     CartItemType
+  itemType     ItemType
   quantity     Int            @default(1)
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
@@ -295,7 +295,7 @@ model WishlistItem {
 
 model CartItem {
   id           String          @id @default(cuid())
-  itemType     CartItemType
+  itemType     ItemType
   quantity     Int            @default(1)
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
@@ -407,12 +407,6 @@ model Notification {
 }
 
 // Enums
-
-
-enum CartItemType {
-  PRESET
-  PACK
-}
 
 
 enum GenreType {

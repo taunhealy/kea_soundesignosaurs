@@ -22,7 +22,7 @@ import { Trash, MoveRight } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { useRouter, useSearchParams } from "next/navigation";
 import { PriceChangeDisplay } from "./PriceChangeDisplay";
-import { CART_TYPES, type CartType } from "@/types/cart";
+import { CartType } from "@prisma/client";
 import { ItemType } from "@prisma/client";
 
 interface CartItemComponentProps {
@@ -52,8 +52,8 @@ function CartItemComponent({
       : null;
 
   const moveOptions: Record<CartType, CartType[]> = {
-    cart: ["wishlist"],
-    wishlist: ["cart"],
+    CART: [CartType.WISHLIST],
+    WISHLIST: [CartType.CART],
   } as const;
 
   return (
@@ -120,8 +120,8 @@ export function MultiCartView() {
   const type = searchParams.get("type") || "cart"; // Default to "cart" if no type is specified
 
   useEffect(() => {
-    dispatch(fetchCartItems("cart"));
-    dispatch(fetchCartItems("wishlist"));
+    dispatch(fetchCartItems(CartType.CART));
+    dispatch(fetchCartItems(CartType.WISHLIST));
   }, [dispatch]);
 
   const handleMoveItem = async (
@@ -133,8 +133,8 @@ export function MultiCartView() {
       await dispatch(
         moveItem({
           itemId,
-          from: from.toLowerCase() as "cart" | "wishlist",
-          to: to.toLowerCase() as "cart" | "wishlist",
+          from,
+          to,
         })
       ).unwrap();
       toast.success(`Item moved to ${to.toLowerCase()}`);
@@ -149,14 +149,14 @@ export function MultiCartView() {
   const handleDelete = async (
     itemId: string,
     type: CartType,
-    itemType: ContentType
+    itemType: "PRESET" | "PACK" | "REQUEST"
   ) => {
     if (!confirm("Are you sure you want to remove this item?")) return;
 
     try {
       setDeletingId(itemId);
       await dispatch(deleteCartItem({ itemId, type, itemType })).unwrap();
-      await dispatch(fetchCartItems(type.toLowerCase() as "cart" | "wishlist"));
+      await dispatch(fetchCartItems(type));
       toast.success("Item removed");
     } catch (error) {
       toast.error("Failed to remove item");
@@ -188,9 +188,9 @@ export function MultiCartView() {
             <CartItemComponent
               key={item.id}
               item={item}
-              currentList="cart"
-              onMove={(to) => handleMoveItem(item.id, "cart", to)}
-              onDelete={(id) => handleDelete(id, "cart", item.itemType)}
+              currentList={CartType.CART}
+              onMove={(to) => handleMoveItem(item.id, CartType.CART, to)}
+              onDelete={(id) => handleDelete(id, CartType.CART, item.itemType)}
               isLoading={false}
             />
           ))}
@@ -203,9 +203,9 @@ export function MultiCartView() {
             <CartItemComponent
               key={item.id}
               item={item}
-              currentList="wishlist"
-              onMove={(to) => handleMoveItem(item.id, "wishlist", to)}
-              onDelete={(id) => handleDelete(id, "wishlist", item.itemType)}
+              currentList={CartType.WISHLIST}
+              onMove={(to) => handleMoveItem(item.id, CartType.WISHLIST, to)}
+              onDelete={(id) => handleDelete(id, CartType.WISHLIST, item.itemType)}
               isLoading={deletingId === item.id}
             />
           ))}

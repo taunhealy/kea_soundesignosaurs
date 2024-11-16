@@ -8,8 +8,9 @@ import {
   moveItem,
   deleteCartItem,
   optimisticAddToCart,
+  fetchCartItems,
 } from "@/app/store/features/cartSlice";
-import { CartType } from "@/types/cart";
+import { CartType } from "@prisma/client";
 import { UseItemActionsProps } from "@/types/actions";
 import { ItemType } from "@prisma/client";
 
@@ -180,15 +181,43 @@ export function useItemActions({
 
   const handleAddToCart = async () => {
     try {
-      dispatch(optimisticAddToCart({ itemId, type: "cart" }));
+      // Optimistic update
+      dispatch(
+        optimisticAddToCart({
+          itemId,
+          type: CartType.CART,
+          item: {
+            id: itemId,
+            itemType,
+            quantity: 1,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            cartId: "",
+            presetId: itemType === "PRESET" ? itemId : null,
+            packId: itemType === "PACK" ? itemId : null,
+          },
+        })
+      );
+
+      // Make the API call
       await dispatch(
         addToCart({
           itemId,
-          type: "cart" as CartType,
-          itemType: itemType.toUpperCase() as "PRESET" | "PACK",
+          cartType: CartType.CART,
+          itemType: itemType as "PRESET" | "PACK",
         })
       ).unwrap();
+
+      // Fetch latest state
+      await dispatch(fetchCartItems(CartType.CART));
+
+      toast.success(
+        `${itemType.charAt(0).toUpperCase() + itemType.slice(1)} added to cart`
+      );
     } catch (error) {
+      // Revert optimistic update by fetching current state
+      await dispatch(fetchCartItems(CartType.CART));
+
       if (error instanceof Error) {
         toast.error(error.message);
       } else {
@@ -197,15 +226,22 @@ export function useItemActions({
     }
   };
 
-  const handleMoveToCart = async (from: "wishlist" | "cart") => {
+  const handleMoveToCart = async (from: CartType) => {
     try {
       await dispatch(
         moveItem({
           itemId,
           from,
-          to: "cart",
+          to: CartType.CART,
         })
       ).unwrap();
+
+      // Fetch both cart types to update UI
+      await Promise.all([
+        dispatch(fetchCartItems(CartType.CART)),
+        dispatch(fetchCartItems(CartType.WISHLIST)),
+      ]);
+
       toast.success(`${itemType} moved to cart`);
     } catch (error) {
       if (error instanceof Error) {
@@ -221,8 +257,8 @@ export function useItemActions({
       await dispatch(
         deleteCartItem({
           itemId,
-          type,
-          itemType: type.toUpperCase() as "PRESET" | "PACK",
+          type: type.toUpperCase() as keyof typeof CartType,
+          itemType: itemType as "PRESET" | "PACK",
         })
       ).unwrap();
       toast.success(

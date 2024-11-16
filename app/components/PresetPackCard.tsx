@@ -23,8 +23,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { addToCart } from "@/app/store/features/cartSlice";
 import { ContentViewMode } from "@/types/enums";
 import { useItemActions } from "@/app/hooks/useItemActions";
-import { ItemType } from "@prisma/client";
-import { CART_TYPES } from "@/types/cart";
+import { ItemType, CartType } from "@prisma/client";
+import { useAppDispatch } from "@/app/store/hooks";
 
 interface PresetPackCardProps {
   pack: {
@@ -53,6 +53,7 @@ export function PresetPackCard({ pack, contentViewMode }: PresetPackCardProps) {
   const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const queryClient = useQueryClient();
+  const dispatch = useAppDispatch();
 
   const totalPresetsPrice = pack.presets.reduce(
     (sum, item) => sum + item.preset.price,
@@ -127,14 +128,21 @@ export function PresetPackCard({ pack, contentViewMode }: PresetPackCardProps) {
 
   const handleAddToCart = async () => {
     try {
-      await addToCart({
-        itemId: pack.id,
-        type: CART_TYPES.CART,
-        itemType: ItemType.PACK,
-      });
+      const result = await dispatch(
+        addToCart({
+          itemId: pack.id,
+          cartType: CartType.CART,
+          itemType: ItemType.PACK,
+        })
+      );
+      await result.unwrap();
       toast.success("Pack added to cart");
-    } catch (error) {
-      toast.error("Failed to add pack to cart");
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        toast.error(error.message);
+      } else {
+        toast.error("Failed to add pack to cart");
+      }
     }
   };
 

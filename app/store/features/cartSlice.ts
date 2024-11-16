@@ -2,8 +2,12 @@ import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import type { RootState } from "../store";
 import { signOut } from "next-auth/react";
 import { CartState, initialState } from "@/types/cart";
-import { CartType } from "@prisma/client";
+import { CartItem, CartType, ItemType } from "@prisma/client";
 import { assertCartType } from "@/types/common";
+
+const isValidCartType = (type: string): type is CartType => {
+  return Object.values(CartType).includes(type as CartType);
+};
 
 export const fetchCartItems = createAsyncThunk(
   "cart/fetchItems",
@@ -37,47 +41,65 @@ export const addToCart = createAsyncThunk(
   async (
     {
       itemId,
-      type,
+      cartType,
       itemType,
-      from,
     }: {
       itemId: string;
-      type: CartType;
+      cartType: CartType;
       itemType: "PRESET" | "PACK";
-      from?: CartType;
     },
-    { dispatch }
+    { dispatch, rejectWithValue }
   ) => {
-    const response = await fetch(`/api/cart/${type.toLowerCase()}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ itemId, itemType }),
-    });
-    if (!response.ok) throw new Error("Failed to add item to cart");
+    try {
+      if (!cartType || !Object.values(CartType).includes(cartType)) {
+        throw new Error(`Invalid cart type: ${cartType}`);
+      }
 
-    await dispatch(fetchCartItems(CartType.CART));
-    return response.json();
+      const response = await fetch(`/api/cart/${cartType.toLowerCase()}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          [itemType === "PRESET" ? "presetId" : "packId"]: itemId,
+        }),
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to add item to cart");
+      }
+
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error("Cart operation failed:", error);
+      return rejectWithValue(
+        error instanceof Error ? error.message : "Failed to add to cart"
+      );
+    }
   }
 );
 
 export const moveItem = createAsyncThunk(
   "cart/moveItem",
-  async ({
-    itemId,
-    from,
-    to,
-  }: {
-    itemId: string;
-    from: CartType;
-    to: CartType;
-  }) => {
+  async (
+    {
+      itemId,
+      from,
+      to,
+    }: {
+      itemId: string;
+      from: CartType;
+      to: CartType;
+    },
+    { dispatch, getState }
+  ) => {
     if (!isValidCartType(from) || !isValidCartType(to)) {
       throw new Error("Invalid cart type");
     }
     const originalState = (getState() as RootState).cart;
 
     try {
-      // Optimistic update
       dispatch(moveItemOptimistic({ itemId, from, to }));
 
       const response = await fetch(`/api/cart/${from}`, {
@@ -95,7 +117,6 @@ export const moveItem = createAsyncThunk(
         throw new Error(error.error || "Failed to move item");
       }
 
-      // Refresh both carts to ensure consistency
       await Promise.all([
         dispatch(fetchCartItems(from)),
         dispatch(fetchCartItems(to)),
@@ -103,7 +124,6 @@ export const moveItem = createAsyncThunk(
 
       return await response.json();
     } catch (error) {
-      // Revert on failure
       dispatch(revertCartState(originalState));
       throw error;
     }
@@ -119,7 +139,7 @@ export const deleteCartItem = createAsyncThunk(
   }: {
     itemId: string;
     type: CartType;
-    itemType: "PRESET" | "PACK";
+    itemType: ItemType;
   }) => {
     const response = await fetch(`/api/cart/${type}/${itemId}`, {
       method: "DELETE",
@@ -129,11 +149,56 @@ export const deleteCartItem = createAsyncThunk(
   }
 );
 
+const serializeItem = (item: any) => ({
+  ...item,
+  createdAt:
+    item.createdAt instanceof Date
+      ? item.createdAt.toISOString()
+      : item.createdAt,
+  updatedAt:
+    item.updatedAt instanceof Date
+      ? item.updatedAt.toISOString()
+      : item.updatedAt,
+  priceHistory: item.priceHistory?.map((ph: any) => ({
+    ...ph,
+    timestamp:
+      ph.timestamp instanceof Date ? ph.timestamp.toISOString() : ph.timestamp,
+  })),
+});
+
 const cartSlice = createSlice({
   name: "cart",
   initialState,
   reducers: {
-    // ... your reducers ...
+    moveItemOptimistic: (
+      state,
+      action: PayloadAction<{ itemId: string; from: CartType; to: CartType }>
+    ) => {
+      const { itemId, from, to } = action.payload;
+      const item = state[from.toLowerCase()].items.find(
+        (item) => item.id === itemId
+      );
+      if (item) {
+        state[from.toLowerCase()].items = state[
+          from.toLowerCase()
+        ].items.filter((item) => item.id !== itemId);
+        state[to.toLowerCase()].items.push(item);
+      }
+    },
+    optimisticAddToCart: (
+      state,
+      action: PayloadAction<{
+        itemId: string;
+        type: CartType;
+        item: CartItem;
+      }>
+    ) => {
+      const { type, item } = action.payload;
+      state[type.toLowerCase()].items.push(serializeItem(item));
+    },
+    revertCartState: (state, action: PayloadAction<CartState>) => {
+      return action.payload;
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -154,7 +219,7 @@ const cartSlice = createSlice({
   },
 });
 
-export const { moveItemOptimistic, revertCartState, optimisticAddToCart } =
+export const { moveItemOptimistic, optimisticAddToCart, revertCartState } =
   cartSlice.actions;
 
 // Selectors

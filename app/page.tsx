@@ -1,7 +1,8 @@
 "use client";
 
-import { redirect } from "next/navigation";
+import { ContentExplorer } from "@/app/components/ContentExplorer";
+import { ItemType } from "@prisma/client";
 
 export default function HomePage() {
-  redirect("/presets/");
+  return <ContentExplorer itemType={ItemType.PRESET} initialFilters={{}} />;
 }

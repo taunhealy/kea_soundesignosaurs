@@ -30,14 +30,17 @@ export default function PresetsPage() {
     vstTypes: searchParams.get("vstTypes")?.split(",") || [],
     priceTypes: (searchParams.get("priceTypes")?.split(",") as PriceType[]) || [],
     page: parseInt(searchParams.get("page") || "1"),
-    itemType: ItemType.PRESET,
+    itemType: (searchParams.get("itemType")?.toUpperCase() as ItemType) || ItemType.PRESET,
     view: (searchParams.get("view") as ContentViewMode) || ContentViewMode.EXPLORE,
   };
 
   return (
     <ContentExplorer
       itemType={ItemType.PRESET}
-      initialFilters={initialFilters}
+      initialFilters={{
+        ...initialFilters,
+        itemType: ItemType.PRESET,
+      }}
     />
   );
 }

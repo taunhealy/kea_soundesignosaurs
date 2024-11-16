@@ -4,7 +4,7 @@ import { ItemType } from "@prisma/client";
 
 export const DEFAULT_FILTERS: SearchFilters = {
   searchTerm: "",
-  itemType: ItemType.PRESET,
+  itemType: "PRESET" as ItemType,
   view: ContentViewMode.EXPLORE,
   priceTypes: [],
   genres: [],

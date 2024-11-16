@@ -1,7 +1,7 @@
 "use client";
 
 import { ContentExplorer } from "@/app/components/ContentExplorer";
-import { ITEM_TYPES } from "@/types/common";
+import { ItemType } from "@prisma/client";
 import { useParams, notFound } from "next/navigation";
 
 type CategoryParams = {
@@ -14,13 +14,13 @@ export default function CategoryPage() {
   const category = params.category;
 
   // Simple category mapping using ITEM_TYPES
-  const contentType = {
-    presets: ITEM_TYPES.PRESET,
-    packs: ITEM_TYPES.PACK,
-    requests: ITEM_TYPES.REQUEST,
+  const itemType = {
+    presets: ItemType.PRESET,
+    packs: ItemType.PACK,
+    requests: ItemType.REQUEST,
   }[category];
 
-  if (!contentType) notFound();
+  if (!itemType) notFound();
 
-  return <ContentExplorer contentType={contentType} initialFilters={{}} />;
+  return <ContentExplorer itemType={itemType} initialFilters={{}} />;
 }

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { CartItemType, CartType } from "@prisma/client";
+import { CartType } from "@prisma/client";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 
@@ -131,7 +131,7 @@ export async function PUT(
           id: itemId,
           cart: {
             userId: userId,
-            type: from.toUpperCase() as CartType
+            type: from.toUpperCase() as CartType,
           },
         },
       });
@@ -143,14 +143,15 @@ export async function PUT(
       // Create or find destination cart using the compound unique constraint
       const destCart = await tx.cart.upsert({
         where: {
-          userId_type: {  // Use the compound unique constraint
+          userId_type: {
+            // Use the compound unique constraint
             userId: userId,
             type: to.toUpperCase() as CartType,
           },
         },
-        create: { 
-          userId: userId, 
-          type: to.toUpperCase() as CartType 
+        create: {
+          userId: userId,
+          type: to.toUpperCase() as CartType,
         },
         update: {},
       });
@@ -183,7 +184,7 @@ export async function POST(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const cartType = params.type.toUpperCase();
+    const cartType = params.type.toUpperCase() as CartType;
     // Validate cart type
     if (!["CART", "WISHLIST"].includes(cartType)) {
       return NextResponse.json({ error: "Invalid cart type" }, { status: 400 });
@@ -205,7 +206,7 @@ export async function POST(
       where: {
         cart: {
           userId: userId,
-          type: cartType as CartType,
+          type: cartType,
         },
         ...(itemType === "PRESET" ? { presetId: itemId } : { packId: itemId }),
       },
@@ -224,12 +225,12 @@ export async function POST(
         where: {
           userId_type: {
             userId: userId,
-            type: cartType as CartType,
+            type: cartType,
           },
         },
         create: {
           userId,
-          type: cartType as CartType,
+          type: cartType,
         },
         update: {},
       });
@@ -339,4 +340,3 @@ export async function DELETE(
     );
   }
 }
-

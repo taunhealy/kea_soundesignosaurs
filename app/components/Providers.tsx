@@ -22,7 +22,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient());
 
   return (
-    <SessionProvider>
+    <SessionProvider refetchInterval={0} refetchOnWindowFocus={true}>
       <QueryClientProvider client={queryClient}>
         <SearchProvider>
           <ErrorBoundary>{children}</ErrorBoundary>

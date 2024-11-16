@@ -1,104 +1,55 @@
 import NextAuth, { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import prisma from "@/lib/prisma";
-import type { Account, JWT, Profile, Session } from "next-auth";
-import { AdapterUser } from "next-auth/adapters";
+import { PrismaAdapter } from "@next-auth/prisma-adapter";
 
-declare module "next-auth/jwt" {
-  interface JWT {
-    id?: string;
-    email?: string;
-    sub?: string;
-    name?: string;
-    picture?: string;
-  }
+if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+  throw new Error("Missing Google OAuth credentials in environment variables");
 }
 
 export const authOptions: NextAuthOptions = {
+  adapter: PrismaAdapter(prisma),
   providers: [
     GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      clientId: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     }),
   ],
   callbacks: {
-    async signIn({
-      account,
-      profile,
-    }: {
-      account: Account | null;
-      profile?: Profile;
-    }) {
-      if (account?.provider === "google" && profile?.sub) {
-        try {
-          if (!profile.email) {
-            return false; // Exit if no email is provided
-          }
-
-          const user = await prisma.user.upsert({
-            where: { email: profile.email },
-            update: {
-              id: profile.sub,
-              name: profile.name,
-              image: profile.image ?? null,
-            },
-            create: {
-              id: profile.sub,
-              email: profile.email,
-              name: profile.name,
-              image: profile.image ?? null,
-              username:
-                profile.name || profile.email.split("@")[0] || profile.sub,
-            },
-          });
-          return true;
-        } catch (error) {
-          console.error("Error in signIn callback:", error);
-          return false;
-        }
+    async jwt({ token, user, account }) {
+      // Initial sign in
+      if (account && user) {
+        console.log("🔑 Setting initial JWT token:", { user, account });
+        return {
+          ...token,
+          userId: user.id,
+          accessToken: account.access_token,
+        };
       }
-      return true;
+      console.log("♻️ Reusing existing JWT token:", token);
+      return token;
     },
-
-    async session({
-      session,
-      token,
-    }: {
-      session: Session;
-      token: JWT;
-      user: AdapterUser;
-    }) {
-      // @ts-ignore
-      if (session?.user && token.id) {
-        session.user.id = token.id;
+    async session({ session, token, user }) {
+      console.log("📝 Setting session from token:", { token, user });
+      if (session.user) {
+        session.user.id = token.userId;
+        session.accessToken = token.accessToken as string;
       }
       return session;
     },
-
-    async jwt({
-      token,
-      account,
-      profile,
-    }: {
-      token: JWT;
-      user: AdapterUser | null;
-      account: Account | null;
-      profile?: Profile;
-    }) {
-      if (profile) {
-        token.id = profile.sub;
+    async redirect({ url, baseUrl }) {
+      console.log("🔄 Redirect callback:", { url, baseUrl });
+      // After sign in, go to dashboard/stats
+      if (url.startsWith(baseUrl)) {
+        return `${baseUrl}/dashboard/stats`;
       }
-      return token;
+      return baseUrl;
     },
   },
-  pages: {
-    signIn: "/auth/signin",
-    error: "/auth/error", // Add error page
-  },
+  debug: process.env.NODE_ENV === "development", // Enable debug logs in development
   session: {
     strategy: "jwt",
   },
-  debug: process.env.NODE_ENV === "development",
 };
 
 const handler = NextAuth(authOptions);
