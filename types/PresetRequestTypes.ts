@@ -32,6 +32,7 @@ export interface PresetRequestCardProps {
   request: PresetRequestWithRelations;
   showSubmissions?: boolean;
   currentUserId?: string;
+  requestViewMode: RequestViewMode;
 }
 
 // Type for submissions

@@ -1,22 +1,29 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
 import prisma from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { ItemType } from "@prisma/client";
+import { getServerSession } from "next-auth";
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const rawItemType = searchParams.get("itemType")?.toUpperCase();
-    
+
     // Validate itemType
-    if (!rawItemType || !Object.values(ItemType).includes(rawItemType as ItemType)) {
+    if (
+      !rawItemType ||
+      !Object.values(ItemType).includes(rawItemType as ItemType)
+    ) {
       return NextResponse.json(
-        { error: `Invalid item type. Must be one of: ${Object.values(ItemType).join(', ')}` },
+        {
+          error: `Invalid item type. Must be one of: ${Object.values(
+            ItemType
+          ).join(", ")}`,
+        },
         { status: 400 }
       );
     }
-    
+
     const itemType = rawItemType as ItemType;
     const view = searchParams.get("view");
     const searchTerm = searchParams.get("searchTerm") || "";
@@ -27,59 +34,36 @@ export async function GET(request: Request) {
       searchParams.get("presetTypes")?.split(",").filter(Boolean) || [];
     const status = searchParams.get("status");
 
-    // Only check auth for personal views
-    const session =
-      view === "UPLOADED" || view === "DOWNLOADED"
-        ? await getServerSession(authOptions)
-        : null;
+    // Modify the session check to use the users id
+    const session = await getServerSession(authOptions);
+    const userId = session?.user?.id;
 
-    if ((view === "UPLOADED" || view === "DOWNLOADED") && !session?.user?.id) {
+    // Only check auth for personal views
+    if ((view === "UPLOADED" || view === "DOWNLOADED") && !userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const whereClause: any = {
-      AND: [],
+    const whereClause = {
+      ...(searchTerm && {
+        OR: [
+          { title: { contains: searchTerm, mode: "insensitive" as const } },
+          { tags: { has: searchTerm } },
+          {
+            description: { contains: searchTerm, mode: "insensitive" as const },
+          },
+        ],
+      }),
+      // ... rest of the where clause conditions
     };
 
-    // Add view-based filtering only if authenticated
-    if (session?.user?.id) {
-      if (view === "UPLOADED") {
-        whereClause.AND.push({ userId: session.user.id });
-      } else if (view === "DOWNLOADED") {
-        whereClause.AND.push({
-          downloads: {
-            some: {
-              userId: session.user.id,
-            },
-          },
-        });
-      }
-    }
-
-    // Add search filters
-    if (searchTerm.trim()) {
-      whereClause.AND.push({
-        OR: [
-          { title: { contains: searchTerm.trim(), mode: "insensitive" } },
-          { description: { contains: searchTerm.trim(), mode: "insensitive" } },
-        ],
-      });
-    }
-
-    // Add genre filter
-    if (genres.length > 0) {
-      whereClause.AND.push({
-        genreId: { in: genres },
-      });
-    }
-
-    // Remove empty AND array
-    if (whereClause.AND.length === 0) {
-      delete whereClause.AND;
-    }
+    console.log(
+      "Search query whereClause:",
+      JSON.stringify(whereClause, null, 2)
+    );
 
     switch (itemType) {
       case ItemType.PRESET:
+        console.log("Executing preset search...");
         const presets = await prisma.presetUpload.findMany({
           where: whereClause,
           include: {
@@ -91,11 +75,11 @@ export async function GET(request: Request) {
                 image: true,
               },
             },
-            ...(session?.user?.id
+            ...(userId
               ? {
                   downloads: {
                     where: {
-                      userId: session.user.id,
+                      userId: userId,
                     },
                   },
                 }
@@ -103,6 +87,7 @@ export async function GET(request: Request) {
           },
           orderBy: { createdAt: "desc" },
         });
+        console.log(`Found ${presets.length} presets`);
         return NextResponse.json(presets);
 
       case ItemType.PACK:

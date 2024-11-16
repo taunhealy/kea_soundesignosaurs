@@ -118,6 +118,7 @@ export async function GET(request: Request) {
         vst: true,
         user: {
           select: {
+            id: true,
             username: true,
             image: true,
           },
@@ -128,12 +129,17 @@ export async function GET(request: Request) {
           },
         },
       },
-      orderBy: {
-        createdAt: "desc",
-      },
     });
 
-    return NextResponse.json(presets);
+    // Add auth status to each preset
+    const presetsWithAuth = presets.map(preset => ({
+      ...preset,
+      isOwner: preset.user?.id === session.user.id,
+      isDownloaded: preset.downloads.length > 0
+    }));
+
+    console.log('Preset with auth:', presetsWithAuth[0]); // Debug log
+    return NextResponse.json(presetsWithAuth);
   } catch (error) {
     console.error("Error fetching presets:", error);
     return NextResponse.json(

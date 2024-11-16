@@ -2,7 +2,7 @@
 
 import { PresetRequestCard } from "@/app/components/PresetRequestCard";
 import { Skeleton } from "@/app/components/ui/skeleton";
-import { RequestStatus, RequestViewMode } from "@/types/enums";
+import { ContentViewMode, RequestStatus, RequestViewMode } from "@/types/enums";
 import { PresetRequestWithRelations } from "@/types/PresetRequestTypes";
 import { Button } from "@/app/components/ui/button";
 import Link from "next/link";
@@ -33,7 +33,7 @@ export function PresetRequestGrid({
         <PresetRequestCard
           key={request.id}
           request={request}
-          showSubmissions={false}
+          requestViewMode={RequestViewMode.PUBLIC}
         />
       ))}
     </div>

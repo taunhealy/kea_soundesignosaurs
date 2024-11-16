@@ -5,15 +5,9 @@ import { SearchSidebar } from "@/app/components/SearchSidebar";
 import { PresetPackGrid } from "@/app/components/shared/PresetPackGrid";
 import { PresetRequestGrid } from "@/app/components/shared/PresetRequestGrid";
 import { ItemType, RequestStatus } from "@prisma/client";
-import {
-  ContentViewMode,
-  isContentViewMode,
-  isRequestViewMode,
-  RequestViewMode,
-} from "@/types/enums";
-import { useState } from "react";
+import { ContentViewMode, RequestViewMode } from "@/types/enums";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ContentExplorerTabState } from "@/types/props";
 import { useSearchState } from "@/app/hooks/useSearchState";
 import { useContent } from "@/app/hooks/queries/useContent";
 import { SearchFilters } from "@/types/SearchTypes";
@@ -24,13 +18,11 @@ import {
   TabsTrigger,
 } from "@/app/components/ui/tabs";
 import { CategoryTabs } from "@/app/components/CategoryTabs";
-import { PlusIcon } from "lucide-react";
-import Link from "next/link";
-import { Button } from "@/app/components/ui/button";
 import { CreatePresetButton } from "@/app/components/buttons/CreatePresetButton";
 import { CreatePackButton } from "@/app/components/buttons/CreatePackButton";
 import { CreateRequestButton } from "@/app/components/buttons/CreateRequestButton";
 import { useSession } from "next-auth/react";
+import { useViewMode, useSetViewMode } from "@/app/hooks/queries/useViewMode";
 
 interface ContentExplorerProps {
   itemType: ItemType;
@@ -44,11 +36,17 @@ export function ContentExplorer({
 }: ContentExplorerProps) {
   console.log("[DEBUG] ContentExplorer - Initial itemType:", itemType);
 
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const view = searchParams.get("view") || getDefaultView(itemType);
+  const contentViewMode = view as ContentViewMode | RequestViewMode;
+
   const { data, isLoading } = useContent({
-    itemType: itemType,
-    filters: initialFilters,
-    view: initialFilters.view,
-    status: initialFilters.status,
+    itemType,
+    filters: {
+      ...initialFilters,
+      view: view as ContentViewMode | RequestViewMode,
+    },
   });
 
   const items = data || [];
@@ -58,18 +56,20 @@ export function ContentExplorer({
   console.log("[DEBUG] ContentExplorer items:", items);
 
   const { filters, updateFilters } = useSearchState();
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const view = searchParams.get("view");
 
   const [state, setState] = useState<{
     activeTab: ContentViewMode | RequestViewMode;
-    viewMode: string;
     status: string;
-  }>(() => {
-    const initialState = getInitialState(itemType, view);
-    return initialState;
-  });
+  }>(() => ({
+    activeTab: contentViewMode,
+    status: RequestStatus.OPEN,
+  }));
+
+  const setViewMode = useSetViewMode();
+
+  useEffect(() => {
+    setViewMode(view as ContentViewMode | RequestViewMode);
+  }, [view]);
 
   const renderRequestTabs = () => {
     const { status } = useSession();
@@ -78,12 +78,15 @@ export function ContentExplorer({
     return (
       <div className="space-y-4">
         <Tabs
-          defaultValue={state.viewMode}
+          value={state.activeTab}
           onValueChange={(value) => {
-            setState((prev) => ({ ...prev, viewMode: value }));
-            const params = new URLSearchParams(searchParams);
+            const params = new URLSearchParams(searchParams.toString());
             params.set("view", value);
             router.push(`/requests?${params.toString()}`);
+            setState(prev => ({
+              ...prev,
+              activeTab: value as ContentViewMode | RequestViewMode
+            }));
           }}
         >
           <TabsList className="mb-4">
@@ -97,14 +100,17 @@ export function ContentExplorer({
         </Tabs>
 
         <Tabs
-          defaultValue={state.status}
+          value={state.status}
           onValueChange={(value) => {
-            setState((prev) => ({ ...prev, status: value }));
-            const params = new URLSearchParams(searchParams);
-            const currentView = params.get("view") || state.viewMode;
+            const params = new URLSearchParams(searchParams.toString());
+            const currentView = params.get("view") || state.activeTab;
             params.set("view", currentView);
             params.set("status", value);
             router.push(`/requests?${params.toString()}`);
+            setState(prev => ({
+              ...prev,
+              status: value
+            }));
           }}
         >
           <TabsList className="mb-4">
@@ -115,7 +121,7 @@ export function ContentExplorer({
 
         <PresetRequestGrid
           requests={items}
-          requestViewMode={state.viewMode as RequestViewMode}
+          requestViewMode={state.activeTab as RequestViewMode}
           isLoading={isLoading}
         />
       </div>
@@ -129,7 +135,18 @@ export function ContentExplorer({
     return (
       <div className="space-y-4">
         {isAuthenticated && (
-          <Tabs defaultValue={state.viewMode}>
+          <Tabs
+            value={contentViewMode}
+            onValueChange={(value) => {
+              const params = new URLSearchParams(searchParams.toString());
+              params.set("view", value);
+              router.push(`/${itemType.toLowerCase()}s?${params.toString()}`);
+              setState(prev => ({
+                ...prev,
+                activeTab: value as ContentViewMode | RequestViewMode
+              }));
+            }}
+          >
             <TabsList className="mb-4">
               <TabsTrigger value={ContentViewMode.EXPLORE}>All</TabsTrigger>
               <TabsTrigger value={ContentViewMode.UPLOADED}>
@@ -151,7 +168,7 @@ export function ContentExplorer({
       return (
         <PresetGrid
           presets={items}
-          contentViewMode={state.viewMode as ContentViewMode}
+          contentViewMode={contentViewMode as ContentViewMode}
           isLoading={isLoading}
         />
       );
@@ -159,7 +176,7 @@ export function ContentExplorer({
     return (
       <PresetPackGrid
         packs={items}
-        contentViewMode={state.viewMode as ContentViewMode}
+        contentViewMode={contentViewMode as ContentViewMode}
         isLoading={isLoading}
       />
     );
@@ -216,11 +233,6 @@ export function ContentExplorer({
   );
 }
 
-const getRoutePrefix = (itemType: ItemType) => {
-  console.log("[DEBUG] Tab clicked with itemType:", itemType);
-  return `${itemType.toLowerCase()}s`;
-};
-
 const getInitialState = (
   itemType: ItemType,
   viewParam: string | null
@@ -253,4 +265,13 @@ const filterRequests = (
 ) => {
   if (!requests) return [];
   return requests;
+};
+
+const getDefaultView = (
+  itemType: ItemType
+): ContentViewMode | RequestViewMode => {
+  if (itemType === ItemType.REQUEST) {
+    return RequestViewMode.PUBLIC;
+  }
+  return ContentViewMode.EXPLORE;
 };

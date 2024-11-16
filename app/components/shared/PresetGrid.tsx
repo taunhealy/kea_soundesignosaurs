@@ -4,7 +4,7 @@ import { PresetCard } from "@/app/components/PresetCard";
 import { Skeleton } from "@/app/components/ui/skeleton";
 import { ContentViewMode } from "@/types/enums";
 import { PresetUpload } from "@prisma/client";
-import { UploadPresetButton } from "../dashboard/UploadPresetButton";
+import { CreatePresetButton } from "@/app/components/buttons/CreatePresetButton";
 
 interface PresetGridProps {
   presets?: PresetUpload[];
@@ -19,38 +19,38 @@ export function PresetGrid({
   isLoading,
   view,
 }: PresetGridProps) {
-  if (isLoading) {
-    return <LoadingSkeleton />;
-  }
+  const content = (() => {
+    if (isLoading) {
+      return <LoadingSkeleton />;
+    }
 
-  if (!presets?.length) {
-    return (
-      <EmptyState
-        contentViewMode={contentViewMode}
-        showUploadButton={contentViewMode === ContentViewMode.UPLOADED}
-      />
-    );
-  }
-
-  return (
-    <div className="flex flex-col gap-4">
-      {presets.map((preset) => (
-        <PresetCard
-          key={preset.id}
-          preset={preset}
+    if (!presets?.length) {
+      return (
+        <EmptyState
           contentViewMode={contentViewMode}
+          showUploadButton={contentViewMode === ContentViewMode.UPLOADED}
         />
-      ))}
-    </div>
-  );
+      );
+    }
+
+    return presets.map((preset) => (
+      <PresetCard
+        key={preset.id}
+        preset={preset}
+        contentViewMode={contentViewMode}
+      />
+    ));
+  })();
+
+  return <div className="flex flex-col gap-4">{content}</div>;
 }
 
 const LoadingSkeleton = () => (
-  <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-2">
-    {[...Array(6)].map((_, i) => (
-      <Skeleton key={i} className="h-[400px] w-full" />
-    ))}
-  </div>
+  <>
+    <Skeleton className="h-[200px] w-full" />
+    <Skeleton className="h-[200px] w-full" />
+    <Skeleton className="h-[200px] w-full" />
+  </>
 );
 
 const EmptyState = ({
@@ -68,6 +68,6 @@ const EmptyState = ({
         ? "You haven't downloaded any presets yet"
         : "No presets found"}
     </p>
-    {showUploadButton && <UploadPresetButton />}
+    {showUploadButton && <CreatePresetButton />}
   </div>
 );

@@ -1,6 +1,13 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import {
+  useState,
+  useCallback,
+  useEffect,
+  createContext,
+  useContext,
+  ReactNode,
+} from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { useQueryClient } from "@tanstack/react-query";
@@ -32,6 +39,42 @@ import { useItemActions } from "@/app/hooks/useItemActions";
 import { ItemActionButtons } from "@/app/components/ItemActionButtons";
 import { getYouTubeThumbnail } from "@/utils/youtube";
 import { ItemType } from "@prisma/client";
+import { ContentViewMode, RequestViewMode } from "@/types/enums";
+
+interface ViewModeContextType {
+  contentViewMode?: ContentViewMode;
+  requestViewMode?: RequestViewMode;
+  itemType: ItemType;
+}
+
+const ViewModeContext = createContext<ViewModeContextType | undefined>(
+  undefined
+);
+
+export function ViewModeProvider({
+  children,
+  contentViewMode,
+  requestViewMode,
+  itemType,
+}: ViewModeContextType & { children: ReactNode }) {
+  return (
+    <ViewModeContext.Provider
+      value={{ contentViewMode, requestViewMode, itemType }}
+    >
+      {children}
+    </ViewModeContext.Provider>
+  );
+}
+
+export function usePresetRequestViewMode() {
+  const context = useContext(ViewModeContext);
+  if (context === undefined) {
+    throw new Error(
+      "usePresetRequestViewMode must be used within a ViewModeProvider"
+    );
+  }
+  return context;
+}
 
 export function PresetRequestCard({
   request,
@@ -46,6 +89,7 @@ export function PresetRequestCard({
   const router = useRouter();
   const [isDeleting, setIsDeleting] = useState(false);
   const queryClient = useQueryClient();
+  const { requestViewMode: viewMode } = usePresetRequestViewMode();
 
   useEffect(() => {
     setMounted(true);
@@ -108,11 +152,15 @@ export function PresetRequestCard({
     [audio, isPlaying, cleanupAudio, activeSubmission]
   );
 
-  const { isDeleting: itemActionsIsDeleting, handleDelete, handleEdit } = useItemActions({
-      itemId: request.id,
-      itemType: ItemType.REQUEST,
-      contentViewMode,
-    });
+  const {
+    isDeleting: itemActionsIsDeleting,
+    handleDelete,
+    handleEdit,
+  } = useItemActions({
+    itemId: request.id,
+    itemType: ItemType.REQUEST,
+    requestViewMode: viewMode as RequestViewMode,
+  });
 
   console.log("PresetRequest Data:", {
     request,
@@ -134,8 +182,9 @@ export function PresetRequestCard({
           <Badge>{request.status}</Badge>
           {showActions && (
             <ItemActionButtons
+              itemId={request.id}
               itemType={ItemType.REQUEST}
-              contentViewMode={contentViewMode}
+              requestViewMode={viewMode as RequestViewMode}
               isDeleting={itemActionsIsDeleting}
               onDelete={handleDelete}
               onEdit={handleEdit}
@@ -238,11 +287,15 @@ export function PresetRequestCard({
                   className="relative aspect-video w-full overflow-hidden rounded-lg hover:opacity-90 transition-opacity"
                 >
                   <img
-                    src={getYouTubeThumbnail(request.youtubeLink) || getYouTubeThumbnail(request.youtubeLink, 'mq')}
+                    src={
+                      getYouTubeThumbnail(request.youtubeLink) ||
+                      getYouTubeThumbnail(request.youtubeLink, "mq")
+                    }
                     alt="YouTube thumbnail"
                     className="w-full h-full object-cover"
                     onError={(e) => {
-                      (e.target as HTMLImageElement).src = getYouTubeThumbnail(request.youtubeLink, 'mq') || '';
+                      (e.target as HTMLImageElement).src =
+                        getYouTubeThumbnail(request.youtubeLink, "mq") || "";
                     }}
                   />
                   <div className="absolute inset-0 bg-black/20 flex items-center justify-center">

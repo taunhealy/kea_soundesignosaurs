@@ -2,6 +2,7 @@ import { useAppDispatch } from "@/app/store/hooks";
 import {
   addToCart as addToCartAction,
   optimisticAddToCart,
+  fetchCartItems,
 } from "@/app/store/features/cartSlice";
 import { CartType } from "@prisma/client";
 import { toast } from "react-hot-toast";
@@ -16,25 +17,28 @@ export function useWishlist() {
     try {
       console.log("Adding to wishlist:", { itemId, itemType });
 
-      // Optimistic update
+      // Create a temporary item for optimistic update
+      const tempItem = {
+        id: itemId,
+        itemType,
+        quantity: 1,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        cartId: 'temp',
+        presetId: itemType === 'PRESET' ? itemId : null,
+        packId: itemType === 'PACK' ? itemId : null,
+      };
+
+      // Dispatch optimistic update
       dispatch(
         optimisticAddToCart({
           itemId,
           type: CartType.WISHLIST,
-          item: {
-            id: itemId,
-            itemType: itemType,
-            quantity: 1,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-            cartId: '',
-            presetId: itemType === 'PRESET' ? itemId : null,
-            packId: itemType === 'PACK' ? itemId : null,
-          }
+          item: tempItem
         })
       );
 
-      // Actual API call
+      // Make the actual API call
       const result = await dispatch(
         addToCartAction({
           itemId,
@@ -43,10 +47,16 @@ export function useWishlist() {
         })
       ).unwrap();
 
-      console.log("Add to wishlist result:", result);
+      // Refresh the actual state
+      await dispatch(fetchCartItems(CartType.WISHLIST));
+      
+      toast.success("Added to wishlist");
       return result;
+
     } catch (error) {
-      console.error("Add to wishlist error:", error);
+      // Revert optimistic update by fetching current state
+      await dispatch(fetchCartItems(CartType.WISHLIST));
+      
       if (error instanceof Error) {
         toast.error(error.message);
       } else {
@@ -57,6 +67,6 @@ export function useWishlist() {
   };
 
   return {
-    addToWishlist, // Changed from mutateAsync to addToWishlist for clarity
+    addToWishlist,
   };
 }

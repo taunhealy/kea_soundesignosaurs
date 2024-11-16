@@ -1,19 +1,20 @@
-import { ContentViewMode } from "./enums";
+import { ContentViewMode, RequestViewMode } from "./enums";
 import { ItemType } from "@prisma/client";
 
 export interface ItemActionButtonsProps {
   itemId: string;
   itemType: ItemType;
-  contentViewMode: ContentViewMode;
-  showDownload?: boolean;
-  price?: number;
   isOwner?: boolean;
+  isDownloaded?: boolean;
+  onDelete?: () => void;
+  onEdit?: () => void;
 }
 
 export interface UseItemActionsProps {
   itemId: string;
   itemType: ItemType;
-  contentViewMode: ContentViewMode;
+  contentViewMode?: ContentViewMode;
+  requestViewMode?: RequestViewMode;
 }
 
 export interface ItemActionsState {

@@ -18,6 +18,7 @@ export function useItemActions({
   itemId,
   itemType,
   contentViewMode,
+  requestViewMode,
 }: UseItemActionsProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -116,7 +117,7 @@ export function useItemActions({
   // Edit Item Mutation (if needed for optimistic updates)
   const editItemMutation = useMutation({
     mutationFn: async () => {
-      router.push(`/dashboard/${itemType}s/edit/${itemId}`);
+      router.push(`/dashboard/${itemType.toLowerCase()}s/edit/${itemId}`);
     },
   });
 
@@ -190,8 +191,8 @@ export function useItemActions({
             id: itemId,
             itemType,
             quantity: 1,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
+            createdAt: new Date(),
+            updatedAt: new Date(),
             cartId: "",
             presetId: itemType === "PRESET" ? itemId : null,
             packId: itemType === "PACK" ? itemId : null,
@@ -273,6 +274,16 @@ export function useItemActions({
     }
   };
 
+  const handleDelete = async () => {
+    await deleteItemMutation.mutate();
+    // Redirect based on view mode type
+    if (itemType === ItemType.REQUEST && requestViewMode) {
+      router.push(`/requests?view=${requestViewMode}`);
+    } else if (contentViewMode) {
+      router.push(`/dashboard/${itemType}s`);
+    }
+  };
+
   return {
     // Cart/Wishlist actions
     handleAddToCart,
@@ -281,7 +292,7 @@ export function useItemActions({
     handleRemoveItem,
 
     // Item management actions
-    handleDelete: () => deleteItemMutation.mutate(),
+    handleDelete,
     handleEdit: () => editItemMutation.mutate(),
 
     // Loading states

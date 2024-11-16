@@ -25,6 +25,8 @@ import { ContentViewMode } from "@/types/enums";
 import { useItemActions } from "@/app/hooks/useItemActions";
 import { ItemType, CartType } from "@prisma/client";
 import { useAppDispatch } from "@/app/store/hooks";
+import { useQuery } from "@tanstack/react-query";
+import { useSession } from "next-auth/react";
 
 interface PresetPackCardProps {
   pack: {
@@ -123,19 +125,18 @@ export function PresetPackCard({ pack, contentViewMode }: PresetPackCardProps) {
   const { isDeleting, handleDelete, handleEdit } = useItemActions({
     itemId: pack.id,
     itemType: ItemType.PACK,
-    contentViewMode,
+    contentViewMode: contentViewMode as ContentViewMode,
   });
 
   const handleAddToCart = async () => {
     try {
-      const result = await dispatch(
+      dispatch(
         addToCart({
           itemId: pack.id,
           cartType: CartType.CART,
           itemType: ItemType.PACK,
         })
       );
-      await result.unwrap();
       toast.success("Pack added to cart");
     } catch (error: unknown) {
       if (error instanceof Error) {
@@ -148,13 +149,19 @@ export function PresetPackCard({ pack, contentViewMode }: PresetPackCardProps) {
 
   const displayedPresets = pack.presets || [];
 
+  const isOwner = contentViewMode === ContentViewMode.UPLOADED;
+  const isDownloaded = contentViewMode === ContentViewMode.DOWNLOADED;
+
   return (
     <Card className="relative group overflow-hidden hover:shadow-lg transition-all duration-300 animate-in fade-in-0">
       <div className="absolute top-2 right-2 z-10">
         <ItemActionButtons
           itemId={pack.id}
           itemType={ItemType.PACK}
-          contentViewMode={contentViewMode}
+          isOwner={isOwner}
+          isDownloaded={isOwner || isDownloaded}
+          onDelete={handleDelete}
+          onEdit={handleEdit}
         />
       </div>
 
@@ -238,4 +245,28 @@ export function PresetPackCard({ pack, contentViewMode }: PresetPackCardProps) {
       </CardContent>
     </Card>
   );
+}
+
+export function useItemStatus(itemId: string, itemType: ItemType) {
+  const { data: session } = useSession();
+
+  const { data: downloads } = useQuery({
+    queryKey: ["downloads", itemType],
+    queryFn: async () => {
+      const response = await fetch(`/api/${itemType}s?userStatus=DOWNLOADED`);
+      if (!response.ok) throw new Error("Failed to fetch downloads");
+      return response.json();
+    },
+    enabled: !!session?.user,
+  });
+
+  const isDownloaded = downloads?.some((item: any) => item.id === itemId);
+  const isOwner =
+    session?.user?.id ===
+    downloads?.find((item: any) => item.id === itemId)?.userId;
+
+  return {
+    isOwner,
+    isDownloaded,
+  };
 }

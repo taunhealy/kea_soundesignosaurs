@@ -2,49 +2,39 @@ import { useQuery } from "@tanstack/react-query";
 import { ItemType } from "@prisma/client";
 import { SearchFilters } from "@/types/SearchTypes";
 
-interface UseContentProps {
-  itemType: ItemType;
-  filters: SearchFilters;
-  view?: string | null;
-  status?: string | null;
-}
-
 export function useContent({
   itemType,
   filters,
-  view,
-  status,
-}: UseContentProps) {
-  const fetchContent = async (url: string) => {
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(`Failed to fetch from ${url}`);
-    return response.json();
-  };
-
+}: {
+  itemType: ItemType;
+  filters: SearchFilters;
+}) {
   return useQuery({
-    queryKey: [{ itemType, filters, view, status }],
+    queryKey: ["content", itemType, filters],
     queryFn: async () => {
-      const searchParams = new URLSearchParams();
-      
-      searchParams.set('itemType', itemType.toLowerCase());
-      
+      const params = new URLSearchParams();
+      params.append("itemType", itemType);
+
+      // Add filters to params
       Object.entries(filters).forEach(([key, value]) => {
-        if (value !== null && value !== undefined && value !== "") {
-          if (key === 'searchTerm') {
-            searchParams.set('q', value);
-          } else {
-            searchParams.set(key, value.toString());
-          }
+        if (value && key !== "itemType") {
+          console.log(`Adding param: ${key} = ${value}`);
+          params.append(key, String(value));
         }
       });
 
-      if (view) searchParams.set('view', view);
-      if (status) searchParams.set('status', status);
+      const finalUrl = `/api/search?${params.toString()}`;
+      console.log("Final URL:", finalUrl);
 
-      return fetchContent(`/api/search?${searchParams}`);
+      const response = await fetch(finalUrl);
+      if (!response.ok) {
+        throw new Error("Failed to fetch content");
+      }
+      return response.json();
     },
-    select: (data) => (Array.isArray(data) ? data : []),
     staleTime: 0,
+    refetchOnMount: true,
     refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
   });
 }

@@ -27,17 +27,17 @@ interface PresetCardProps {
     vst?: VST | null;
     user?: { username: string } | null;
     genre?: { name: string } | null;
+    isOwner?: boolean;
+    isDownloaded?: boolean;
   };
   contentViewMode: ContentViewMode;
   variant?: "default" | "compact";
-  isOwner?: boolean;
 }
 
 export function PresetCard({
   preset,
   variant,
   contentViewMode,
-  isOwner = false,
 }: PresetCardProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -121,6 +121,9 @@ export function PresetCard({
     ? getYouTubeThumbnail(preset.referenceTrackUrl)
     : null;
 
+  const isOwner = contentViewMode === ContentViewMode.UPLOADED;
+  const isDownloaded = contentViewMode === ContentViewMode.DOWNLOADED;
+
   return (
     <Card className="w-full flex flex-row gap-4 p-4">
       <div className="flex-1 space-y-4">
@@ -146,9 +149,10 @@ export function PresetCard({
           <ItemActionButtons
             itemId={preset.id}
             itemType={ItemType.PRESET}
-            contentViewMode={contentViewMode}
-            showDownload={isOwner}
-            price={preset.price || undefined}
+            isOwner={isOwner}
+            isDownloaded={isOwner || isDownloaded}
+            onDelete={handleDelete}
+            onEdit={handleEdit}
           />
         </div>
       </div>

@@ -19,7 +19,6 @@ import { CartIndicator } from "./CartIndicator";
 
 export default function Navbar() {
   const { data: session, status } = useSession();
-  console.log("🔐 Auth Status:", status, session);
 
   return (
     <nav className="border-b">

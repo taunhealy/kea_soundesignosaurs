@@ -124,6 +124,9 @@ export async function PUT(
 
     const { itemId, from, to } = await request.json();
 
+    // Log for debugging
+    console.log("Moving item:", { itemId, from, to, userId });
+
     const result = await prisma.$transaction(async (tx) => {
       // Find the item in the source cart
       const item = await tx.cartItem.findFirst({
@@ -140,11 +143,10 @@ export async function PUT(
         throw new Error("Item not found or unauthorized");
       }
 
-      // Create or find destination cart using the compound unique constraint
+      // Create or find destination cart
       const destCart = await tx.cart.upsert({
         where: {
           userId_type: {
-            // Use the compound unique constraint
             userId: userId,
             type: to.toUpperCase() as CartType,
           },
@@ -157,19 +159,25 @@ export async function PUT(
       });
 
       // Move the item to the destination cart
-      return await tx.cartItem.update({
+      const movedItem = await tx.cartItem.update({
         where: { id: itemId },
         data: { cartId: destCart.id },
+        include: {
+          preset: true,
+          pack: true,
+        },
       });
+
+      return movedItem;
     });
 
     return NextResponse.json({ success: true, item: result });
   } catch (error) {
-    console.error("Error moving item:", error);
-    if (error instanceof Error) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
-    }
-    return NextResponse.json({ error: "Failed to move item" }, { status: 500 });
+    console.error("Cart operation failed:", error);
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Failed to move item" },
+      { status: 500 }
+    );
   }
 }
 

@@ -1,14 +1,14 @@
 "use client";
 
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Tabs, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
 import { ItemType } from "@prisma/client";
 import { ContentViewMode, RequestViewMode } from "@/types/enums";
 
 interface CategoryTabsProps {
   selectedItemType: ItemType;
-  onSelect: (itemType: ItemType) => void;
+  onSelect?: (itemType: ItemType) => void;
 }
 
 interface TabItem {
@@ -40,6 +40,7 @@ export function CategoryTabs({
   onSelect,
 }: CategoryTabsProps) {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const currentView = searchParams?.get("view");
 
   const getDefaultView = (itemType: ItemType): string => {
@@ -48,17 +49,24 @@ export function CategoryTabs({
       : ContentViewMode.UPLOADED;
   };
 
-  const getTabHref = (itemType: ItemType): string => {
+  const handleTabChange = (itemType: ItemType) => {
     const view = currentView || getDefaultView(itemType);
-    return `/${itemType.toLowerCase()}s?view=${view}`;
+    if (onSelect) {
+      onSelect(itemType);
+    }
+    router.push(`/${itemType.toLowerCase()}s?view=${view}`);
   };
 
   return (
     <Tabs value={selectedItemType.toLowerCase()} className="mb-4">
       <TabsList>
         {TAB_ITEMS.map((tab) => (
-          <TabsTrigger key={tab.value} value={tab.value.toLowerCase()} asChild>
-            <Link href={getTabHref(tab.value)}>{tab.label}</Link>
+          <TabsTrigger
+            key={tab.value}
+            value={tab.value.toLowerCase()}
+            onClick={() => handleTabChange(tab.value)}
+          >
+            {tab.label}
           </TabsTrigger>
         ))}
       </TabsList>

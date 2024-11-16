@@ -194,7 +194,16 @@ const cartSlice = createSlice({
       }>
     ) => {
       const { type, item } = action.payload;
-      state[type.toLowerCase()].items.push(serializeItem(item));
+      const cartType = type.toLowerCase();
+      
+      // Log for debugging
+      console.log('Optimistic update:', { type, item, currentItems: state[cartType].items });
+      
+      // Add item to the appropriate list
+      state[cartType].items = [...state[cartType].items, serializeItem(item)];
+      
+      // Log after update
+      console.log('After update:', { updatedItems: state[cartType].items });
     },
     revertCartState: (state, action: PayloadAction<CartState>) => {
       return action.payload;

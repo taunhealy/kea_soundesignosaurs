@@ -25,7 +25,7 @@ export function PresetPackGrid({
 
   if (!packs?.length) {
     return (
-      <EmptyState 
+      <EmptyState
         contentViewMode={contentViewMode}
         showCreateButton={contentViewMode === ContentViewMode.UPLOADED}
       />
@@ -53,10 +53,10 @@ const LoadingSkeleton = () => (
   </div>
 );
 
-const EmptyState = ({ 
+const EmptyState = ({
   contentViewMode,
-  showCreateButton 
-}: { 
+  showCreateButton,
+}: {
   contentViewMode: ContentViewMode;
   showCreateButton: boolean;
 }) => (

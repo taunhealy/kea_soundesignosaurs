@@ -1,13 +1,15 @@
 import { NextResponse } from "next/server";
 import prismaClient from "@/lib/prisma";
-import { auth } from "@clerk/nextjs/server";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
 
 export async function GET(
   request: Request,
   { params }: { params: { id: string } }
 ) {
   try {
-    const { userId } = await auth();
+    const session = await getServerSession(authOptions);
+    const userId = session?.user?.id;
 
     if (!userId) {
       return new NextResponse("Unauthorized", { status: 401 });
@@ -24,10 +26,11 @@ export async function GET(
         originalFileName: true,
         title: true,
         priceType: true,
-        soundDesignerId: true,
-        soundDesigner: {
+        price: true,
+        userId: true,
+        user: {
           select: {
-            userId: true,
+            id: true,
           },
         },
         downloads: {
@@ -47,7 +50,7 @@ export async function GET(
     }
 
     // Check if user has permission to download
-    const isCreator = preset.soundDesigner?.userId === userId;
+    const isCreator = preset.user?.id === userId;
     const hasDownloadRecord = preset.downloads.length > 0;
     const isFree = preset.priceType === "FREE";
 
@@ -80,6 +83,7 @@ export async function GET(
         data: {
           userId,
           presetId: preset.id,
+          amount: preset.priceType === "FREE" ? 0 : preset.price || 0,
         },
       });
     }

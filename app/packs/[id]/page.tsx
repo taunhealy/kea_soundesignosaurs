@@ -11,7 +11,7 @@ import { ContentViewMode } from "@/types/enums";
 
 export default function PackPage({ params }: { params: { id: string } }) {
   const { addToCart } = useCart();
-  const { mutateAsync: addToWishlist } = useWishlist();
+  const { addToWishlist } = useWishlist();
 
   const { data: pack, isLoading } = useQuery({
     queryKey: ["presetPack", params.id],
@@ -33,7 +33,7 @@ export default function PackPage({ params }: { params: { id: string } }) {
 
   const handleAddToWishlist = async () => {
     try {
-      await addToWishlist({ itemId: pack.id, itemType: "PACK" });
+      await addToWishlist(pack.id, "PACK");
       toast.success("Pack added to wishlist");
     } catch (error) {
       toast.error("Failed to add pack to wishlist");
