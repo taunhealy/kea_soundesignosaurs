@@ -34,7 +34,7 @@ import {
   PresetRequestCardProps,
 } from "@/types/PresetRequestTypes";
 import { AudioPlayer } from "@/app/components/AudioPlayer";
-import { SubmitPresetButton } from "./buttons/SubmitPresetButton";
+import { SubmitPresetButton } from "@/app/components/SubmitPresetButton";
 import { useItemActions } from "@/app/hooks/useItemActions";
 import { ItemActionButtons } from "@/app/components/ItemActionButtons";
 import { getYouTubeThumbnail } from "@/utils/youtube";

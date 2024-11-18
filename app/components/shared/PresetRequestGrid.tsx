@@ -47,7 +47,6 @@ const LoadingSkeleton = () => (
     ))}
   </div>
 );
-
 function EmptyState({ requestViewMode }: { requestViewMode: RequestViewMode }) {
   return (
     <div className="text-center py-10">

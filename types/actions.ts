@@ -6,6 +6,7 @@ export interface ItemActionButtonsProps {
   itemType: ItemType;
   isOwner?: boolean;
   isDownloaded?: boolean;
+  isDeleting?: boolean;
   onDelete?: () => void;
   onEdit?: () => void;
 }
@@ -23,4 +24,16 @@ export interface ItemActionsState {
   isAddingToWishlist: boolean;
   isMovingToCart: boolean;
   isEditing: boolean;
+}
+
+export interface UseItemActionsReturn {
+  isDeleting: boolean;
+  isAddingToCart: boolean;
+  isAddingToWishlist: boolean;
+  isMovingToCart: boolean;
+  isEditing: boolean;
+  handleDelete: () => Promise<void>;
+  handleEdit: () => void;
+  handleAddToCart: () => Promise<void>;
+  handleAddToWishlist: () => Promise<void>;
 }

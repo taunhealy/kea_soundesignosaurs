@@ -1,307 +1,164 @@
-import { useRouter } from "next/navigation";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "react-hot-toast";
-import { ContentViewMode } from "@/types/enums";
 import { useAppDispatch, useAppSelector } from "@/app/store/hooks";
+import { deleteItem } from "@/app/store/features/itemsSlice";
 import {
-  addToCart,
-  moveItem,
-  deleteCartItem,
+  addToCart as addToCartAction,
   optimisticAddToCart,
   fetchCartItems,
 } from "@/app/store/features/cartSlice";
-import { CartType } from "@prisma/client";
-import { UseItemActionsProps } from "@/types/actions";
-import { ItemType } from "@prisma/client";
+import { toast } from "react-hot-toast";
+import { UseItemActionsProps, UseItemActionsReturn } from "@/types/actions";
+import { CartType, ItemType } from "@prisma/client";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 export function useItemActions({
   itemId,
   itemType,
   contentViewMode,
-  requestViewMode,
-}: UseItemActionsProps) {
-  const router = useRouter();
-  const queryClient = useQueryClient();
+}: UseItemActionsProps): UseItemActionsReturn {
   const dispatch = useAppDispatch();
-  const loading = useAppSelector((state) => state.cart.loading[itemId]);
+  const router = useRouter();
+  const isDeleting = useAppSelector((state) => state.items.loading[itemId]);
 
-  // Add to Cart Mutation
-  const addToCartMutation = useMutation({
-    mutationFn: async () => {
-      const response = await fetch("/api/cart/cart", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          presetId: itemType === ItemType.PRESET ? itemId : undefined,
-          packId: itemType === ItemType.PACK ? itemId : undefined,
-        }),
-      });
+  // Consolidate state management
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
+  const [isAddingToWishlist, setIsAddingToWishlist] = useState(false);
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to add to cart");
-      }
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["cart"] });
-      toast.success(
-        `${itemType.charAt(0).toUpperCase() + itemType.slice(1)} added to cart`
+  const handleDelete = async () => {
+    try {
+      await dispatch(deleteItem({ itemId, itemType })).unwrap();
+      toast.success(`${itemType} deleted successfully`);
+    } catch (error) {
+      console.error("Delete error:", error);
+      toast.error(
+        error instanceof Error ? error.message : `Failed to delete ${itemType}`
       );
-    },
-    onError: (error: Error) => {
-      toast.error(error.message);
-    },
-  });
-
-  // Add to Wishlist Mutation
-  const addToWishlistMutation = useMutation({
-    mutationFn: async () => {
-      const response = await fetch("/api/cart/wishlist", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          presetId: itemType === ItemType.PRESET ? itemId : undefined,
-          packId: itemType === ItemType.PACK ? itemId : undefined,
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to add to wishlist");
-      }
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["wishlist"] });
-      toast.success(
-        `${
-          itemType.charAt(0).toUpperCase() + itemType.slice(1)
-        } added to wishlist`
-      );
-    },
-    onError: (error: Error) => {
-      toast.error(error.message);
-    },
-  });
-
-  // Delete Item Mutation
-  const deleteItemMutation = useMutation({
-    mutationFn: async () => {
-      const response = await fetch(`/api/${itemType}s/${itemId}`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || `Failed to delete ${itemType}`);
-      }
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`${itemType}s`] });
-      toast.success(
-        `${
-          itemType.charAt(0).toUpperCase() + itemType.slice(1)
-        } deleted successfully`
-      );
-      if (contentViewMode === ContentViewMode.UPLOADED) {
-        router.push(`/dashboard/${itemType}s`);
-      }
-    },
-    onError: (error: Error) => {
-      toast.error(error.message);
-    },
-  });
-
-  // Edit Item Mutation (if needed for optimistic updates)
-  const editItemMutation = useMutation({
-    mutationFn: async () => {
-      router.push(`/dashboard/${itemType.toLowerCase()}s/edit/${itemId}`);
-    },
-  });
-
-  // Move Item Mutation
-  const moveItemMutation = useMutation({
-    mutationFn: async (from: "wishlist" | "cart") => {
-      const response = await fetch(`/api/cart/${from}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          itemId,
-          from,
-          to: "cart",
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to move item");
-      }
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["cart"] });
-      queryClient.invalidateQueries({ queryKey: ["wishlist"] });
-      toast.success(
-        `${itemType.charAt(0).toUpperCase() + itemType.slice(1)} moved to cart`
-      );
-    },
-    onError: (error: Error) => {
-      toast.error(error.message);
-    },
-  });
-
-  // Remove Item Mutation
-  const removeItemMutation = useMutation({
-    mutationFn: async (from: "wishlist" | "cart") => {
-      const response = await fetch(`/api/cart/${from}`, {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ itemId }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to remove item");
-      }
-      return response.json();
-    },
-    onSuccess: (_, from) => {
-      queryClient.invalidateQueries({ queryKey: [from] });
-      toast.success(
-        `${
-          itemType.charAt(0).toUpperCase() + itemType.slice(1)
-        } removed from ${from}`
-      );
-    },
-    onError: (error: Error) => {
-      toast.error(error.message);
-    },
-  });
+    }
+  };
 
   const handleAddToCart = async () => {
+    setIsAddingToCart(true);
     try {
+      // Create temporary item for optimistic update
+      const tempItem = {
+        id: itemId,
+        itemType,
+        quantity: 1,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        cartId: "temp",
+        presetId: itemType === "PRESET" ? itemId : null,
+        packId: itemType === "PACK" ? itemId : null,
+      };
+
       // Optimistic update
       dispatch(
         optimisticAddToCart({
           itemId,
           type: CartType.CART,
-          item: {
-            id: itemId,
-            itemType,
-            quantity: 1,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-            cartId: "",
-            presetId: itemType === "PRESET" ? itemId : null,
-            packId: itemType === "PACK" ? itemId : null,
-          },
+          item: tempItem,
         })
       );
 
-      // Make the API call
+      // Actual API call
       await dispatch(
-        addToCart({
+        addToCartAction({
           itemId,
           cartType: CartType.CART,
           itemType: itemType as "PRESET" | "PACK",
         })
       ).unwrap();
 
-      // Fetch latest state
+      // Refresh cart state
       await dispatch(fetchCartItems(CartType.CART));
-
-      toast.success(
-        `${itemType.charAt(0).toUpperCase() + itemType.slice(1)} added to cart`
+      toast.success("Added to cart");
+    } catch (error) {
+      // Revert optimistic update
+      await dispatch(fetchCartItems(CartType.CART));
+      toast.error(
+        error instanceof Error ? error.message : "Item already exists in cart"
       );
-    } catch (error) {
-      // Revert optimistic update by fetching current state
-      await dispatch(fetchCartItems(CartType.CART));
-
-      if (error instanceof Error) {
-        toast.error(error.message);
-      } else {
-        toast.error("Failed to add to cart");
-      }
+      throw error;
+    } finally {
+      setIsAddingToCart(false);
     }
   };
 
-  const handleMoveToCart = async (from: CartType) => {
+  const handleAddToWishlist = async () => {
+    setIsAddingToWishlist(true);
     try {
-      await dispatch(
-        moveItem({
+      // Create temporary item for optimistic update
+      const tempItem = {
+        id: itemId,
+        itemType,
+        quantity: 1,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        cartId: "temp",
+        presetId: itemType === "PRESET" ? itemId : null,
+        packId: itemType === "PACK" ? itemId : null,
+      };
+
+      // Optimistic update
+      dispatch(
+        optimisticAddToCart({
           itemId,
-          from,
-          to: CartType.CART,
+          type: CartType.WISHLIST,
+          item: tempItem,
         })
-      ).unwrap();
+      );
 
-      // Fetch both cart types to update UI
-      await Promise.all([
-        dispatch(fetchCartItems(CartType.CART)),
-        dispatch(fetchCartItems(CartType.WISHLIST)),
-      ]);
-
-      toast.success(`${itemType} moved to cart`);
-    } catch (error) {
-      if (error instanceof Error) {
-        toast.error(error.message);
-      } else {
-        toast.error("Failed to move item");
-      }
-    }
-  };
-
-  const handleRemoveItem = async (type: "wishlist" | "cart") => {
-    try {
+      // Actual API call
       await dispatch(
-        deleteCartItem({
+        addToCartAction({
           itemId,
-          type: type.toUpperCase() as keyof typeof CartType,
+          cartType: CartType.WISHLIST,
           itemType: itemType as "PRESET" | "PACK",
         })
       ).unwrap();
-      toast.success(
-        `${type.charAt(0).toUpperCase() + type.slice(1)} removed from ${type}`
-      );
+
+      // Refresh wishlist state
+      await dispatch(fetchCartItems(CartType.WISHLIST));
+      toast.success("Added to wishlist");
     } catch (error) {
-      if (error instanceof Error) {
-        toast.error(error.message);
-      } else {
-        toast.error("Failed to remove item");
-      }
+      // Revert optimistic update
+      await dispatch(fetchCartItems(CartType.WISHLIST));
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Item already exists in wishlist"
+      );
+      throw error;
+    } finally {
+      setIsAddingToWishlist(false);
     }
   };
 
-  const handleDelete = async () => {
-    await deleteItemMutation.mutate();
-    // Redirect based on view mode type
-    if (itemType === ItemType.REQUEST && requestViewMode) {
-      router.push(`/requests?view=${requestViewMode}`);
-    } else if (contentViewMode) {
-      router.push(`/dashboard/${itemType}s`);
+  const handleEdit = () => {
+    switch (itemType) {
+      case ItemType.PRESET:
+        router.push(`/dashboard/presets/edit/${itemId}`);
+        break;
+      case ItemType.PACK:
+        router.push(`/dashboard/packs/edit/${itemId}`);
+        break;
+      case ItemType.REQUEST:
+        router.push(`/dashboard/requests/edit/${itemId}`);
+        break;
+      default:
+        console.error(`Unknown item type: ${itemType}`);
     }
   };
 
   return {
-    // Cart/Wishlist actions
-    handleAddToCart,
-    handleAddToWishlist: () => addToWishlistMutation.mutate(),
-    handleMoveToCart,
-    handleRemoveItem,
-
-    // Item management actions
+    isDeleting,
+    isAddingToCart,
+    isAddingToWishlist,
     handleDelete,
-    handleEdit: () => editItemMutation.mutate(),
-
-    // Loading states
-    isLoading: loading,
-    isAddingToCart: addToCartMutation.isPending,
-    isAddingToWishlist: addToWishlistMutation.isPending,
-    isMovingToCart: moveItemMutation.isPending,
-    isRemoving: removeItemMutation.isPending,
-    isDeleting: deleteItemMutation.isPending,
-    isEditing: editItemMutation.isPending,
+    handleEdit,
+    handleAddToCart,
+    handleAddToWishlist,
+    isMovingToCart: false,
+    isEditing: false,
   };
 }

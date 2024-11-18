@@ -18,7 +18,7 @@ import {
   TabsTrigger,
 } from "@/app/components/ui/tabs";
 import type { CartItem } from "@/types/cart";
-import { Trash, MoveRight } from "lucide-react";
+import { Trash, MoveRight, Loader2 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { useRouter, useSearchParams } from "next/navigation";
 import { PriceChangeDisplay } from "./PriceChangeDisplay";
@@ -102,7 +102,11 @@ function CartItemComponent({
             onClick={() => onDelete(item.id)}
             disabled={isLoading}
           >
-            <Trash className="w-4 h-4" />
+            {isLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Trash className="h-4 w-4" />
+            )}
           </Button>
         )}
       </div>
@@ -151,8 +155,6 @@ export function MultiCartView() {
     type: CartType,
     itemType: "PRESET" | "PACK" | "REQUEST"
   ) => {
-    if (!confirm("Are you sure you want to remove this item?")) return;
-
     try {
       setDeletingId(itemId);
       await dispatch(deleteCartItem({ itemId, type, itemType })).unwrap();
@@ -205,7 +207,9 @@ export function MultiCartView() {
               item={item}
               currentList={CartType.WISHLIST}
               onMove={(to) => handleMoveItem(item.id, CartType.WISHLIST, to)}
-              onDelete={(id) => handleDelete(id, CartType.WISHLIST, item.itemType)}
+              onDelete={(id) =>
+                handleDelete(id, CartType.WISHLIST, item.itemType)
+              }
               isLoading={deletingId === item.id}
             />
           ))}

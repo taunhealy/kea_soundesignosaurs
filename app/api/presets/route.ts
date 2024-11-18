@@ -18,7 +18,7 @@ const presetSchema = z.object({
   presetFileUrl: z.string().min(1),
   originalFileName: z.string().optional(),
   soundPreviewUrl: z.string().optional(),
-  itemType: z.string().default("PRESET"),
+  itemType: z.enum(["PRESET"]).default("PRESET"),
 });
 
 export async function POST(request: Request) {
@@ -88,23 +88,24 @@ export async function POST(request: Request) {
 export async function GET(request: Request) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const { searchParams } = new URL(request.url);
     const view = searchParams.get("view");
+
+    // Check auth only for user-specific views
+    if ((view === "UPLOADED" || view === "DOWNLOADED") && !session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     const where = {
       ...(view === "UPLOADED"
         ? {
-            userId: session.user.id,
+            userId: session?.user?.id,
           }
         : view === "DOWNLOADED"
         ? {
             downloads: {
               some: {
-                userId: session.user.id,
+                userId: session?.user?.id,
               },
             },
           }
@@ -113,7 +114,10 @@ export async function GET(request: Request) {
 
     const presets = await prisma.presetUpload.findMany({
       where,
-      include: {
+      select: {
+        id: true,
+        title: true,
+        description: true,
         genre: true,
         vst: true,
         user: {
@@ -123,27 +127,37 @@ export async function GET(request: Request) {
             image: true,
           },
         },
-        downloads: {
-          where: {
-            userId: session.user.id,
+        userId: true,
+        _count: {
+          select: {
+            downloads: session?.user?.id
+              ? {
+                  where: {
+                    userId: session.user.id,
+                  },
+                }
+              : false,
           },
         },
       },
     });
 
-    // Add auth status to each preset
-    const presetsWithAuth = presets.map(preset => ({
+    // Simple transform with direct property access
+    const presetsWithAuth = presets.map((preset) => ({
       ...preset,
-      isOwner: preset.user?.id === session.user.id,
-      isDownloaded: preset.downloads.length > 0
+      isOwner: preset.userId === session?.user?.id,
+      isDownloaded: preset._count?.downloads > 0,
+      _count: undefined,
     }));
 
-    console.log('Preset with auth:', presetsWithAuth[0]); // Debug log
     return NextResponse.json(presetsWithAuth);
   } catch (error) {
-    console.error("Error fetching presets:", error);
+    console.error("Error in GET /api/presets:", error);
     return NextResponse.json(
-      { error: "Failed to fetch presets" },
+      {
+        error: "Failed to fetch presets",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
       { status: 500 }
     );
   }

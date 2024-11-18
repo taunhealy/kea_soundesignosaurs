@@ -16,7 +16,7 @@ import { toast } from "react-hot-toast";
 import { useAudioPlayer } from "@/app/hooks/useAudioPlayer";
 import { Button } from "./ui/button";
 import { PlayIcon, PauseIcon } from "lucide-react";
-import { AudioPlayer } from "./AudioPlayer";
+
 import { useEffect } from "react";
 import { useItemActions } from "@/app/hooks/useItemActions";
 import { getYouTubeThumbnail } from "@/utils/youtube";
@@ -125,7 +125,13 @@ export function PresetCard({
   const isDownloaded = contentViewMode === ContentViewMode.DOWNLOADED;
 
   return (
-    <Card className="w-full flex flex-row gap-4 p-4">
+    <Card className="w-full flex flex-row gap-4 p-4 relative">
+      <div className="absolute top-4 right-4 bg-muted px-3 py-1.5 rounded-md">
+        <span className="text-sm font-medium">
+          {preset.priceType === PriceType.FREE ? "Free" : `$${preset.price}`}
+        </span>
+      </div>
+
       <div className="flex-1 space-y-4">
         <div>
           <CardTitle>{preset.title}</CardTitle>
@@ -138,14 +144,12 @@ export function PresetCard({
           <p>{preset.description}</p>
           <div className="flex gap-2">
             <Badge>{preset.genre?.name}</Badge>
+            <Badge>{preset.presetType.toString()}</Badge>
             <Badge>{preset.vst?.name}</Badge>
           </div>
         </div>
 
         <div className="space-y-2">
-          {preset.soundPreviewUrl && (
-            <AudioPlayer trackId={preset.id} url={preset.soundPreviewUrl} />
-          )}
           <ItemActionButtons
             itemId={preset.id}
             itemType={ItemType.PRESET}

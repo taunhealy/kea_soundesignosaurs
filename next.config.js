@@ -1,14 +1,19 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  reactStrictMode: true,
   productionBrowserSourceMaps: false,
   webpack: (config, { dev, isServer }) => {
     if (!dev) {
       config.devtool = false;
     }
     config.watchOptions = {
-      poll: 1000,
-      aggregateTimeout: 300,
-    }
+      poll: 500,
+      aggregateTimeout: 150,
+    };
+    config.output = {
+      ...config.output,
+      chunkLoadTimeout: 3000,
+    };
     return config;
   },
 };

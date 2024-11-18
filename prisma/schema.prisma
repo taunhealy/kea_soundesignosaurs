@@ -311,7 +311,8 @@ model CartItem {
   // Child relations
   priceHistory PriceHistory[]
 
-  @@unique([cartId, presetId, packId])
+  @@unique([presetId, packId], name: "unique_item_across_carts")
+  
   @@index([cartId])
   @@index([presetId])
   @@index([packId])

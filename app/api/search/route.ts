@@ -7,43 +7,47 @@ import { getServerSession } from "next-auth";
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const rawItemType = searchParams.get("itemType")?.toUpperCase();
-
-    // Validate itemType
-    if (
-      !rawItemType ||
-      !Object.values(ItemType).includes(rawItemType as ItemType)
-    ) {
-      return NextResponse.json(
-        {
-          error: `Invalid item type. Must be one of: ${Object.values(
-            ItemType
-          ).join(", ")}`,
-        },
-        { status: 400 }
-      );
-    }
-
-    const itemType = rawItemType as ItemType;
+    const page = parseInt(searchParams.get("page") || "1");
+    const pageSize = parseInt(searchParams.get("pageSize") || "20");
+    const itemType = searchParams.get("itemType") as ItemType;
     const view = searchParams.get("view");
     const searchTerm = searchParams.get("searchTerm") || "";
-    const genres = searchParams.get("genres")?.split(",").filter(Boolean) || [];
-    const vstTypes =
-      searchParams.get("vstTypes")?.split(",").filter(Boolean) || [];
-    const presetTypes =
-      searchParams.get("presetTypes")?.split(",").filter(Boolean) || [];
-    const status = searchParams.get("status");
+    const genres = searchParams.get("genres")?.split(",").filter(Boolean);
+    const presetTypes = searchParams
+      .get("presetTypes")
+      ?.split(",")
+      .filter(Boolean);
+    const vstTypes = searchParams.get("vstTypes")?.split(",").filter(Boolean);
+    const priceTypes = searchParams
+      .get("priceTypes")
+      ?.split(",")
+      .filter(Boolean);
 
-    // Modify the session check to use the users id
+    // Get user session
     const session = await getServerSession(authOptions);
     const userId = session?.user?.id;
 
-    // Only check auth for personal views
+    // Check auth for personal views
     if ((view === "UPLOADED" || view === "DOWNLOADED") && !userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const whereClause = {
+    // Build base where clause
+    const whereClause: any = {
+      // Add view-specific conditions first
+      ...(view === "UPLOADED"
+        ? { userId }
+        : view === "DOWNLOADED"
+        ? {
+            downloads: {
+              some: {
+                userId,
+              },
+            },
+          }
+        : {}),
+
+      // Add search term conditions
       ...(searchTerm && {
         OR: [
           { title: { contains: searchTerm, mode: "insensitive" as const } },
@@ -53,7 +57,20 @@ export async function GET(request: Request) {
           },
         ],
       }),
-      // ... rest of the where clause conditions
+
+      // Add other filters
+      ...(genres?.length && {
+        genreId: { in: genres },
+      }),
+      ...(presetTypes?.length && {
+        presetType: { in: presetTypes },
+      }),
+      ...(vstTypes?.length && {
+        vstId: { in: vstTypes },
+      }),
+      ...(priceTypes?.length && {
+        priceType: { in: priceTypes },
+      }),
     };
 
     console.log(
@@ -61,33 +78,57 @@ export async function GET(request: Request) {
       JSON.stringify(whereClause, null, 2)
     );
 
+    const skip = (page - 1) * pageSize;
+
+    console.log("[DEBUG] Search params:", {
+      page,
+      pageSize,
+      itemType,
+      view,
+      searchParams: Object.fromEntries(searchParams),
+    });
+
+    console.log("[DEBUG] Final whereClause:", whereClause);
+
     switch (itemType) {
       case ItemType.PRESET:
-        console.log("Executing preset search...");
-        const presets = await prisma.presetUpload.findMany({
-          where: whereClause,
-          include: {
-            genre: true,
-            vst: true,
-            user: {
-              select: {
-                username: true,
-                image: true,
+        const [presets, totalPresets] = await Promise.all([
+          prisma.presetUpload.findMany({
+            where: whereClause,
+            include: {
+              genre: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+              vst: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+              user: {
+                select: {
+                  username: true,
+                  image: true,
+                },
               },
             },
-            ...(userId
-              ? {
-                  downloads: {
-                    where: {
-                      userId: userId,
-                    },
-                  },
-                }
-              : {}),
-          },
-          orderBy: { createdAt: "desc" },
+            orderBy: { createdAt: "desc" },
+            take: pageSize,
+            skip,
+          }),
+          prisma.presetUpload.count({ where: whereClause }),
+        ]);
+
+        console.log("[DEBUG] Found presets:", {
+          count: presets.length,
+          firstPreset: presets[0],
+          totalPresets,
         });
-        console.log(`Found ${presets.length} presets`);
+
+        // Simplified response to match what ContentExplorer expects
         return NextResponse.json(presets);
 
       case ItemType.PACK:

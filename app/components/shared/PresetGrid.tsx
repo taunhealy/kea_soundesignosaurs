@@ -4,7 +4,7 @@ import { PresetCard } from "@/app/components/PresetCard";
 import { Skeleton } from "@/app/components/ui/skeleton";
 import { ContentViewMode } from "@/types/enums";
 import { PresetUpload } from "@prisma/client";
-import { CreatePresetButton } from "@/app/components/buttons/CreatePresetButton";
+import { CreatePresetButton } from "@/app/components/CreatePresetButton";
 
 interface PresetGridProps {
   presets?: PresetUpload[];
@@ -19,6 +19,12 @@ export function PresetGrid({
   isLoading,
   view,
 }: PresetGridProps) {
+  console.log("[DEBUG] PresetGrid props:", {
+    presetsLength: presets?.length,
+    firstPreset: presets?.[0],
+    contentViewMode,
+  });
+
   const content = (() => {
     if (isLoading) {
       return <LoadingSkeleton />;
@@ -33,16 +39,20 @@ export function PresetGrid({
       );
     }
 
-    return presets.map((preset) => (
-      <PresetCard
-        key={preset.id}
-        preset={preset}
-        contentViewMode={contentViewMode}
-      />
-    ));
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {presets.map((preset) => (
+          <PresetCard
+            key={preset.id}
+            preset={preset}
+            contentViewMode={contentViewMode}
+          />
+        ))}
+      </div>
+    );
   })();
 
-  return <div className="flex flex-col gap-4">{content}</div>;
+  return <div>{content}</div>;
 }
 
 const LoadingSkeleton = () => (

@@ -162,6 +162,7 @@ export function PresetPackCard({ pack, contentViewMode }: PresetPackCardProps) {
           isDownloaded={isOwner || isDownloaded}
           onDelete={handleDelete}
           onEdit={handleEdit}
+          isDeleting={isDeleting}
         />
       </div>
 

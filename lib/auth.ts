@@ -39,16 +39,21 @@ export const authOptions: NextAuthOptions = {
     },
     async redirect({ url, baseUrl }) {
       console.log("🔄 Redirect callback:", { url, baseUrl });
-      // After sign in, go to dashboard/stats
+      // If trying to access a protected page, store it
       if (url.startsWith(baseUrl)) {
-        return `${baseUrl}/dashboard/stats`;
+        return url;
       }
-      return baseUrl;
+      // Default redirect to the presets page
+      return `${baseUrl}/presets`;
     },
   },
   debug: process.env.NODE_ENV === "development", // Enable debug logs in development
   session: {
     strategy: "jwt",
+  },
+  pages: {
+    signIn: '/login',
+    signOut: '/logout',
   },
 };
 

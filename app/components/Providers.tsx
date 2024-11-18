@@ -1,33 +1,44 @@
 "use client";
 
-import { ReactQueryProvider } from "@/app/components/ReactQueryProvider";
-import { SearchProvider } from "@/contexts/SearchContext";
-import ErrorBoundary from "@/app/components/ErrorBoundary";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import dynamic from "next/dynamic";
-import { useState } from "react";
 import { SessionProvider } from "next-auth/react";
+import { useState } from "react";
+import dynamic from "next/dynamic";
 
-const ReactQueryDevtools = dynamic(
+// Dynamically import DevTools with no SSR
+const ReactQueryDevTools = dynamic(
   () =>
-    import("@tanstack/react-query-devtools").then(
-      (mod) => mod.ReactQueryDevtools
-    ),
+    import("@tanstack/react-query-devtools").then((d) => d.ReactQueryDevtools),
   {
     ssr: false,
+    loading: () => null,
   }
 );
 
 export function Providers({ children }: { children: React.ReactNode }) {
-  const [queryClient] = useState(() => new QueryClient());
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: {
+            staleTime: 60 * 1000,
+            refetchOnWindowFocus: false,
+            retry: 1,
+          },
+        },
+      })
+  );
 
   return (
-    <SessionProvider refetchInterval={0} refetchOnWindowFocus={true}>
+    <SessionProvider>
       <QueryClientProvider client={queryClient}>
-        <SearchProvider>
-          <ErrorBoundary>{children}</ErrorBoundary>
-          <ReactQueryDevtools initialIsOpen={false} />
-        </SearchProvider>
+        {children}
+        {process.env.NODE_ENV === "development" && (
+          <ReactQueryDevTools
+            initialIsOpen={false}
+            buttonPosition="bottom-right"
+          />
+        )}
       </QueryClientProvider>
     </SessionProvider>
   );

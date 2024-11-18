@@ -51,26 +51,36 @@ export const addToCart = createAsyncThunk(
     { dispatch, rejectWithValue }
   ) => {
     try {
+      console.log("Starting addToCart thunk with:", {
+        itemId,
+        cartType,
+        itemType,
+      });
+
       if (!cartType || !Object.values(CartType).includes(cartType)) {
         throw new Error(`Invalid cart type: ${cartType}`);
       }
 
       const response = await fetch(`/api/cart/${cartType.toLowerCase()}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          credentials: "include",
+        },
         body: JSON.stringify({
           [itemType === "PRESET" ? "presetId" : "packId"]: itemId,
         }),
-        credentials: "include",
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to add item to cart");
+        console.error("Cart API error:", data);
+        throw new Error(data.error || "Failed to add item to cart");
       }
 
-      const result = await response.json();
-      return result;
+      console.log("Cart API response:", data);
+      return data;
     } catch (error) {
       console.error("Cart operation failed:", error);
       return rejectWithValue(
@@ -175,14 +185,12 @@ const cartSlice = createSlice({
       action: PayloadAction<{ itemId: string; from: CartType; to: CartType }>
     ) => {
       const { itemId, from, to } = action.payload;
-      const item = state[from.toLowerCase()].items.find(
-        (item) => item.id === itemId
-      );
+      const item = state[from].items.find((item) => item.id === itemId);
       if (item) {
-        state[from.toLowerCase()].items = state[
-          from.toLowerCase()
-        ].items.filter((item) => item.id !== itemId);
-        state[to.toLowerCase()].items.push(item);
+        state[from].items = state[from].items.filter(
+          (item) => item.id !== itemId
+        );
+        state[to].items.push(item);
       }
     },
     optimisticAddToCart: (
@@ -194,16 +202,20 @@ const cartSlice = createSlice({
       }>
     ) => {
       const { type, item } = action.payload;
-      const cartType = type.toLowerCase();
-      
+      const cartType = assertCartType(type.toLowerCase());
+
       // Log for debugging
-      console.log('Optimistic update:', { type, item, currentItems: state[cartType].items });
-      
+      console.log("Optimistic update:", {
+        type,
+        item,
+        currentItems: state[cartType].items,
+      });
+
       // Add item to the appropriate list
       state[cartType].items = [...state[cartType].items, serializeItem(item)];
-      
+
       // Log after update
-      console.log('After update:', { updatedItems: state[cartType].items });
+      console.log("After update:", { updatedItems: state[cartType].items });
     },
     revertCartState: (state, action: PayloadAction<CartState>) => {
       return action.payload;
@@ -212,18 +224,15 @@ const cartSlice = createSlice({
   extraReducers: (builder) => {
     builder
       .addCase(fetchCartItems.pending, (state, action) => {
-        const type = assertCartType(action.meta.arg.toLowerCase());
-        state[type.toLowerCase()].status = "loading";
+        state[action.meta.arg].status = "loading";
       })
       .addCase(fetchCartItems.fulfilled, (state, action) => {
-        const type = assertCartType(action.meta.arg.toLowerCase());
-        state[type.toLowerCase()].items = action.payload;
-        state[type.toLowerCase()].status = "idle";
+        state[action.meta.arg].items = action.payload;
+        state[action.meta.arg].status = "idle";
       })
       .addCase(fetchCartItems.rejected, (state, action) => {
-        const type = assertCartType(action.meta.arg.toLowerCase());
-        state[type.toLowerCase()].status = "failed";
-        state[type.toLowerCase()].error = action.error.message || null;
+        state[action.meta.arg].status = "failed";
+        state[action.meta.arg].error = action.error.message || null;
       });
   },
 });
@@ -232,8 +241,8 @@ export const { moveItemOptimistic, optimisticAddToCart, revertCartState } =
   cartSlice.actions;
 
 // Selectors
-export const selectCartItems = (state: RootState) => state.cart.cart.items;
-export const selectWishlistItems = (state: RootState) =>
-  state.cart.wishlist.items;
+export const selectCartItems = (state: RootState) => state.cart[CartType.CART].items;
+export const selectWishlistItems = (state: RootState) => 
+  state.cart[CartType.WISHLIST].items;
 
 export default cartSlice.reducer;

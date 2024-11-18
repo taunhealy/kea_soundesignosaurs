@@ -39,7 +39,7 @@ export function AudioPlayer({
       ) : (
         <PlayIcon className="h-4 w-4 mr-2" />
       )}
-      {isPlaying ? "Pause" : "Play Preview"}
+      {isPlaying ? "Pause" : "Play"}
     </Button>
   );
 }

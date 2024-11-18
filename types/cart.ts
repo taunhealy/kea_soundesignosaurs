@@ -1,12 +1,13 @@
 import { CartType, ItemType } from "@prisma/client";
+import { SearchFilters } from "./SearchTypes";
 
 export interface CartState {
-  cart: {
+  [CartType.CART]: {
     items: CartItem[];
     status: "idle" | "loading" | "failed";
     error: string | null;
   };
-  wishlist: {
+  [CartType.WISHLIST]: {
     items: CartItem[];
     status: "idle" | "loading" | "failed";
     error: string | null;
@@ -15,6 +16,21 @@ export interface CartState {
     [key: string]: boolean;
   };
 }
+
+export interface ItemsState {
+  presets: any[];
+  packs: any[];
+  requests: any[];
+  loading: {
+    [key: string]: boolean;
+  };
+}
+
+export type RootState = {
+  cart: CartState;
+  filters: SearchFilters;
+  items: ItemsState;
+};
 
 export type CartStatus = "idle" | "loading" | "failed";
 
@@ -55,12 +71,12 @@ export interface WishlistItem extends CartItem {
 }
 
 export const initialState: CartState = {
-  cart: {
+  [CartType.CART]: {
     items: [],
     status: "idle",
     error: null,
   },
-  wishlist: {
+  [CartType.WISHLIST]: {
     items: [],
     status: "idle",
     error: null,

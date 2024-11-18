@@ -7,7 +7,6 @@ import { Providers } from "@/app/components/Providers";
 import { ReduxProvider } from "./providers/ReduxProvider";
 import { Toaster } from "react-hot-toast";
 
-
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
@@ -25,13 +24,13 @@ export default function RootLayout({
       <body className={inter.className}>
         <ReduxProvider>
           <Providers>
-              <div className="flex flex-col min-h-screen">
-                <Navbar />
-                <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                  {children}
-                </main>
-                <Toaster />
-              </div>
+            <div className="flex flex-col min-h-screen">
+              <Navbar />
+              <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                {children}
+              </main>
+              <Toaster />
+            </div>
           </Providers>
         </ReduxProvider>
       </body>

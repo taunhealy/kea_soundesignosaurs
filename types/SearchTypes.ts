@@ -37,3 +37,11 @@ export interface SearchSidebarState {
     filters: SearchFilters | ((prev: SearchFilters) => SearchFilters)
   ) => void;
 }
+
+export interface PaginatedResponse<T> {
+  items: T[];
+  totalItems: number;
+  currentPage: number;
+  totalPages: number;
+  hasMore: boolean;
+}

@@ -18,11 +18,11 @@ import {
   TabsTrigger,
 } from "@/app/components/ui/tabs";
 import { CategoryTabs } from "@/app/components/CategoryTabs";
-import { CreatePresetButton } from "@/app/components/buttons/CreatePresetButton";
-import { CreatePackButton } from "@/app/components/buttons/CreatePackButton";
-import { CreateRequestButton } from "@/app/components/buttons/CreateRequestButton";
+import { CreatePresetButton } from "@/app/components/CreatePresetButton";
+import { CreatePackButton } from "@/app/components/CreatePackButton";
+import { CreateRequestButton } from "@/app/components/CreateRequestButton";
 import { useSession } from "next-auth/react";
-import { useViewMode, useSetViewMode } from "@/app/hooks/queries/useViewMode";
+import { useSetViewMode } from "@/app/hooks/queries/useViewMode";
 
 interface ContentExplorerProps {
   itemType: ItemType;
@@ -49,11 +49,16 @@ export function ContentExplorer({
     },
   });
 
-  const items = data || [];
+  console.log("[DEBUG] ContentExplorer - useContent result:", {
+    data,
+    isLoading,
+    filters: {
+      ...initialFilters,
+      view,
+    },
+  });
 
-  console.log("[DEBUG] ContentExplorer view:", initialFilters.view);
-  console.log("[DEBUG] ContentExplorer items count:", items.length);
-  console.log("[DEBUG] ContentExplorer items:", items);
+  const items = data || [];
 
   const { filters, updateFilters } = useSearchState();
 
@@ -83,9 +88,9 @@ export function ContentExplorer({
             const params = new URLSearchParams(searchParams.toString());
             params.set("view", value);
             router.push(`/requests?${params.toString()}`);
-            setState(prev => ({
+            setState((prev) => ({
               ...prev,
-              activeTab: value as ContentViewMode | RequestViewMode
+              activeTab: value as ContentViewMode | RequestViewMode,
             }));
           }}
         >
@@ -107,9 +112,9 @@ export function ContentExplorer({
             params.set("view", currentView);
             params.set("status", value);
             router.push(`/requests?${params.toString()}`);
-            setState(prev => ({
+            setState((prev) => ({
               ...prev,
-              status: value
+              status: value,
             }));
           }}
         >
@@ -141,9 +146,9 @@ export function ContentExplorer({
               const params = new URLSearchParams(searchParams.toString());
               params.set("view", value);
               router.push(`/${itemType.toLowerCase()}s?${params.toString()}`);
-              setState(prev => ({
+              setState((prev) => ({
                 ...prev,
-                activeTab: value as ContentViewMode | RequestViewMode
+                activeTab: value as ContentViewMode | RequestViewMode,
               }));
             }}
           >
@@ -232,40 +237,6 @@ export function ContentExplorer({
     </div>
   );
 }
-
-const getInitialState = (
-  itemType: ItemType,
-  viewParam: string | null
-): {
-  activeTab: ContentViewMode | RequestViewMode;
-  viewMode: string;
-  status: string;
-} => {
-  const view = viewParam || "";
-
-  if (itemType === ItemType.REQUEST) {
-    return {
-      activeTab: RequestViewMode.PUBLIC,
-      viewMode: RequestViewMode.PUBLIC,
-      status: RequestStatus.OPEN,
-    };
-  }
-
-  return {
-    activeTab: ContentViewMode.EXPLORE,
-    viewMode: ContentViewMode.EXPLORE,
-    status: RequestStatus.OPEN,
-  };
-};
-
-const filterRequests = (
-  requests: any[],
-  currentUserId: string,
-  viewMode: string
-) => {
-  if (!requests) return [];
-  return requests;
-};
 
 const getDefaultView = (
   itemType: ItemType

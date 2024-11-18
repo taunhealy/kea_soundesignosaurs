@@ -7,11 +7,15 @@ import {
   TrashIcon,
   EditIcon,
   Loader2Icon,
+  PlayIcon,
+  PauseIcon,
 } from "lucide-react";
 import { useItemActions } from "@/app/hooks/useItemActions";
 import { ItemActionButtonsProps } from "@/types/actions";
 import { DownloadButton } from "./shared/DownloadButton";
 import { ItemType } from "@prisma/client";
+import { useAudioPlayer } from "@/app/hooks/useAudioPlayer";
+import { toast } from "react-hot-toast";
 
 export function ItemActionButtons({
   itemId,
@@ -30,6 +34,16 @@ export function ItemActionButtons({
     itemId,
     itemType,
   });
+
+  // Add error handling for audio player
+  const { isPlaying, activeTrack, play, pause } = useAudioPlayer({
+    onError: (error) => {
+      console.error("Audio playback error:", error);
+      toast.error("Failed to play audio");
+    }
+  });
+  
+  const isCurrentlyPlaying = isPlaying && activeTrack === itemId;
 
   // Show download button if user owns or has downloaded the item
   if (isOwner || isDownloaded) {
@@ -65,7 +79,19 @@ export function ItemActionButtons({
 
   // Show cart/wishlist buttons for non-owned/non-downloaded items
   return (
-    <div className="flex gap-2">
+    <div className="flex items-center gap-2">
+      <Button
+        onClick={() => play(itemId, itemType)}
+        variant="secondary"
+        size="icon"
+        className="h-8 w-8 bg-white/90 hover:bg-white shadow-sm"
+      >
+        {isCurrentlyPlaying ? (
+          <PauseIcon className="h-4 w-4" />
+        ) : (
+          <PlayIcon className="h-4 w-4" />
+        )}
+      </Button>
       <Button
         onClick={() => handleAddToCart()}
         variant="secondary"

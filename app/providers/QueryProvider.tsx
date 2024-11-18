@@ -1,17 +1,30 @@
 "use client";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { useState } from "react";
+import dynamic from "next/dynamic";
 
-export function QueryProvider({ children }: { children: React.ReactNode }) {
+// Dynamically import DevTools with no SSR
+const ReactQueryDevTools = dynamic(
+  () =>
+    import("@tanstack/react-query-devtools").then((d) => d.ReactQueryDevtools),
+  {
+    ssr: false,
+    loading: () => null,
+  }
+);
+
+export default function QueryProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const [queryClient] = useState(
     () =>
       new QueryClient({
         defaultOptions: {
           queries: {
             staleTime: 60 * 1000,
-            refetchOnWindowFocus: false,
           },
         },
       })
@@ -20,7 +33,7 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       {children}
-      <ReactQueryDevtools initialIsOpen={false} />
+      {process.env.NODE_ENV === "development" && <ReactQueryDevTools />}
     </QueryClientProvider>
   );
 }
