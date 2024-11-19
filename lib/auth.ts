@@ -15,6 +15,11 @@ export const authOptions: NextAuthOptions = {
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     }),
   ],
+  pages: {
+    signIn: '/login',
+    signOut: '/logout',
+    error: '/auth/error',
+  },
   callbacks: {
     async jwt({ token, user, account }) {
       // Initial sign in
@@ -38,22 +43,17 @@ export const authOptions: NextAuthOptions = {
       return session;
     },
     async redirect({ url, baseUrl }) {
-      console.log("🔄 Redirect callback:", { url, baseUrl });
       // If trying to access a protected page, store it
       if (url.startsWith(baseUrl)) {
         return url;
       }
-      // Default redirect to the presets page
-      return `${baseUrl}/presets`;
+      // Default redirect to dashboard
+      return `${baseUrl}/dashboard/stats`;
     },
   },
   debug: process.env.NODE_ENV === "development", // Enable debug logs in development
   session: {
     strategy: "jwt",
-  },
-  pages: {
-    signIn: '/login',
-    signOut: '/logout',
   },
 };
 

@@ -1,75 +1,26 @@
-class AudioContextManager {
-  private static instance: AudioContextManager;
-  private audioContext?: AudioContext;
-  private sourceNodes: Map<HTMLAudioElement, MediaElementAudioSourceNode>;
-  private analyserNodes: Map<HTMLAudioElement, AnalyserNode>;
+export default class AudioContextManager {
+  private analyser: AnalyserNode;
+  private dataArray: Uint8Array;
+  private bufferLength: number;
+  private amplitudeMultiplier: number;
 
-  private constructor() {
-    this.sourceNodes = new Map();
-    this.analyserNodes = new Map();
+  constructor(analyser: AnalyserNode, amplitudeMultiplier: number = 1.5) {
+    this.analyser = analyser;
+    this.amplitudeMultiplier = amplitudeMultiplier;
+    this.bufferLength = this.analyser.frequencyBinCount;
+    this.dataArray = new Uint8Array(this.bufferLength);
   }
 
-  static getInstance(): AudioContextManager {
-    if (!AudioContextManager.instance) {
-      AudioContextManager.instance = new AudioContextManager();
-    }
-    return AudioContextManager.instance;
+  getData(): Uint8Array {
+    this.analyser.getByteFrequencyData(this.dataArray);
+    return this.dataArray;
   }
 
-  getContext(): AudioContext {
-    if (!this.audioContext) {
-      this.audioContext = new (window.AudioContext ||
-        (window as any).webkitAudioContext)();
-    }
-    return this.audioContext;
+  getBufferLength(): number {
+    return this.bufferLength;
   }
 
-  setupAudioNode(audioElement: HTMLAudioElement): AnalyserNode {
-    console.log("Setting up audio node");
-    const context = this.getContext();
-
-    // Set CORS attributes on audio element
-    audioElement.crossOrigin = "anonymous";
-
-    // Resume audio context if it's suspended
-    if (context.state === "suspended") {
-      console.log("Resuming audio context");
-      context.resume();
-    }
-
-    // Get or create source node
-    let source = this.sourceNodes.get(audioElement);
-    if (!source) {
-      console.log("Creating new source node");
-      source = context.createMediaElementSource(audioElement);
-      this.sourceNodes.set(audioElement, source);
-    }
-
-    // Get or create analyser node
-    let analyser = this.analyserNodes.get(audioElement);
-    if (!analyser) {
-      console.log("Creating new analyser node");
-      analyser = context.createAnalyser();
-      analyser.fftSize = 256;
-      this.analyserNodes.set(audioElement, analyser);
-    }
-
-    // Connect nodes: source -> analyser -> destination
-    console.log("Connecting audio nodes");
-    source.connect(analyser);
-    analyser.connect(context.destination);
-
-    return analyser;
-  }
-
-  cleanup() {
-    if (this.audioContext) {
-      this.audioContext.close();
-      this.audioContext = undefined;
-      this.sourceNodes.clear();
-      this.analyserNodes.clear();
-    }
+  getAmplitude(index: number): number {
+    return (this.dataArray[index] / 255) * this.amplitudeMultiplier;
   }
 }
-
-export const audioContextManager = AudioContextManager.getInstance();

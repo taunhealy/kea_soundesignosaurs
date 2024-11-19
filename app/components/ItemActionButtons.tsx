@@ -26,8 +26,10 @@ export function ItemActionButtons({
   onEdit,
 }: ItemActionButtonsProps) {
   const {
+    isDeleting,
     isAddingToCart,
     isAddingToWishlist,
+    handleDelete,
     handleAddToCart,
     handleAddToWishlist,
   } = useItemActions({
@@ -64,12 +66,17 @@ export function ItemActionButtons({
               <EditIcon className="h-4 w-4" />
             </Button>
             <Button
-              onClick={onDelete}
+              onClick={handleDelete}
               variant="ghost"
               size="icon"
               className="h-8 w-8 bg-white/90 hover:bg-white shadow-sm"
+              disabled={isDeleting}
             >
-              <TrashIcon className="h-4 w-4" />
+              {isDeleting ? (
+                <Loader2Icon className="h-4 w-4 animate-spin" />
+              ) : (
+                <TrashIcon className="h-4 w-4" />
+              )}
             </Button>
           </div>
         )}

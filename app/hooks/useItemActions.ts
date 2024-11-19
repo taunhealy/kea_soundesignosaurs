@@ -27,11 +27,13 @@ export function useItemActions({
   const handleDelete = async () => {
     try {
       await dispatch(deleteItem({ itemId, itemType })).unwrap();
-      toast.success(`${itemType} deleted successfully`);
+      toast.success(`${itemType.toLowerCase()} deleted successfully`);
     } catch (error) {
       console.error("Delete error:", error);
       toast.error(
-        error instanceof Error ? error.message : `Failed to delete ${itemType}`
+        error instanceof Error 
+          ? error.message 
+          : `Failed to delete ${itemType.toLowerCase()}`
       );
     }
   };

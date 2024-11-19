@@ -33,13 +33,28 @@ export function AudioPlayer({
   };
 
   return (
-    <Button onClick={handleClick} variant="ghost" size="sm" className="w-full">
-      {isPlaying ? (
-        <PauseIcon className="h-4 w-4 mr-2" />
-      ) : (
-        <PlayIcon className="h-4 w-4 mr-2" />
-      )}
-      {isPlaying ? "Pause" : "Play"}
+    <Button 
+      onClick={handleClick} 
+      variant="ghost" 
+      size="sm" 
+      className="w-full relative overflow-hidden"
+    >
+      <div className="flex items-center justify-center w-full">
+        {isPlaying ? (
+          <div className="absolute inset-0 flex items-center">
+            <WaveformVisualizer
+              audioElement={audioElement}
+              isPlaying={isPlaying}
+              amplitudeMultiplier={1.5}
+            />
+          </div>
+        ) : (
+          <PlayIcon className="h-4 w-4 mr-2" />
+        )}
+        <span className="relative z-10 ml-2">
+          {isPlaying ? "Pause" : "Play"}
+        </span>
+      </div>
     </Button>
   );
 }
